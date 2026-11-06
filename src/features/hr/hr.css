@@ -1,0 +1,97 @@
+/* HR Portal Styles */
+.hr-portal-workspace {
+  color-scheme: light;
+}
+.hr-portal-workspace.dark,
+html.dark .hr-portal-workspace {
+  color-scheme: dark;
+}
+
+.hr-portal-workspace * {
+  border-color: rgba(226, 232, 240, 0.8);
+}
+html.dark .hr-portal-workspace * {
+  border-color: rgba(255, 255, 255, 0.07);
+}
+
+.hr-portal-workspace h1,
+.hr-portal-workspace h2,
+.hr-portal-workspace h3,
+.hr-portal-workspace h4,
+.hr-portal-workspace h5 {
+  font-family: inherit;
+  letter-spacing: -0.025em;
+}
+
+.hr-portal-workspace .card,
+.card {
+  @apply rounded-2xl border border-slate-200/80 bg-white shadow-soft dark:border-white/[0.06] dark:bg-ink-900;
+}
+.hr-portal-workspace .card-hover,
+.card-hover {
+  @apply transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-lift dark:hover:border-brand-500/30;
+}
+.hr-portal-workspace .label,
+.label {
+  @apply mb-1.5 block text-[12px] font-semibold uppercase tracking-[0.06em] text-slate-500 dark:text-slate-400;
+}
+.hr-portal-workspace .field,
+.field {
+  @apply w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-500/10 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-brand-400;
+}
+.hr-portal-workspace .table-head,
+.table-head {
+  @apply whitespace-nowrap px-4 py-3.5 text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400;
+}
+.hr-portal-workspace .table-cell,
+.table-cell {
+  @apply whitespace-nowrap px-4 py-4 text-sm text-slate-700 dark:text-slate-300;
+}
+.hr-portal-workspace .table-row,
+.table-row {
+  @apply border-t border-slate-100 transition-colors hover:bg-slate-50/80 dark:border-white/[0.05] dark:hover:bg-white/[0.025];
+}
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+.glass {
+  @apply bg-white/80 backdrop-blur-xl dark:bg-ink-950/80;
+}
+.focus-ring {
+  @apply outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-ink-950;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.text-balance {
+  text-wrap: balance;
+}
+.mask-fade-r {
+  mask-image: linear-gradient(to right, black 88%, transparent 100%);
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+  }
+  .card {
+    box-shadow: none !important;
+    border-color: #e2e8f0 !important;
+    break-inside: avoid;
+  }
+  main {
+    padding: 0 !important;
+  }
+  .print-full {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+}
