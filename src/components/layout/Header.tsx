@@ -638,18 +638,52 @@ export const Header: React.FC<HeaderProps> = ({
                   <button
                     type="button"
                     onClick={() => {
-                      switchUser('usr-mkt-01');
+                      switchUser('usr-mkt-mgr');
                       setUserMenuOpen(false);
-                      navigate('/marketing');
+                      navigate('/marketing/workspace/dashboard');
                     }}
                     className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
-                      currentUser.role === 'marketing'
+                      currentUser.role === 'marketing' && currentUser.marketingSubRole === 'marketing_manager'
+                        ? 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <span>Mktg Manager (M1)</span>
+                    {currentUser.role === 'marketing' && currentUser.marketingSubRole === 'marketing_manager' && <Check className="w-3 h-3" />}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      switchUser('usr-mkt-senior');
+                      setUserMenuOpen(false);
+                      navigate('/marketing/workspace/dashboard');
+                    }}
+                    className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
+                      currentUser.role === 'marketing' && currentUser.marketingSubRole === 'marketing_senior'
+                        ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <span>Senior Mktg (M2)</span>
+                    {currentUser.role === 'marketing' && currentUser.marketingSubRole === 'marketing_senior' && <Check className="w-3 h-3" />}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      switchUser('usr-mkt-junior');
+                      setUserMenuOpen(false);
+                      navigate('/marketing/workspace/dashboard');
+                    }}
+                    className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
+                      currentUser.role === 'marketing' && currentUser.marketingSubRole === 'marketing_junior'
                         ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
                         : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
                     }`}
                   >
-                    <span>Marketing</span>
-                    {currentUser.role === 'marketing' && <Check className="w-3 h-3" />}
+                    <span>Junior Mktg (M3)</span>
+                    {currentUser.role === 'marketing' && currentUser.marketingSubRole === 'marketing_junior' && <Check className="w-3 h-3" />}
                   </button>
 
                   <button

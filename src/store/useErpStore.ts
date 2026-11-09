@@ -532,7 +532,14 @@ export const useErpStore = create<ErpState>()(
         SEED_USERS.forEach((su) => {
           const existingIdx = allUsers.findIndex((u) => u.id === su.id);
           if (existingIdx >= 0) {
-            allUsers[existingIdx] = { ...su, ...allUsers[existingIdx], salesSubRole: su.salesSubRole, name: su.name, email: su.email };
+            allUsers[existingIdx] = {
+              ...su,
+              ...allUsers[existingIdx],
+              salesSubRole: su.salesSubRole,
+              marketingSubRole: su.marketingSubRole,
+              name: su.name,
+              email: su.email,
+            };
             hasNewUsers = true;
           } else {
             allUsers.push(su);
@@ -599,6 +606,12 @@ export const useErpStore = create<ErpState>()(
             cleanEmail.includes('store')
           ) {
             user = allUsers.find((u) => u.role === 'store_manager') || SEED_USERS.find((u) => u.role === 'store_manager');
+          } else if (cleanEmail.includes('meera') || cleanEmail.includes('mkt-mgr') || cleanEmail === 'marketing_manager') {
+            user = allUsers.find((u) => u.id === 'usr-mkt-mgr') || SEED_USERS.find((u) => u.id === 'usr-mkt-mgr');
+          } else if (cleanEmail.includes('rohit') || cleanEmail.includes('mkt-senior') || cleanEmail === 'marketing_senior') {
+            user = allUsers.find((u) => u.id === 'usr-mkt-senior') || SEED_USERS.find((u) => u.id === 'usr-mkt-senior');
+          } else if (cleanEmail.includes('ananya.rao') || cleanEmail.includes('mkt-junior') || cleanEmail === 'marketing_junior') {
+            user = allUsers.find((u) => u.id === 'usr-mkt-junior') || SEED_USERS.find((u) => u.id === 'usr-mkt-junior');
           } else if (
             cleanEmail === 'marketing' ||
             cleanEmail === 'marketing@apexflow-erp.com' ||
@@ -658,6 +671,21 @@ export const useErpStore = create<ErpState>()(
               registeredAt: new Date().toISOString().split('T')[0],
               memberCount: 12,
             };
+          }
+        }
+
+        if (user.role === 'marketing') {
+          const targetRoleId =
+            user.marketingSubRole === 'marketing_manager'
+              ? 'manager'
+              : user.marketingSubRole === 'marketing_senior'
+              ? 'senior'
+              : 'junior';
+          try {
+            localStorage.setItem('tzmicha_erp_demo_role', targetRoleId);
+            localStorage.setItem('totallyerp_demo_role', targetRoleId);
+          } catch {
+            /* ignore */
           }
         }
 
@@ -884,6 +912,20 @@ export const useErpStore = create<ErpState>()(
       switchUser: (userId: string) => {
         const found = get().users.find((u) => u.id === userId);
         if (found) {
+          if (found.role === 'marketing') {
+            const targetRoleId =
+              found.marketingSubRole === 'marketing_manager'
+                ? 'manager'
+                : found.marketingSubRole === 'marketing_senior'
+                ? 'senior'
+                : 'junior';
+            try {
+              localStorage.setItem('tzmicha_erp_demo_role', targetRoleId);
+              localStorage.setItem('totallyerp_demo_role', targetRoleId);
+            } catch {
+              /* ignore */
+            }
+          }
           set({
             currentUser: found,
             currentRole: found.role,

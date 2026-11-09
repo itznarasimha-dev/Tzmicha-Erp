@@ -25,6 +25,8 @@ import {
   Landmark,
   Headset,
   Users,
+  Megaphone,
+  Target,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { PLAN_TIERS } from '../../types';
@@ -131,15 +133,37 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
     bgGradient: 'from-sky-50 to-blue-50 border-sky-200',
   },
   {
-    name: 'Ananya Sharma',
-    roleTitle: 'Field Marketing & Ground Intelligence Lead',
-    email: 'ananya.s@apexflow-erp.com',
+    name: 'Meera Iyer',
+    roleTitle: 'Head of Marketing & Strategy (Tier 1)',
+    email: 'meera.iyer@apexflow-erp.com',
     passwordHint: 'marketing@2026',
-    roleBadge: 'Field Marketing',
+    roleBadge: 'Marketing Manager (M1)',
     teamId: 'APEX-2026',
     teamName: 'Tzmicha ERP & Manufacturing Ltd',
-    icon: <Compass className="w-4 h-4 text-teal-600" />,
-    bgGradient: 'from-teal-50 to-emerald-50 border-teal-200',
+    icon: <Megaphone className="w-4 h-4 text-purple-600" />,
+    bgGradient: 'from-purple-50 to-indigo-50 border-purple-200',
+  },
+  {
+    name: 'Rohit Menon',
+    roleTitle: 'Senior Marketing Executive & Sector Lead (Tier 2)',
+    email: 'rohit.menon@apexflow-erp.com',
+    passwordHint: 'marketing@2026',
+    roleBadge: 'Senior Marketing Exec (M2)',
+    teamId: 'APEX-2026',
+    teamName: 'Tzmicha ERP & Manufacturing Ltd',
+    icon: <Compass className="w-4 h-4 text-indigo-600" />,
+    bgGradient: 'from-indigo-50 to-blue-50 border-indigo-200',
+  },
+  {
+    name: 'Ananya Rao',
+    roleTitle: 'Junior Marketing Executive & Field Outreach (Tier 3)',
+    email: 'ananya.rao@apexflow-erp.com',
+    passwordHint: 'marketing@2026',
+    roleBadge: 'Junior Marketing Exec (M3)',
+    teamId: 'APEX-2026',
+    teamName: 'Tzmicha ERP & Manufacturing Ltd',
+    icon: <Target className="w-4 h-4 text-emerald-600" />,
+    bgGradient: 'from-emerald-50 to-teal-50 border-emerald-200',
   },
   {
     name: 'Suresh Singhania',
@@ -256,7 +280,7 @@ export const SignInPage: React.FC = () => {
       } else if (res.role === 'store_manager') {
         navigate('/store-manager/overview');
       } else if (res.role === 'marketing') {
-        navigate('/marketing');
+        navigate('/marketing/workspace/dashboard');
       } else if (res.role === 'service') {
         navigate('/service');
       } else if (res.role === 'finance') {

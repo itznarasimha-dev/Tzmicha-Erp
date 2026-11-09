@@ -18,6 +18,7 @@ import { MarketingTargets } from '../field-marketing/MarketingTargets';
 import { RoleQueriesChatView } from '../shared/RoleQueriesChatView';
 import { getRoleNavigation, roleWorkspacePath } from './config/roleNavigation';
 import type { DemoRoleId } from './types/workflow';
+import { useErpStore } from '../../store/useErpStore';
 import './styles/index.css';
 
 import {
@@ -86,8 +87,26 @@ function MarketingHeaderRibbon() {
   const { roleId, setRoleId } = useDemoRole();
   const location = useLocation();
   const navigate = useNavigate();
+  const currentUser = useErpStore((s) => s.currentUser);
+  const switchUser = useErpStore((s) => s.switchUser);
 
   const roleNavItems = useMemo(() => getRoleNavigation(roleId), [roleId]);
+
+  const activeSubRole = useMemo(() => {
+    return MARKETING_SUB_ROLES.find((r) => r.id === roleId) || MARKETING_SUB_ROLES[0];
+  }, [roleId]);
+
+  const handleSelectRole = (targetId: DemoRoleId) => {
+    setRoleId(targetId);
+    if (targetId === 'manager') {
+      switchUser('usr-mkt-mgr');
+    } else if (targetId === 'senior') {
+      switchUser('usr-mkt-senior');
+    } else {
+      switchUser('usr-mkt-junior');
+    }
+    navigate(roleWorkspacePath('dashboard'));
+  };
 
   const activeSection = useMemo(() => {
     const parts = location.pathname.split('/').filter(Boolean);
@@ -104,28 +123,30 @@ function MarketingHeaderRibbon() {
 
   return (
     <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] space-y-6">
-      {/* ─── 1. TOP TITLE BANNER ─── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* ─── 1. TOP TITLE BANNER & ACTIVE ROLE IDENTITY ─── */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-              Marketing Department &amp; Outreach
+            <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+              Marketing Department Workspace
             </span>
-            <span className="text-xs text-slate-400 font-medium">Multi-Tier Role Hierarchy</span>
+            <span className="text-xs text-slate-400 font-normal">
+              Logged in as <strong className="text-slate-800 font-semibold">{currentUser?.name || activeSubRole.person}</strong> ({activeSubRole.title})
+            </span>
           </div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            Marketing Operations Portal
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            {activeSubRole.title} Command Desk
             <Sparkles className="w-5 h-5 text-emerald-500" />
           </h1>
-          <p className="text-slate-500 text-xs mt-0.5">
-            Switch between Marketing Manager, Senior Executive, and Junior Specialist to experience role-specific dashboards, sector planning, work assignments, and lead tracking.
+          <p className="text-slate-500 text-sm font-normal mt-0.5 max-w-3xl">
+            {activeSubRole.desc}. Your sidebar navigation, dashboard KPIs, work assignments, and permissions are strictly isolated to this role.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => navigate('/marketing/dashboard')}
-            className={`px-3 py-1.5 rounded-2xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-2xl text-[13px] font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
               location.pathname.startsWith('/marketing/dashboard')
                 ? 'bg-slate-900 text-white shadow-2xs'
                 : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
@@ -137,7 +158,7 @@ function MarketingHeaderRibbon() {
 
           <button
             onClick={() => navigate('/marketing/visits')}
-            className={`px-3 py-1.5 rounded-2xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-2xl text-[13px] font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
               location.pathname.startsWith('/marketing/visits') || location.pathname.startsWith('/marketing/surveys')
                 ? 'bg-slate-900 text-white shadow-2xs'
                 : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
@@ -149,17 +170,14 @@ function MarketingHeaderRibbon() {
         </div>
       </div>
 
-      {/* ─── 2. SUB-ROLE SELECTOR CARDS ─── */}
+      {/* ─── 2. ISOLATED SUB-ROLE DESKS (3 SEPARATE MARKETING ROLES) ─── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {MARKETING_SUB_ROLES.map((r) => {
           const isSelected = roleId === r.id;
           return (
             <button
               key={r.id}
-              onClick={() => {
-                setRoleId(r.id);
-                navigate(roleWorkspacePath('dashboard'));
-              }}
+              onClick={() => handleSelectRole(r.id)}
               className={`p-4 rounded-2xl border text-left transition-all cursor-pointer relative ${
                 isSelected
                   ? 'bg-gradient-to-br from-indigo-50/70 via-white to-purple-50/50 border-indigo-400 shadow-md ring-2 ring-indigo-500/20'
@@ -169,14 +187,14 @@ function MarketingHeaderRibbon() {
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-mono">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 font-mono">
                       {r.level}
                     </span>
-                    <span className={`text-[10px] font-bold px-2 py-0.2 rounded-full border ${r.badgeClass}`}>
+                    <span className={`text-[10px] font-semibold px-2 py-0.2 rounded-full border ${r.badgeClass}`}>
                       {r.badge}
                     </span>
                   </div>
-                  <h3 className="text-sm font-black text-slate-900 mt-1">
+                  <h3 className="text-sm font-semibold text-slate-900 mt-1">
                     {r.title}
                   </h3>
                   <div className="text-xs text-slate-600 font-medium">
@@ -195,7 +213,7 @@ function MarketingHeaderRibbon() {
                 </div>
               </div>
 
-              <p className="text-[11px] text-slate-500 mt-2 line-clamp-2 leading-relaxed">
+              <p className="text-[11px] text-slate-500 font-normal mt-2 line-clamp-2 leading-relaxed">
                 {r.desc}
               </p>
             </button>
@@ -212,9 +230,9 @@ function MarketingHeaderRibbon() {
             <button
               key={item.id}
               onClick={() => navigate(roleWorkspacePath(item.id))}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-2xl text-[13px] font-medium transition-all whitespace-nowrap cursor-pointer shrink-0 ${
                 isActive
-                  ? 'bg-slate-950 text-white shadow-2xs'
+                  ? 'bg-slate-950 text-white font-semibold shadow-2xs'
                   : 'bg-slate-50 text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
               title={item.description}
@@ -229,9 +247,9 @@ function MarketingHeaderRibbon() {
         <div className="h-4 w-px bg-slate-200 mx-1 shrink-0" />
         <button
           onClick={() => navigate('/marketing/visits')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-[13px] font-medium transition-all whitespace-nowrap cursor-pointer shrink-0 ${
             activeSection === 'visits'
-              ? 'bg-slate-950 text-white shadow-2xs'
+              ? 'bg-slate-950 text-white font-semibold shadow-2xs'
               : 'bg-slate-50 text-slate-500 hover:text-slate-800'
           }`}
         >
@@ -240,9 +258,9 @@ function MarketingHeaderRibbon() {
         </button>
         <button
           onClick={() => navigate('/marketing/surveys')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-[13px] font-medium transition-all whitespace-nowrap cursor-pointer shrink-0 ${
             activeSection === 'surveys'
-              ? 'bg-slate-950 text-white shadow-2xs'
+              ? 'bg-slate-950 text-white font-semibold shadow-2xs'
               : 'bg-slate-50 text-slate-500 hover:text-slate-800'
           }`}
         >
@@ -251,9 +269,9 @@ function MarketingHeaderRibbon() {
         </button>
         <button
           onClick={() => navigate('/marketing/dealers')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-[13px] font-medium transition-all whitespace-nowrap cursor-pointer shrink-0 ${
             activeSection === 'dealers'
-              ? 'bg-slate-950 text-white shadow-2xs'
+              ? 'bg-slate-950 text-white font-semibold shadow-2xs'
               : 'bg-slate-50 text-slate-500 hover:text-slate-800'
           }`}
         >
@@ -262,9 +280,9 @@ function MarketingHeaderRibbon() {
         </button>
         <button
           onClick={() => navigate('/marketing/queries')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-[13px] font-medium transition-all whitespace-nowrap cursor-pointer shrink-0 ${
             activeSection === 'queries'
-              ? 'bg-slate-950 text-white shadow-2xs'
+              ? 'bg-slate-950 text-white font-semibold shadow-2xs'
               : 'bg-slate-50 text-slate-500 hover:text-slate-800'
           }`}
         >

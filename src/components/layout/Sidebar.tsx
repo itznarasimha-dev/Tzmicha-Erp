@@ -47,6 +47,19 @@ import {
   FileSignature,
   Coins,
   MessageSquareText,
+  Columns3,
+  Send,
+  Megaphone,
+  UsersRound,
+  Lightbulb,
+  BadgeCheck,
+  FileBarChart,
+  Rocket,
+  CalendarClock,
+  LineChart,
+  UserCheck,
+  ClipboardList,
+  LayoutGrid,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { Badge } from '../ui/Badge';
@@ -313,79 +326,261 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
   ];
 
-  // 3. Marketing Role Nav Items (Multi-Tier Hierarchical & Field Workspaces)
-  const marketingNavItems: NavEntry[] = [
-    { group: 'Marketing Command' },
-    {
-      name: 'Role Workspace',
-      path: '/marketing/workspace',
-      icon: <LayoutDashboard className="w-4 h-4" />,
-      badge: '3 Tiers',
-      badgeVariant: 'success',
-    },
-    {
-      name: 'Overview Dashboard',
-      path: '/marketing/dashboard',
-      icon: <TrendingUp className="w-4 h-4" />,
-    },
-    { group: 'Planning & Assignment' },
-    {
-      name: 'Marketing Planning',
-      path: '/marketing/workspace/planning',
-      icon: <Compass className="w-4 h-4" />,
-    },
-    {
-      name: 'Work Assignment',
-      path: '/marketing/workspace/assignment',
-      icon: <CheckSquare className="w-4 h-4" />,
-    },
-    { group: 'Pipeline & Campaigns' },
-    {
-      name: 'Lead Pipeline',
-      path: '/marketing/workspace/pipeline',
-      icon: <Target className="w-4 h-4" />,
-    },
-    {
-      name: 'Campaign Activities',
-      path: '/marketing/workspace/campaigns',
-      icon: <Sparkles className="w-4 h-4" />,
-    },
-    { group: 'Team & Operations' },
-    {
-      name: 'Team Performance',
-      path: '/marketing/workspace/performance',
-      icon: <Users className="w-4 h-4" />,
-    },
-    {
-      name: 'Expense Approvals',
-      path: '/marketing/workspace/expenses',
-      icon: <Receipt className="w-4 h-4" />,
-    },
-    { group: 'Field Activities' },
-    {
-      name: 'Dealer Visit Planner',
-      path: '/marketing/visits',
-      icon: <MapPin className="w-4 h-4" />,
-    },
-    {
-      name: 'Market Price Surveys',
-      path: '/marketing/surveys',
-      icon: <FileText className="w-4 h-4" />,
-    },
-    {
-      name: 'Dealer Directory',
-      path: '/marketing/dealers',
-      icon: <Building2 className="w-4 h-4" />,
-    },
-    { group: 'Support & Queries' },
-    {
-      name: 'Helpdesk & Queries Chat',
-      path: '/marketing/queries',
-      icon: <MessageSquare className="w-4 h-4" />,
-      badge: (roleQueries || []).filter((q) => (q.requesterRole === 'marketing' || q.requesterId === currentUser?.id) && q.status === 'open').length || undefined,
-      badgeVariant: 'warning',
-    },
-  ];
+  // 3. Marketing Role Nav Items (Strict Sub-Role Scoped Navigation)
+  const marketingSubRole = currentUser?.marketingSubRole || 'marketing_manager';
+  const openMarketingQueries =
+    (roleQueries || []).filter(
+      (q) => (q.requesterRole === 'marketing' || q.requesterId === currentUser?.id) && q.status === 'open'
+    ).length || undefined;
+
+  let marketingNavItems: NavEntry[] = [];
+
+  if (marketingSubRole === 'marketing_manager') {
+    marketingNavItems = [
+      { group: 'Department Command' },
+      {
+        name: 'Manager Dashboard',
+        path: '/marketing/workspace/dashboard',
+        icon: <LayoutDashboard className="w-4 h-4" />,
+      },
+      {
+        name: 'Marketing Department',
+        path: '/marketing/workspace/department',
+        icon: <LayoutGrid className="w-4 h-4" />,
+      },
+      {
+        name: 'Strategic Planning',
+        path: '/marketing/workspace/planning',
+        icon: <Compass className="w-4 h-4" />,
+      },
+      {
+        name: 'Work Assignment Center',
+        path: '/marketing/workspace/assignment',
+        icon: <Columns3 className="w-4 h-4" />,
+      },
+      {
+        name: 'Budget Management',
+        path: '/marketing/workspace/budgets',
+        icon: <Coins className="w-4 h-4" />,
+      },
+      { group: 'Pipeline & Handover' },
+      {
+        name: 'Lead Pipeline',
+        path: '/marketing/workspace/pipeline',
+        icon: <Target className="w-4 h-4" />,
+      },
+      {
+        name: 'Sales Handover',
+        path: '/marketing/workspace/handovers',
+        icon: <Send className="w-4 h-4" />,
+      },
+      {
+        name: 'Campaign Management',
+        path: '/marketing/workspace/campaigns',
+        icon: <Megaphone className="w-4 h-4" />,
+      },
+      { group: 'Governance & Approvals' },
+      {
+        name: 'Team Performance',
+        path: '/marketing/workspace/performance',
+        icon: <UsersRound className="w-4 h-4" />,
+      },
+      {
+        name: 'Expense Approvals',
+        path: '/marketing/workspace/expenses',
+        icon: <Receipt className="w-4 h-4" />,
+      },
+      {
+        name: 'Ideas & Recommendations',
+        path: '/marketing/workspace/ideas',
+        icon: <Lightbulb className="w-4 h-4" />,
+      },
+      {
+        name: 'Approval Center',
+        path: '/marketing/workspace/approvals',
+        icon: <BadgeCheck className="w-4 h-4" />,
+      },
+      {
+        name: 'Executive Reports',
+        path: '/marketing/workspace/reports',
+        icon: <FileBarChart className="w-4 h-4" />,
+      },
+      { group: 'Support & Queries' },
+      {
+        name: 'Helpdesk & Queries Chat',
+        path: '/marketing/queries',
+        icon: <MessageSquare className="w-4 h-4" />,
+        badge: openMarketingQueries,
+        badgeVariant: 'warning',
+      },
+    ];
+  } else if (marketingSubRole === 'marketing_senior') {
+    marketingNavItems = [
+      { group: 'Sector Command' },
+      {
+        name: 'Senior Desk Dashboard',
+        path: '/marketing/workspace/dashboard',
+        icon: <LayoutDashboard className="w-4 h-4" />,
+      },
+      {
+        name: 'Sector Planning',
+        path: '/marketing/workspace/planning',
+        icon: <Compass className="w-4 h-4" />,
+      },
+      {
+        name: 'My Sector Operations',
+        path: '/marketing/workspace/sector',
+        icon: <Briefcase className="w-4 h-4" />,
+      },
+      {
+        name: 'Junior Team Management',
+        path: '/marketing/workspace/team',
+        icon: <Users className="w-4 h-4" />,
+      },
+      { group: 'Work & Execution' },
+      {
+        name: 'Work Assignment',
+        path: '/marketing/workspace/assignment',
+        icon: <Columns3 className="w-4 h-4" />,
+      },
+      {
+        name: 'My Assigned Tasks',
+        path: '/marketing/workspace/tasks',
+        icon: <ClipboardList className="w-4 h-4" />,
+      },
+      { group: 'Leads & Campaigns' },
+      {
+        name: 'Lead Generation',
+        path: '/marketing/workspace/lead-generation',
+        icon: <Target className="w-4 h-4" />,
+      },
+      {
+        name: 'Lead Pipeline',
+        path: '/marketing/workspace/pipeline',
+        icon: <LineChart className="w-4 h-4" />,
+      },
+      {
+        name: 'Customer Follow-ups',
+        path: '/marketing/workspace/follow-ups',
+        icon: <CalendarClock className="w-4 h-4" />,
+      },
+      {
+        name: 'Campaign Activities',
+        path: '/marketing/workspace/campaigns',
+        icon: <Rocket className="w-4 h-4" />,
+      },
+      { group: 'Reviews & Approvals' },
+      {
+        name: 'Team Performance',
+        path: '/marketing/workspace/performance',
+        icon: <TrendingUp className="w-4 h-4" />,
+      },
+      {
+        name: 'Expense Review',
+        path: '/marketing/workspace/expenses',
+        icon: <Receipt className="w-4 h-4" />,
+      },
+      {
+        name: 'Recommendations & Ideas',
+        path: '/marketing/workspace/ideas',
+        icon: <Lightbulb className="w-4 h-4" />,
+      },
+      { group: 'Support & Queries' },
+      {
+        name: 'Helpdesk & Queries Chat',
+        path: '/marketing/queries',
+        icon: <MessageSquare className="w-4 h-4" />,
+        badge: openMarketingQueries,
+        badgeVariant: 'warning',
+      },
+    ];
+  } else {
+    // Junior Marketing Executive
+    marketingNavItems = [
+      { group: 'Daily Work' },
+      {
+        name: 'My Priorities Dashboard',
+        path: '/marketing/workspace/dashboard',
+        icon: <LayoutDashboard className="w-4 h-4" />,
+      },
+      {
+        name: 'Activity Planning',
+        path: '/marketing/workspace/planning',
+        icon: <Compass className="w-4 h-4" />,
+      },
+      {
+        name: 'My Tasks Queue',
+        path: '/marketing/workspace/tasks',
+        icon: <CheckSquare className="w-4 h-4" />,
+      },
+      { group: 'Lead Prospecting' },
+      {
+        name: 'Lead Capture',
+        path: '/marketing/workspace/lead-generation',
+        icon: <Target className="w-4 h-4" />,
+      },
+      {
+        name: 'Scheduled Follow-ups',
+        path: '/marketing/workspace/follow-ups',
+        icon: <CalendarClock className="w-4 h-4" />,
+      },
+      {
+        name: 'My Lead Pipeline',
+        path: '/marketing/workspace/pipeline',
+        icon: <Columns3 className="w-4 h-4" />,
+      },
+      {
+        name: 'Daily Activity Log',
+        path: '/marketing/workspace/activities',
+        icon: <Activity className="w-4 h-4" />,
+      },
+      {
+        name: 'Campaign Tasks',
+        path: '/marketing/workspace/campaigns',
+        icon: <Rocket className="w-4 h-4" />,
+      },
+      { group: 'Field Utilities' },
+      {
+        name: 'Dealer Visit Planner',
+        path: '/marketing/visits',
+        icon: <MapPin className="w-4 h-4" />,
+      },
+      {
+        name: 'Market Price Surveys',
+        path: '/marketing/surveys',
+        icon: <FileText className="w-4 h-4" />,
+      },
+      {
+        name: 'Dealer Directory',
+        path: '/marketing/dealers',
+        icon: <Building2 className="w-4 h-4" />,
+      },
+      { group: 'Claims & Output' },
+      {
+        name: 'Submit Expenses',
+        path: '/marketing/workspace/expenses',
+        icon: <Receipt className="w-4 h-4" />,
+      },
+      {
+        name: 'Submit Ideas',
+        path: '/marketing/workspace/ideas',
+        icon: <Lightbulb className="w-4 h-4" />,
+      },
+      {
+        name: 'My Performance',
+        path: '/marketing/workspace/performance',
+        icon: <UserCheck className="w-4 h-4" />,
+      },
+      { group: 'Support & Queries' },
+      {
+        name: 'Helpdesk & Queries Chat',
+        path: '/marketing/queries',
+        icon: <MessageSquare className="w-4 h-4" />,
+        badge: openMarketingQueries,
+        badgeVariant: 'warning',
+      },
+    ];
+  }
 
   // 4. Admin Role Nav Items
   const adminNavItems: NavEntry[] = [
@@ -992,11 +1187,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </div>
                 <span className="text-[9px] text-slate-400 font-medium uppercase tracking-[0.08em] block">
                   {activeRole === 'sales'
-                    ? 'Sales Portal'
+                    ? (currentUser.salesSubRole === 'sales_manager'
+                        ? 'Sales Manager'
+                        : currentUser.salesSubRole === 'sales_coordinator'
+                        ? 'Sales Coordinator'
+                        : currentUser.salesSubRole === 'junior_sales'
+                        ? 'Junior Sales'
+                        : 'Senior Sales Rep')
                     : activeRole === 'store_manager'
                     ? 'Store Keeper'
                     : activeRole === 'marketing'
-                    ? 'Field Marketing'
+                    ? (currentUser.marketingSubRole === 'marketing_manager'
+                        ? 'Marketing Manager'
+                        : currentUser.marketingSubRole === 'marketing_senior'
+                        ? 'Senior Marketing Exec'
+                        : 'Junior Marketing Exec')
                     : activeRole === 'finance'
                     ? 'Finance Hub'
                     : activeRole === 'service'

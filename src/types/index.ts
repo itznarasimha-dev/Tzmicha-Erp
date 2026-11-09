@@ -90,6 +90,7 @@ export interface User {
   email: string;
   role: UserRole;
   salesSubRole?: 'sales_manager' | 'sales_coordinator' | 'sales_rep' | 'junior_sales';
+  marketingSubRole?: 'marketing_manager' | 'marketing_senior' | 'marketing_junior';
   avatar: string;
   phone: string;
   employeeId?: string;
