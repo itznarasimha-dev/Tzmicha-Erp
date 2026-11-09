@@ -72,14 +72,6 @@ export function WorkspaceLayout({
   const nav = getRoleNavigation(roleId)
   return (
     <div className={`ws-shell ws-shell--${roleId} ${className}`.trim()}>
-      <div className="ws-role-strip">
-        <span className="ws-role-strip__dot" style={{ background: accent.accent }} aria-hidden="true" />
-        <span className="ws-role-strip__label">{accent.eyebrow}</span>
-        <span className="ws-role-strip__divider" aria-hidden="true" />
-        <span className="ws-role-strip__scope">{accent.label}</span>
-        <span className="ws-role-strip__demo">Preview role · local demo only</span>
-      </div>
-
       <PageHeader
         eyebrow={eyebrow ?? accent.eyebrow}
         title={title}
@@ -711,14 +703,7 @@ export function StatPill({ icon, label, value }: { icon: ReactNode; label: strin
 }
 
 export function DemoFooter({ children }: { children?: ReactNode }) {
-  return (
-    <div className="ws-demo-footer">
-      <Sparkles size={13} aria-hidden="true" />
-      <span>
-        {children ?? 'All records, approvals and financial figures on this page are local frontend demonstrations. No backend, payment or notification service is connected.'}
-      </span>
-    </div>
-  )
+  return null
 }
 
 export function SectionLink({ to, children }: { to: string; children: ReactNode }) {

@@ -17,9 +17,9 @@
   --clr-border: #f1f5f9;
   --clr-border-strong: #e2e8f0;
 
-  --clr-accent: #74d138;
-  --clr-accent-light: #8be04e;
-  --clr-accent-dark: #5dbf24;
+  --clr-accent: #4f46e5;
+  --clr-accent-light: #6366f1;
+  --clr-accent-dark: #3730a3;
 
   --clr-text-primary: #0f172a;
   --clr-text-secondary: #475569;
@@ -337,45 +337,27 @@
   box-shadow: 0 12px 28px -6px rgba(15, 23, 42, 0.08);
 }
 
-/* ─── Summary Metric Card ──────────────────────────────────── */
+/* ─── Summary Metric Card (Admin UI Standard) ───────────── */
 .metric-card {
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(18px) saturate(180%);
-  -webkit-backdrop-filter: blur(18px) saturate(180%);
-  border: 1px solid rgba(226, 232, 240, 0.85);
-  border-radius: 1.5rem;
-  padding: 22px;
+  background: #ffffff;
+  border: 1px solid #f1f5f9;
+  border-radius: 1rem;
+  padding: 18px 20px;
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   overflow: hidden;
-  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04), inset 0 1px 0 0 rgba(255, 255, 255, 0.95);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.02);
 }
 
 .metric-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3.5px;
-  border-radius: 1.5rem 1.5rem 0 0;
-  transition: var(--transition);
+  display: none;
 }
 
-.metric-card.accent-blue::before { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
-.metric-card.accent-amber::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
-.metric-card.accent-purple::before { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
-.metric-card.accent-emerald::before { background: linear-gradient(90deg, #74d138, #8be04e); }
-.metric-card.accent-cyan::before { background: linear-gradient(90deg, #06b6d4, #22d3ee); }
-.metric-card.accent-orange::before { background: linear-gradient(90deg, #f97316, #fb923c); }
-.metric-card.accent-rose::before { background: linear-gradient(90deg, #f43f5e, #fb7185); }
-.metric-card.accent-indigo::before { background: linear-gradient(90deg, #6366f1, #818cf8); }
-
 .metric-card:hover {
-  border-color: rgba(99, 102, 241, 0.35);
-  transform: translateY(-3px);
-  box-shadow: 0 16px 36px -10px rgba(99, 102, 241, 0.18), inset 0 1px 0 0 rgba(255, 255, 255, 1);
+  border-color: #cbd5e1;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -6px rgba(15, 23, 42, 0.08);
 }
 
 /* ─── Status Badges ────────────────────────────────────────── */

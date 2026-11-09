@@ -820,3 +820,141 @@ table {
   background: rgba(100, 116, 139, 0.5);
 }
 
+/* ============================================================
+   APEXFLOW ERP — UNIFIED ADMIN UI DESIGN HARMONIZATION
+   Enforces consistent Admin-style cards, tables, filter bars,
+   and badges across ALL roles (Marketing, Sales, Store, HR, Finance).
+   ============================================================ */
+
+/* 1. Global Standardized Cards */
+.card,
+.ws-card,
+.metric-card,
+.sk-card,
+.content-card,
+.table-container-card {
+  background-color: #ffffff;
+  border: 1px solid #f1f5f9;
+  border-radius: 1.5rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.025);
+}
+
+/* Compact KPI & Metric Cards */
+.metric-card,
+.kpi,
+.stat-card,
+.stat-card-root {
+  border-radius: 1rem !important;
+  background-color: #ffffff !important;
+  border: 1px solid #f1f5f9 !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.02) !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.metric-card:hover,
+.kpi:hover,
+.stat-card:hover {
+  transform: translateY(-2px);
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 8px 24px -6px rgba(15, 23, 42, 0.06) !important;
+}
+
+/* Disable harsh non-Admin stripes on cards */
+.metric-card::before,
+.metric-card-primary,
+.metric-card-success,
+.metric-card-warning,
+.metric-card-danger {
+  border-left-width: 1px !important;
+}
+
+/* 2. Global Standardized Tables & Wrappers */
+.table-wrap,
+.table-responsive,
+.erp-table-wrapper,
+.ws-table-wrap,
+.table-container-card {
+  background-color: #ffffff;
+  border: 1px solid #f1f5f9;
+  border-radius: 1.5rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.02);
+  overflow: hidden;
+}
+
+/* Table Column Headers across all roles */
+table th,
+.table th,
+.erp-table th,
+.enterprise-table th,
+.table-head {
+  background-color: rgba(248, 250, 252, 0.85) !important;
+  color: #94a3b8 !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  padding: 12px 16px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  white-space: nowrap;
+}
+
+/* Table Rows & Cells across all roles */
+table td,
+.table td,
+.erp-table td,
+.enterprise-table td,
+.table-cell {
+  padding: 12px 16px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  color: #334155 !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  vertical-align: middle;
+}
+
+table tbody tr:hover,
+.table tbody tr:hover,
+.erp-table tbody tr:hover,
+.enterprise-table tr:hover td,
+.table-row:hover {
+  background-color: rgba(248, 250, 252, 0.75) !important;
+}
+
+/* 3. Global Standardized Filter & Search Bars */
+.toolbar,
+.filter-bar,
+.search-filter-bar {
+  background-color: #ffffff !important;
+  border: 1px solid #f1f5f9 !important;
+  border-radius: 1rem !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.02) !important;
+}
+
+.toolbar input,
+.filter-bar input,
+.search-filter-bar input,
+.toolbar select,
+.filter-bar select,
+.search-filter-bar select {
+  background-color: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 0.75rem !important;
+  color: #0f172a !important;
+  font-size: 13px !important;
+}
+
+/* 4. Global Standardized Status Badges */
+.status-badge,
+.badge,
+.pill-badge {
+  border-radius: 9999px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.005em !important;
+  padding: 2px 8px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+
