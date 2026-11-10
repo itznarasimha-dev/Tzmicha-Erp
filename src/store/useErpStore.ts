@@ -688,6 +688,14 @@ export const useErpStore = create<ErpState>()(
             /* ignore */
           }
         }
+        if (user.role === 'service') {
+          const targetServiceRole = user.serviceSubRole || 'manager';
+          try {
+            localStorage.setItem('apexerp_service_active_role', targetServiceRole);
+          } catch {
+            /* ignore */
+          }
+        }
 
         set({
           currentUser: user,
@@ -922,6 +930,14 @@ export const useErpStore = create<ErpState>()(
             try {
               localStorage.setItem('tzmicha_erp_demo_role', targetRoleId);
               localStorage.setItem('totallyerp_demo_role', targetRoleId);
+            } catch {
+              /* ignore */
+            }
+          }
+          if (found.role === 'service') {
+            const targetServiceRole = found.serviceSubRole || 'manager';
+            try {
+              localStorage.setItem('apexerp_service_active_role', targetServiceRole);
             } catch {
               /* ignore */
             }

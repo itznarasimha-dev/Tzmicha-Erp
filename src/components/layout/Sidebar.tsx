@@ -57,6 +57,7 @@ import {
   Rocket,
   CalendarClock,
   LineChart,
+  Wrench,
   UserCheck,
   ClipboardList,
   LayoutGrid,
@@ -851,63 +852,100 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
   ];
 
-  // 6. Service Role Nav Items (Dedicated Coming Soon Portal Experience)
+  // 6. Service Role Nav Items (Dedicated 9-Workspaces Department Portal)
+  const isServiceManagerOrCoord =
+    currentUser?.role === 'admin' ||
+    currentUser?.role === 'manager' ||
+    !currentUser?.serviceSubRole ||
+    currentUser?.serviceSubRole === 'manager' ||
+    currentUser?.serviceSubRole === 'coordinator';
+
   const serviceNavItems: NavEntry[] = [
-    { group: 'Support Operations' },
+    { group: 'Operations Overview' },
     {
-      name: 'Service Desk Overview',
-      path: '/service',
-      icon: <ShieldCheck className="w-4 h-4" />,
-      badge: 'Coming Soon',
-      badgeVariant: 'purple',
+      name: 'Service Dashboard',
+      path: '/service/dashboard',
+      icon: <LayoutDashboard className='w-4 h-4' />,
     },
-    { group: 'RMA & Quality (Roadmap)' },
+    { group: 'Customers & Coverage' },
     {
-      name: 'RMA Customer Claims (v2.5)',
-      path: '/service',
-      icon: <ArrowRightLeft className="w-4 h-4" />,
-      badge: 'v2.5',
-      badgeVariant: 'neutral',
+      name: 'Customer Directory',
+      path: '/service/customers',
+      icon: <Users className='w-4 h-4' />,
     },
     {
-      name: 'Technical Inspection (v2.5)',
-      path: '/service',
-      icon: <PackageCheck className="w-4 h-4" />,
-      badge: 'v2.5',
-      badgeVariant: 'neutral',
+      name: 'Warranty & AMC Coverage',
+      path: '/service/customers/warranty-amc',
+      icon: <ShieldCheck className='w-4 h-4' />,
+    },
+    { group: 'Field Service & Requests' },
+    {
+      name: 'Service Requests',
+      path: '/service/service-requests',
+      icon: <ClipboardList className='w-4 h-4' />,
     },
     {
-      name: 'Field Engineer Dispatch (v2.6)',
-      path: '/service',
-      icon: <Truck className="w-4 h-4" />,
-      badge: 'v2.6',
-      badgeVariant: 'neutral',
-    },
-    { group: 'Role Portals Quick Access' },
-    {
-      name: 'Executive Dashboard',
-      path: '/admin/dashboard',
-      icon: <LayoutDashboard className="w-4 h-4" />,
+      name: 'Work Assignment Desk',
+      path: '/service/service-requests/work-assignment',
+      icon: <UserCheck className='w-4 h-4' />,
     },
     {
-      name: 'Field Sales Desk',
-      path: '/sales',
-      icon: <Briefcase className="w-4 h-4" />,
+      name: 'Field Service Execution',
+      path: '/service/service-execution',
+      icon: <Wrench className='w-4 h-4' />,
+    },
+    { group: 'Inventory & Materials' },
+    {
+      name: 'Spare Parts & Inventory',
+      path: '/service/inventory',
+      icon: <Package className='w-4 h-4' />,
+    },
+    { group: 'Action Plan & Scheduling' },
+    {
+      name: 'My Field Schedule',
+      path: '/service/action-plan/my-schedule',
+      icon: <CalendarClock className='w-4 h-4' />,
+    },
+    ...(isServiceManagerOrCoord
+      ? [
+          {
+            name: 'Team Schedule Overview',
+            path: '/service/action-plan/team-schedule',
+            icon: <Calendar className='w-4 h-4' />,
+          },
+        ]
+      : []),
+    {
+      name: 'Technician Attendance',
+      path: '/service/action-plan/attendance',
+      icon: <CalendarCheck className='w-4 h-4' />,
+    },
+    { group: 'Billing & History' },
+    {
+      name: 'Service Billing & Invoices',
+      path: '/service/service-billing',
+      icon: <Receipt className='w-4 h-4' />,
     },
     {
-      name: 'Store Keeper Hub',
-      path: '/store-manager/overview',
-      icon: <Warehouse className="w-4 h-4" />,
+      name: 'Service History & Audit',
+      path: '/service/service-history',
+      icon: <History className='w-4 h-4' />,
     },
-    { group: 'Support & Queries' },
+    { group: 'Analytics & Support' },
+    {
+      name: 'Reports & Analytics',
+      path: '/service/reports',
+      icon: <FileBarChart className='w-4 h-4' />,
+    },
     {
       name: 'Customer & Internal Queries',
       path: '/service/queries',
-      icon: <MessageSquare className="w-4 h-4" />,
+      icon: <MessageSquare className='w-4 h-4' />,
       badge: (roleQueries || []).filter((q) => (q.requesterRole === 'service' || q.requesterId === currentUser?.id) && q.status === 'open').length || undefined,
       badgeVariant: 'warning',
     },
   ];
+
 
   // 7. Manager Role Nav Items (Full Operational Access, Excluding Audit Logs & Subscriptions)
   const managerNavItems: NavEntry[] = [
@@ -1210,7 +1248,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     : activeRole === 'finance'
                     ? 'Finance Hub'
                     : activeRole === 'service'
-                    ? 'Service Desk'
+                    ? (currentUser.serviceSubRole === 'manager'
+                        ? 'Service Manager'
+                        : currentUser.serviceSubRole === 'coordinator'
+                        ? 'Service Coordinator'
+                        : currentUser.serviceSubRole === 'employee'
+                        ? 'Service Employee'
+                        : 'Service Engineer')
                     : activeRole === 'hr'
                     ? 'Human Resources'
                     : 'Enterprise Admin'}

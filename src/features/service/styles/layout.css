@@ -1,0 +1,343 @@
+/* ==========================================================================
+   ApexERP – Layout Structure & Shell Styles
+   ========================================================================== */
+
+.app-layout {
+  min-height: 100vh;
+  width: 100%;
+  background-color: var(--color-main-bg);
+  color: var(--color-text-primary);
+  display: flex;
+  position: relative;
+}
+
+/* Sidebar Container */
+.app-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: var(--sidebar-width);
+  background-color: var(--color-sidebar-bg);
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  z-index: var(--z-sidebar);
+  transition: var(--transition-sidebar);
+  user-select: none;
+  overflow: hidden;
+}
+
+.app-sidebar.collapsed {
+  width: var(--sidebar-width-collapsed);
+}
+
+/* Sidebar Top Branding Area */
+.sidebar-branding-wrapper {
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--spacing-md);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.app-sidebar.collapsed .sidebar-branding-wrapper {
+  padding: 0;
+  justify-content: center;
+}
+
+/* Sidebar Nav Scrollable Area */
+.sidebar-nav-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--spacing-sm) var(--spacing-xs);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+}
+
+/* Custom Slim Scrollbar for Sidebar */
+.sidebar-nav-container::-webkit-scrollbar {
+  width: 4px;
+}
+.sidebar-nav-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar-nav-container::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+}
+.sidebar-nav-container::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* Sidebar Section Header */
+.sidebar-section-title {
+  padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-xs);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-secondary);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity var(--transition-fast);
+}
+
+.app-sidebar.collapsed .sidebar-section-title {
+  text-align: center;
+  padding: var(--spacing-sm) 0 var(--spacing-xs);
+  font-size: 9px;
+  letter-spacing: 0;
+  opacity: 0.6;
+}
+
+/* Sidebar Navigation Items */
+.sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+  position: relative;
+  white-space: nowrap;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+}
+
+.sidebar-nav-item:hover {
+  background-color: var(--color-hover-bg);
+  color: var(--color-text-primary);
+}
+
+.sidebar-nav-item.active {
+  background-color: var(--color-light-lavender);
+  color: var(--color-primary-purple);
+  font-weight: var(--font-weight-semibold);
+  border-color: rgba(85, 37, 140, 0.12);
+}
+
+.sidebar-nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  background-color: var(--color-primary-purple);
+  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+}
+
+.sidebar-nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: currentColor;
+  transition: color var(--transition-fast);
+}
+
+.sidebar-nav-label {
+  font-size: var(--font-size-sm);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+.app-sidebar.collapsed .sidebar-nav-item {
+  justify-content: center;
+  padding: 11px 0;
+  border-radius: var(--radius-md);
+}
+
+.app-sidebar.collapsed .sidebar-nav-label {
+  display: none;
+}
+
+.app-sidebar.collapsed .sidebar-nav-item.active::before {
+  display: none;
+}
+
+/* Sidebar Footer (User Profile) */
+.sidebar-footer-wrapper {
+  margin-top: auto;
+  border-top: 1px solid var(--color-border);
+  padding: var(--spacing-sm);
+  flex-shrink: 0;
+  background-color: var(--color-sidebar-bg);
+}
+
+.app-sidebar.collapsed .sidebar-footer-wrapper {
+  padding: var(--spacing-sm) 4px;
+}
+
+/* Top Header */
+.app-header {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: var(--sidebar-width);
+  height: var(--header-height);
+  background-color: var(--color-header-bg);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--spacing-lg);
+  z-index: var(--z-header);
+  transition: left var(--transition-sidebar);
+}
+
+.app-header.sidebar-collapsed {
+  left: var(--sidebar-width-collapsed);
+}
+
+/* Header Sections */
+.header-left-section {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex-shrink: 0;
+}
+
+.header-center-section {
+  flex: 1;
+  max-width: 580px;
+  margin: 0 var(--spacing-lg);
+}
+
+.header-right-section {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-shrink: 0;
+}
+
+/* Main Content Area */
+.app-main-content {
+  margin-left: var(--sidebar-width);
+  margin-top: var(--header-height);
+  flex: 1;
+  min-height: calc(100vh - var(--header-height));
+  padding: 24px 28px;
+  background-color: var(--color-main-bg);
+  transition: margin-left var(--transition-sidebar);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: calc(100% - var(--sidebar-width));
+  overflow-x: hidden;
+}
+
+.app-main-content.sidebar-collapsed {
+  margin-left: var(--sidebar-width-collapsed);
+  width: calc(100% - var(--sidebar-width-collapsed));
+}
+
+.content-container {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Mobile Backdrop Overlay */
+.app-sidebar-backdrop {
+  display: none;
+}
+
+/* ==========================================================================
+   Responsive Adaptations
+   ========================================================================== */
+
+/* Laptop & Medium Screens */
+@media (max-width: 1024px) {
+  .header-center-section {
+    max-width: 420px;
+    margin: 0 var(--spacing-md);
+  }
+
+  .app-main-content {
+    padding: var(--spacing-lg);
+  }
+}
+
+/* Tablet & Mobile Screens */
+@media (max-width: 768px) {
+  .app-sidebar {
+    transform: translateX(-100%);
+    width: var(--sidebar-width) !important;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .app-sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .app-sidebar.collapsed {
+    transform: translateX(-100%);
+  }
+
+  .app-sidebar.collapsed.mobile-open {
+    transform: translateX(0);
+    width: var(--sidebar-width) !important;
+  }
+
+  .app-sidebar.collapsed.mobile-open .sidebar-nav-label {
+    display: inline;
+  }
+
+  .app-sidebar.collapsed.mobile-open .sidebar-nav-item {
+    justify-content: flex-start;
+    padding: 10px 12px;
+  }
+
+  .app-sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background-color: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(2px);
+    z-index: var(--z-overlay);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--transition-normal);
+  }
+
+  .app-sidebar-backdrop.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .app-header {
+    left: 0 !important;
+    padding: 0 var(--spacing-md);
+  }
+
+  .app-main-content {
+    margin-left: 0 !important;
+    padding: var(--spacing-md);
+  }
+
+  .header-center-section {
+    display: none; /* Can be opened via mobile search icon or kept streamlined */
+  }
+
+  .role-selector-container {
+    display: none; /* Hide non-essential role badge on very small screens */
+  }
+}

@@ -34,7 +34,7 @@ import { AdminAttendanceLeaveView } from './features/admin/AdminAttendanceLeaveV
 import { AdminInvoicesView } from './features/admin/AdminInvoicesView';
 import { CustomersDirectoryView } from './features/shared/CustomersDirectoryView';
 import { FinanceComingSoonView } from './features/shared/FinanceComingSoonView';
-import { ServiceComingSoonView } from './features/shared/ServiceComingSoonView';
+import { ServicePortalLayout } from './features/service/ServicePortalLayout';
 import { RoleQueriesChatView } from './features/shared/RoleQueriesChatView';
 
 // Dedicated Finance Role Portal Views
@@ -187,8 +187,33 @@ export const App: React.FC = () => {
           <Route path="finance/audit-trail" element={<FinanceReportsAuditView />} />
 
           {/* Service Role Dedicated Portal (Coming Soon Experience) */}
-          <Route path="service/*" element={<ServiceComingSoonView />} />
-          <Route path="service" element={<ServiceComingSoonView />} />
+          <Route
+            path="service/*"
+            element={
+              <RoleGuard allowedRoles={['service', 'admin', 'manager']}>
+                <ServicePortalLayout />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="service"
+            element={
+              <RoleGuard allowedRoles={['service', 'admin', 'manager']}>
+                <ServicePortalLayout />
+              </RoleGuard>
+            }
+          />
+
+          {/* Service Department Direct Shortcuts */}
+          <Route path="service-requests" element={<Navigate to="/service/service-requests" replace />} />
+          <Route path="work-assignment" element={<Navigate to="/service/service-requests/work-assignment" replace />} />
+          <Route path="service-execution" element={<Navigate to="/service/service-execution" replace />} />
+          <Route path="service-billing" element={<Navigate to="/service/service-billing" replace />} />
+          <Route path="service-history" element={<Navigate to="/service/service-history" replace />} />
+          <Route path="my-scheduled" element={<Navigate to="/service/action-plan/my-schedule" replace />} />
+          <Route path="my-schedule" element={<Navigate to="/service/action-plan/my-schedule" replace />} />
+          <Route path="team-schedule" element={<Navigate to="/service/action-plan/team-schedule" replace />} />
+          <Route path="warranty-amc" element={<Navigate to="/service/customers/warranty-amc" replace />} />
 
           {/* Human Resources Role Portal (14 Workspaces) */}
           <Route
