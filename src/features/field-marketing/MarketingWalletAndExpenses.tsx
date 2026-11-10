@@ -53,7 +53,7 @@ export const MarketingWalletAndExpenses: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             Field Marketing Wallet & Reimbursements
             <Badge variant="success" size="sm">Private Ground Ledger</Badge>
           </h1>
@@ -79,7 +79,7 @@ export const MarketingWalletAndExpenses: React.FC = () => {
             <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">Available Advance Balance</span>
             <Wallet className="w-5 h-5 text-emerald-600" />
           </div>
-          <div className="text-3xl font-black text-slate-900 mt-2">
+          <div className="text-3xl font-bold text-slate-900 mt-2">
             ₹{currentUser.walletBalance.toLocaleString('en-IN')}
           </div>
           <p className="text-[11px] text-slate-500 mt-1">Available company travel funds</p>
@@ -90,7 +90,7 @@ export const MarketingWalletAndExpenses: React.FC = () => {
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Pending Review</span>
             <Clock className="w-5 h-5 text-amber-600" />
           </div>
-          <div className="text-3xl font-black text-amber-700 mt-2">
+          <div className="text-3xl font-bold text-amber-700 mt-2">
             ₹{pendingTotal.toLocaleString('en-IN')}
           </div>
           <p className="text-[11px] text-slate-500 mt-1">Submitted claims awaiting approval</p>
@@ -101,7 +101,7 @@ export const MarketingWalletAndExpenses: React.FC = () => {
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Settled</span>
             <CheckCircle2 className="w-5 h-5 text-purple-600" />
           </div>
-          <div className="text-3xl font-black text-purple-700 mt-2">
+          <div className="text-3xl font-bold text-purple-700 mt-2">
             ₹{approvedTotal.toLocaleString('en-IN')}
           </div>
           <p className="text-[11px] text-slate-500 mt-1">Approved & cleared expenses</p>

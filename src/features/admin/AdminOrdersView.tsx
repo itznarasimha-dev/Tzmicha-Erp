@@ -153,7 +153,7 @@ export const AdminOrdersView: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200/80">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
             Orders &amp; Dispatches Hub
             <Badge variant="purple" size="sm">Master Registry</Badge>
           </h1>
@@ -192,7 +192,7 @@ export const AdminOrdersView: React.FC = () => {
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
               Outbound Sales Orders
             </span>
-            <div className="text-2xl font-black text-indigo-700 mt-1">
+            <div className="text-2xl font-bold text-indigo-700 mt-1">
               ₹{(totalSalesRevenue / 100000).toFixed(1)}L
             </div>
             <span className="text-[10px] text-slate-500 font-semibold mt-0.5 block">
@@ -210,7 +210,7 @@ export const AdminOrdersView: React.FC = () => {
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
               Inbound Procurement
             </span>
-            <div className="text-2xl font-black text-slate-900 mt-1">
+            <div className="text-2xl font-bold text-slate-900 mt-1">
               ₹{(totalProcurementSpend / 100000).toFixed(1)}L
             </div>
             <span className="text-[10px] text-slate-500 font-semibold mt-0.5 block">
@@ -228,7 +228,7 @@ export const AdminOrdersView: React.FC = () => {
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
               Fulfillment Rate
             </span>
-            <div className="text-2xl font-black text-emerald-600 mt-1 flex items-center gap-1.5">
+            <div className="text-2xl font-bold text-emerald-600 mt-1 flex items-center gap-1.5">
               {salesOrders.length > 0 ? Math.round((dispatchedOrdersCount / salesOrders.length) * 100) : 100}%
               <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                 Verified
@@ -249,7 +249,7 @@ export const AdminOrdersView: React.FC = () => {
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
               Discount Queue
             </span>
-            <div className="text-2xl font-black text-amber-600 mt-1">
+            <div className="text-2xl font-bold text-amber-600 mt-1">
               {pendingApprovalsCount}
             </div>
             <span className="text-[10px] text-slate-500 font-semibold mt-0.5 block">
@@ -263,8 +263,8 @@ export const AdminOrdersView: React.FC = () => {
       </div>
 
       {/* Tabs & Filter Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
-        <div className="flex items-center gap-1.5 border-b sm:border-b-0 pb-2 sm:pb-0 border-slate-100">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
+        <div className="flex items-center gap-1.5 border-b lg:border-b-0 pb-2 lg:pb-0 border-slate-100 overflow-x-auto no-scrollbar shrink-0">
           <button
             type="button"
             onClick={() => setOrderTypeTab('all')}
@@ -302,7 +302,7 @@ export const AdminOrdersView: React.FC = () => {
           </button>
         </div>
 
-        <div className="flex items-center gap-2 flex-1 sm:max-w-xl justify-end">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 flex-1 lg:max-w-xl justify-end">
           <Button
             variant="primary"
             size="sm"
@@ -420,7 +420,7 @@ export const AdminOrdersView: React.FC = () => {
                       {/* Order Number & Type */}
                       <td className="py-3.5 px-4" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-1.5">
-                          <span className="font-mono font-extrabold text-xs text-indigo-700 bg-indigo-50 border border-indigo-200/90 px-2 py-0.5 rounded-lg select-all">
+                          <span className="font-mono font-semibold text-xs text-indigo-700 bg-indigo-50 border border-indigo-200/90 px-2 py-0.5 rounded-lg select-all">
                             {so.orderNumber}
                           </span>
                           <button
@@ -436,7 +436,7 @@ export const AdminOrdersView: React.FC = () => {
                             )}
                           </button>
                         </div>
-                        <span className="inline-block mt-0.5 px-1.5 py-0.2 rounded text-[9px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-800 border border-indigo-100">
+                        <span className="inline-block mt-0.5 px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider bg-indigo-50 text-indigo-800 border border-indigo-100">
                           OUTWARD SALES
                         </span>
                       </td>
@@ -587,7 +587,7 @@ export const AdminOrdersView: React.FC = () => {
                       {/* PO Number & Type */}
                       <td className="py-3.5 px-4" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-1.5">
-                          <span className="font-mono font-extrabold text-xs text-emerald-700 bg-emerald-50 border border-emerald-200/90 px-2 py-0.5 rounded-lg select-all">
+                          <span className="font-mono font-semibold text-xs text-emerald-700 bg-emerald-50 border border-emerald-200/90 px-2 py-0.5 rounded-lg select-all">
                             {po.poNumber}
                           </span>
                           <button
@@ -603,7 +603,7 @@ export const AdminOrdersView: React.FC = () => {
                             )}
                           </button>
                         </div>
-                        <span className="inline-block mt-0.5 px-1.5 py-0.2 rounded text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-100">
+                        <span className="inline-block mt-0.5 px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-100">
                           INWARD PROCUREMENT
                         </span>
                       </td>
@@ -756,7 +756,7 @@ export const AdminOrdersView: React.FC = () => {
               <div className="p-3.5 rounded-2xl bg-indigo-50/60 border border-indigo-200 flex flex-wrap items-center justify-between gap-3">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono font-black text-sm text-indigo-700 bg-white px-2.5 py-0.5 rounded-lg border border-indigo-200">
+                    <span className="font-mono font-bold text-sm text-indigo-700 bg-white px-2.5 py-0.5 rounded-lg border border-indigo-200">
                       {viewSalesOrder.orderNumber}
                     </span>
                     <button
@@ -809,7 +809,7 @@ export const AdminOrdersView: React.FC = () => {
                 </div>
                 <div className="p-2.5 rounded-xl bg-indigo-50 border border-indigo-200">
                   <span className="text-[10px] text-indigo-700 uppercase font-semibold">Net Billed</span>
-                  <div className="font-extrabold text-indigo-800 font-mono text-sm">
+                  <div className="font-semibold text-indigo-800 font-mono text-sm">
                     ₹{Math.round(viewSalesOrder.totalAmount).toLocaleString('en-IN')}
                   </div>
                 </div>
@@ -903,7 +903,7 @@ export const AdminOrdersView: React.FC = () => {
               <div className="p-3.5 rounded-2xl bg-emerald-50/60 border border-emerald-200 flex flex-wrap items-center justify-between gap-3">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono font-black text-sm text-emerald-700 bg-white px-2.5 py-0.5 rounded-lg border border-emerald-200">
+                    <span className="font-mono font-bold text-sm text-emerald-700 bg-white px-2.5 py-0.5 rounded-lg border border-emerald-200">
                       {viewPurchaseOrder.poNumber}
                     </span>
                     <button
@@ -1050,7 +1050,7 @@ export const AdminOrdersView: React.FC = () => {
                 </div>
                 <div className="text-right">
                   <span className="text-[10px] uppercase font-bold text-slate-400 block">Total PO Value</span>
-                  <span className="font-mono font-black text-sm text-slate-900">
+                  <span className="font-mono font-bold text-sm text-slate-900">
                     ₹{Math.round(viewPurchaseOrder.totalCost || viewPurchaseOrder.totalAmount || 0).toLocaleString('en-IN')}
                   </span>
                 </div>

@@ -49,8 +49,8 @@ export const StatCard: React.FC<StatCardProps> = ({
 
       <div className="flex items-start justify-between">
         <div className="space-y-1">
-          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{title}</p>
-          <div className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 font-mono">
+          <p className="text-[12px] font-medium text-slate-500 uppercase tracking-wider">{title}</p>
+          <div className="text-2xl sm:text-[26px] font-semibold tracking-tight text-slate-900 font-mono">
             {value}
           </div>
         </div>

@@ -183,7 +183,7 @@ export const RegisterOrganizationPage: React.FC<RegisterOrganizationPageProps> =
               <Boxes className="w-4 h-4" />
             </div>
             <div className="text-left">
-              <span className="font-black text-lg tracking-tight block leading-tight">
+              <span className="font-bold text-lg tracking-tight block leading-tight">
                 Tzmicha <span className="bg-gradient-to-r from-indigo-600 to-fuchsia-500 bg-clip-text text-transparent">ERP</span>
               </span>
               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
@@ -224,7 +224,7 @@ export const RegisterOrganizationPage: React.FC<RegisterOrganizationPageProps> =
             <Sparkles className="w-3.5 h-3.5 text-lime-600" />
             <span>Dedicated Multi-Tenant Organization Provisioning</span>
           </div>
-          <h1 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight">
+          <h1 className="text-3xl sm:text-5xl font-bold text-slate-900 tracking-tight">
             Create Your Enterprise Team Workspace
           </h1>
           <p className="text-sm sm:text-base text-slate-500 mt-3 leading-relaxed">
@@ -254,7 +254,7 @@ export const RegisterOrganizationPage: React.FC<RegisterOrganizationPageProps> =
                     <span className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">
                       Step 1 of 3
                     </span>
-                    <h2 className="mt-1 text-xl font-black text-slate-900">Choose Subscription Plan & Quotas</h2>
+                    <h2 className="mt-1 text-xl font-bold text-slate-900">Choose Subscription Plan & Quotas</h2>
                   </div>
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
                     <Shield className="w-3.5 h-3.5" />
@@ -291,7 +291,7 @@ export const RegisterOrganizationPage: React.FC<RegisterOrganizationPageProps> =
                           </span>
                           {isSelected && <CheckCircle2 className="w-4 h-4 text-lime-400" />}
                         </div>
-                        <div className={`text-2xl font-black ${isSelected ? 'text-white' : 'text-slate-900'}`}>{p.price}</div>
+                        <div className={`text-2xl font-bold ${isSelected ? 'text-white' : 'text-slate-900'}`}>{p.price}</div>
                         <p className={`mt-1 text-[11px] leading-relaxed ${isSelected ? 'text-slate-300' : 'text-slate-500'}`}>
                           {p.description}
                         </p>
@@ -330,7 +330,7 @@ export const RegisterOrganizationPage: React.FC<RegisterOrganizationPageProps> =
                   <span className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">
                     Step 2 of 3
                   </span>
-                  <h2 className="mt-1 text-xl font-black text-slate-900">Organization & Team Workspace Identity</h2>
+                  <h2 className="mt-1 text-xl font-bold text-slate-900">Organization & Team Workspace Identity</h2>
                 </div>
 
                 <div className="space-y-5">
@@ -451,7 +451,7 @@ export const RegisterOrganizationPage: React.FC<RegisterOrganizationPageProps> =
                   <span className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">
                     Step 3 of 3
                   </span>
-                  <h2 className="mt-1 text-xl font-black text-slate-900">Primary Executive Administrator Account</h2>
+                  <h2 className="mt-1 text-xl font-bold text-slate-900">Primary Executive Administrator Account</h2>
                   <p className="mt-1 text-sm text-slate-500">
                     This user receives complete system administrator rights, user provisioning access, and financial report authority.
                   </p>
@@ -604,22 +604,22 @@ export const RegisterOrganizationPage: React.FC<RegisterOrganizationPageProps> =
                   <div className="inline-flex h-10 w-14 items-center justify-center rounded-xl bg-slate-950/10">
                     <CreditCard className="w-6 h-6" />
                   </div>
-                  <span className="text-[10px] font-black uppercase tracking-[0.4em]">{selectedPlan} Edition</span>
+                  <span className="text-[10px] font-bold uppercase tracking-[0.4em]">{selectedPlan} Edition</span>
                 </div>
                 <div className="mb-6">
                   <span className="text-[10px] font-semibold uppercase tracking-[0.4em] text-slate-950/70">Tenant Team ID</span>
-                  <div className="mt-1 font-mono text-2xl font-black tracking-[0.4em]">
+                  <div className="mt-1 font-mono text-2xl font-bold tracking-[0.4em]">
                     {cleanTeamId || 'TEAM-ID'}
                   </div>
                 </div>
                 <div className="flex items-end justify-between border-t border-slate-950/15 pt-4">
                   <div>
                     <span className="text-[9px] font-semibold uppercase tracking-[0.4em] text-slate-950/70">Organization</span>
-                    <div className="mt-1 text-sm font-black truncate max-w-[170px]">{companyName || 'Enterprise Company'}</div>
+                    <div className="mt-1 text-sm font-bold truncate max-w-[170px]">{companyName || 'Enterprise Company'}</div>
                   </div>
                   <div className="text-right">
                     <span className="text-[9px] font-semibold uppercase tracking-[0.4em] text-slate-950/70">Admin</span>
-                    <div className="mt-1 text-sm font-black truncate max-w-[140px]">{adminName || 'Admin Lead'}</div>
+                    <div className="mt-1 text-sm font-bold truncate max-w-[140px]">{adminName || 'Admin Lead'}</div>
                   </div>
                 </div>
               </div>

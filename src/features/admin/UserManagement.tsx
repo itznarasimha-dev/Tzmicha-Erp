@@ -758,7 +758,7 @@ export const UserManagement: React.FC = () => {
             <span>•</span>
             <span className="text-indigo-600">Personnel &amp; Roles</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
             Employee Management &amp; Administration
             <Badge variant="purple" size="sm">Admin Control</Badge>
           </h1>
@@ -780,7 +780,7 @@ export const UserManagement: React.FC = () => {
       </div>
 
       {/* Primary View Tab Switcher: Employee Directory vs Roles & Permissions Matrix */}
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-0.5">
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-0.5 overflow-x-auto no-scrollbar">
         <button
           type="button"
           onClick={() => setActiveViewTab('directory')}
@@ -821,7 +821,7 @@ export const UserManagement: React.FC = () => {
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
                   Total Employees
                 </span>
-                <div className="text-2xl font-black text-slate-900 mt-1">
+                <div className="text-2xl font-bold text-slate-900 mt-1">
                   {totalEmployees}
                 </div>
                 <span className="text-[10px] text-slate-500 font-semibold mt-0.5 block">
@@ -839,7 +839,7 @@ export const UserManagement: React.FC = () => {
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
                   Active Personnel
                 </span>
-                <div className="text-2xl font-black text-emerald-700 mt-1">
+                <div className="text-2xl font-bold text-emerald-700 mt-1">
                   {activeEmployees}
                 </div>
                 <span className="text-[10px] text-emerald-600 font-semibold mt-0.5 flex items-center gap-1">
@@ -857,7 +857,7 @@ export const UserManagement: React.FC = () => {
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
                   Inactive / Suspended
                 </span>
-                <div className="text-2xl font-black text-rose-700 mt-1">
+                <div className="text-2xl font-bold text-rose-700 mt-1">
                   {inactiveEmployees}
                 </div>
                 <span className="text-[10px] text-rose-600 font-semibold mt-0.5 flex items-center gap-1">
@@ -883,7 +883,7 @@ export const UserManagement: React.FC = () => {
                     <HelpCircle className="w-3 h-3" />
                   </span>
                 </div>
-                <div className="text-2xl font-black text-amber-600 mt-1">
+                <div className="text-2xl font-bold text-amber-600 mt-1">
                   {pendingAdminActionsTotal}
                 </div>
                 <span className="text-[10px] text-amber-700 font-semibold mt-0.5 block truncate max-w-[150px]">
@@ -1066,7 +1066,7 @@ export const UserManagement: React.FC = () => {
                           {/* 1. Employee Master ID */}
                           <td className="py-3.5 px-3.5" onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center gap-1.5">
-                              <span className="font-mono font-extrabold text-xs text-indigo-700 bg-indigo-50/90 border border-indigo-200/90 px-2 py-0.5 rounded-lg select-all">
+                              <span className="font-mono font-semibold text-xs text-indigo-700 bg-indigo-50/90 border border-indigo-200/90 px-2 py-0.5 rounded-lg select-all">
                                 {displayEmpId}
                               </span>
                               <button
@@ -1279,7 +1279,7 @@ export const UserManagement: React.FC = () => {
                 <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-300">
                   Role-Based Access Governance (RBAC)
                 </span>
-                <h2 className="text-xl sm:text-2xl font-black mt-1">System Roles &amp; Module Permissions</h2>
+                <h2 className="text-xl sm:text-2xl font-bold mt-1">System Roles &amp; Module Permissions</h2>
                 <p className="text-xs text-slate-300 mt-1 max-w-2xl">
                   Inspect and simulate operational access capabilities partitioned by ERP business modules. Changes made here apply to all personnel holding the selected role.
                 </p>
@@ -1346,7 +1346,7 @@ export const UserManagement: React.FC = () => {
                       {assignedCount} Staff
                     </Badge>
                   </div>
-                  <h4 className="font-black text-slate-900 text-xs mt-1.5">{roleDef.title}</h4>
+                  <h4 className="font-bold text-slate-900 text-xs mt-1.5">{roleDef.title}</h4>
                   <p className="text-[10px] text-slate-500 mt-1 line-clamp-2">{roleDef.department}</p>
                 </div>
               );
@@ -1495,7 +1495,7 @@ export const UserManagement: React.FC = () => {
                     className="w-14 h-14 rounded-2xl object-cover border-2 border-white shadow-md shrink-0"
                   />
                   <div>
-                    <h3 className="text-base font-black text-slate-900">{profileDrawerUser.name}</h3>
+                    <h3 className="text-base font-bold text-slate-900">{profileDrawerUser.name}</h3>
                     <div className="flex items-center gap-2 mt-1 flex-wrap">
                       <span className="font-mono text-xs text-indigo-700 font-bold bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-lg flex items-center gap-1.5">
                         <span>ID: {profileDrawerUser.employeeId || `EMP-${profileDrawerUser.id.slice(-4).toUpperCase()}`}</span>
@@ -1772,7 +1772,7 @@ export const UserManagement: React.FC = () => {
                       <span className="text-[10px] uppercase font-bold text-indigo-700 block">
                         Customers Handled
                       </span>
-                      <div className="text-lg font-black text-slate-900 mt-0.5">
+                      <div className="text-lg font-bold text-slate-900 mt-0.5">
                         {drawerPerf.handledCustomersCount} Accounts
                       </div>
                       <span className="text-[10px] text-slate-500 font-medium">Assigned Portfolio</span>
@@ -1782,7 +1782,7 @@ export const UserManagement: React.FC = () => {
                       <span className="text-[10px] uppercase font-bold text-emerald-700 block">
                         Quotations Created
                       </span>
-                      <div className="text-lg font-black text-slate-900 mt-0.5">
+                      <div className="text-lg font-bold text-slate-900 mt-0.5">
                         {drawerPerf.quotationsCount} Quotes
                       </div>
                       <span className="text-[10px] text-emerald-700 font-mono font-bold">
@@ -1794,7 +1794,7 @@ export const UserManagement: React.FC = () => {
                       <span className="text-[10px] uppercase font-bold text-blue-700 block">
                         Orders Booked
                       </span>
-                      <div className="text-lg font-black text-slate-900 mt-0.5">
+                      <div className="text-lg font-bold text-slate-900 mt-0.5">
                         {drawerPerf.ordersCount} Orders
                       </div>
                       <span className="text-[10px] text-blue-700 font-mono font-bold">
@@ -1806,7 +1806,7 @@ export const UserManagement: React.FC = () => {
                       <span className="text-[10px] uppercase font-bold text-amber-700 block">
                         Target &amp; Run-Rate
                       </span>
-                      <div className="text-sm font-black text-slate-900 mt-1 truncate">
+                      <div className="text-sm font-bold text-slate-900 mt-1 truncate">
                         {drawerPerf.targetSummary}
                       </div>
                       <div className="flex items-center gap-1.5 mt-1">

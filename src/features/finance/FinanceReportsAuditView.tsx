@@ -163,7 +163,7 @@ export const FinanceReportsAuditView: React.FC = () => {
       {/* ─── HEADER ─── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-900 tracking-tight">
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
             Financial Analytics, Reports &amp; Audit Trail
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
@@ -262,7 +262,7 @@ export const FinanceReportsAuditView: React.FC = () => {
                         <td className="py-3 px-4 text-right font-mono text-slate-600">
                           ₹{row.creditLimit.toLocaleString('en-IN')}
                         </td>
-                        <td className="py-3 px-4 text-right font-mono font-black text-slate-900 text-sm">
+                        <td className="py-3 px-4 text-right font-mono font-bold text-slate-900 text-sm">
                           ₹{row.outstanding.toLocaleString('en-IN')}
                         </td>
                         <td className="py-3 px-4 text-right font-mono text-emerald-700">
@@ -274,7 +274,7 @@ export const FinanceReportsAuditView: React.FC = () => {
                         <td className="py-3 px-4 text-right font-mono text-amber-700 font-semibold">
                           ₹{row.days60.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                         </td>
-                        <td className="py-3 px-4 text-right font-mono text-rose-600 font-black">
+                        <td className="py-3 px-4 text-right font-mono text-rose-600 font-bold">
                           ₹{row.days90Plus.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                         </td>
                       </tr>
@@ -305,7 +305,7 @@ export const FinanceReportsAuditView: React.FC = () => {
                         <td className="py-3 px-4 text-right font-mono font-bold text-slate-700">
                           ₹{row.totalPurchases.toLocaleString('en-IN')}
                         </td>
-                        <td className="py-3 px-4 text-right font-mono font-black text-rose-700 text-sm">
+                        <td className="py-3 px-4 text-right font-mono font-bold text-rose-700 text-sm">
                           ₹{row.outstanding.toLocaleString('en-IN')}
                         </td>
                       </tr>
@@ -343,7 +343,7 @@ export const FinanceReportsAuditView: React.FC = () => {
                         <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">
                           ₹{row.sellingPrice.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                         </td>
-                        <td className="py-3 px-4 text-right font-mono font-black text-emerald-800">
+                        <td className="py-3 px-4 text-right font-mono font-bold text-emerald-800">
                           ₹{row.grossMargin.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                         </td>
                         <td className="py-3 px-4 text-center">
@@ -390,7 +390,7 @@ export const FinanceReportsAuditView: React.FC = () => {
                         <td className="py-3 px-4 text-right font-mono text-emerald-700 font-semibold">
                           +₹{row.incentives.toLocaleString('en-IN')}
                         </td>
-                        <td className="py-3 px-4 text-right font-mono font-black text-indigo-950 text-sm">
+                        <td className="py-3 px-4 text-right font-mono font-bold text-indigo-950 text-sm">
                           ₹{row.net.toLocaleString('en-IN')}
                         </td>
                         <td className="py-3 px-4 text-center">

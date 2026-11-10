@@ -152,7 +152,7 @@ const SalesPortalInner: React.FC = () => {
   return (
     <div className="sales-portal-workspace w-full max-w-[1600px] mx-auto pb-16 space-y-4 font-sans">
       {/* ─── Sales Role & Hierarchy Indicator Banner ─── */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-4 sm:p-5 transition-all">
+      <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-4 sm:p-6 transition-all">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-start sm:items-center gap-3.5">
             <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 text-white flex items-center justify-center shadow-sm shrink-0">

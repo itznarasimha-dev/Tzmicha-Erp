@@ -26,7 +26,7 @@ export const WarehouseStock: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             Physical Product & Batch Inventory
             <Badge variant="warning" size="sm">North Territory Bins</Badge>
           </h1>
@@ -94,7 +94,7 @@ export const WarehouseStock: React.FC = () => {
                       {b.locationId}
                     </span>
                   </td>
-                  <td className="py-3 text-center font-extrabold text-emerald-700 text-sm">
+                  <td className="py-3 text-center font-semibold text-emerald-700 text-sm">
                     {b.availableQuantity}
                   </td>
                   <td className="py-3 text-center font-bold text-blue-600">

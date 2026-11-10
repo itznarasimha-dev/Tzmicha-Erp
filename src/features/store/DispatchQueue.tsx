@@ -129,7 +129,7 @@ export const DispatchQueue: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             Picking Queue & Multi-Batch Outward Dispatch
             <Badge variant="warning" size="sm">Noida Central Hub</Badge>
           </h1>
@@ -173,7 +173,7 @@ export const DispatchQueue: React.FC = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-extrabold text-sm text-slate-900 font-mono">
+                      <span className="font-semibold text-sm text-slate-900 font-mono">
                         {order.orderNumber}
                       </span>
                       <Badge variant="primary" size="sm">Stock Reserved</Badge>

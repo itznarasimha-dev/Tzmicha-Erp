@@ -15,7 +15,7 @@ export const AdminFieldMarketingView: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
             Field Marketing & Ground Intelligence Overview
             <Badge variant="purple" size="sm">Admin Master</Badge>
           </h1>
@@ -29,25 +29,25 @@ export const AdminFieldMarketingView: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <div className="glass-card p-5 border border-emerald-200 bg-emerald-50/40">
           <p className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Completed Dealer Visits</p>
-          <div className="text-2xl font-black text-slate-900 mt-0.5 font-mono">{completedVisits.length}</div>
+          <div className="text-2xl font-bold text-slate-900 mt-0.5 font-mono">{completedVisits.length}</div>
           <p className="text-[11px] text-slate-500 mt-0.5">Physical store inspections</p>
         </div>
 
         <div className="glass-card p-5 border border-blue-200 bg-blue-50/40">
           <p className="text-[10px] font-bold text-blue-800 uppercase tracking-wider">New Prospects Onboarded</p>
-          <div className="text-2xl font-black text-slate-900 mt-0.5 font-mono">{acquiredProspects.length}</div>
+          <div className="text-2xl font-bold text-slate-900 mt-0.5 font-mono">{acquiredProspects.length}</div>
           <p className="text-[11px] text-slate-500 mt-0.5">Dealers converted this month</p>
         </div>
 
         <div className="glass-card p-5 border border-amber-200 bg-amber-50/40">
           <p className="text-[10px] font-bold text-amber-800 uppercase tracking-wider">Competitor Pricing Logs</p>
-          <div className="text-2xl font-black text-slate-900 mt-0.5 font-mono">{marketSurveys.length}</div>
+          <div className="text-2xl font-bold text-slate-900 mt-0.5 font-mono">{marketSurveys.length}</div>
           <p className="text-[11px] text-slate-500 mt-0.5">Field price observations</p>
         </div>
 
         <div className="glass-card p-5 border border-purple-200 bg-purple-50/40">
           <p className="text-[10px] font-bold text-purple-800 uppercase tracking-wider">Monthly Target Achievement</p>
-          <div className="text-2xl font-black text-slate-900 mt-0.5 font-mono">
+          <div className="text-2xl font-bold text-slate-900 mt-0.5 font-mono">
             {marketingTargets[0]
               ? `${Math.round((marketingTargets[0].completedVisits / marketingTargets[0].targetVisits) * 100)}%`
               : '70%'}

@@ -277,7 +277,7 @@ export const AdminSuppliersView: React.FC = () => {
             <Badge variant="purple" size="sm">Procurement &amp; Vendor Master</Badge>
             <span className="text-[11px] font-mono text-slate-400 font-semibold">ISO 9001 Sourcing Control</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
             Suppliers &amp; Vendor Directory
           </h1>
           <p className="text-xs text-slate-500 mt-1 max-w-2xl">
@@ -305,7 +305,7 @@ export const AdminSuppliersView: React.FC = () => {
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
               Registered Vendors
             </span>
-            <div className="text-2xl font-black text-slate-900 mt-1">
+            <div className="text-2xl font-bold text-slate-900 mt-1">
               {totalSuppliersCount}
             </div>
             <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1 mt-0.5">
@@ -323,7 +323,7 @@ export const AdminSuppliersView: React.FC = () => {
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
               Cumulative Purchases
             </span>
-            <div className="text-2xl font-black text-slate-900 mt-1">
+            <div className="text-2xl font-bold text-slate-900 mt-1">
               ₹{(totalSourcedValue / 10000000).toFixed(2)} Cr
             </div>
             <span className="text-[10px] text-slate-500 font-semibold mt-0.5 block">
@@ -341,7 +341,7 @@ export const AdminSuppliersView: React.FC = () => {
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
               Accounts Payable (A/P)
             </span>
-            <div className="text-2xl font-black text-rose-700 mt-1">
+            <div className="text-2xl font-bold text-rose-700 mt-1">
               ₹{(totalPayables / 100000).toFixed(2)} L
             </div>
             <span className="text-[10px] text-slate-500 font-semibold mt-0.5 block">
@@ -359,7 +359,7 @@ export const AdminSuppliersView: React.FC = () => {
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
               Discrepancy Variance
             </span>
-            <div className="text-2xl font-black text-slate-900 mt-1 flex items-center gap-1.5">
+            <div className="text-2xl font-bold text-slate-900 mt-1 flex items-center gap-1.5">
               1.8%
               <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                 Low Risk
@@ -478,11 +478,11 @@ export const AdminSuppliersView: React.FC = () => {
                       {/* Code & Name */}
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-700 font-black text-xs flex items-center justify-center shrink-0">
+                          <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-700 font-bold text-xs flex items-center justify-center shrink-0">
                             {s.code.slice(4, 7) || 'SUP'}
                           </div>
                           <div>
-                            <span className="font-extrabold text-slate-900 group-hover:text-indigo-600 transition-colors block">
+                            <span className="font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors block">
                               {s.name}
                             </span>
                             <div className="flex items-center gap-1.5 mt-0.5">
@@ -568,7 +568,7 @@ export const AdminSuppliersView: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleToggleStatus(s)}
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold transition-colors border ${
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold transition-colors border ${
                             s.status === 'active'
                               ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
                               : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
@@ -644,11 +644,11 @@ export const AdminSuppliersView: React.FC = () => {
             <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-50 to-indigo-50/40 border border-slate-200 space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white font-black text-sm flex items-center justify-center shadow-md">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white font-bold text-sm flex items-center justify-center shadow-md">
                     {selectedSupplier.code.slice(4, 7) || 'SUP'}
                   </div>
                   <div>
-                    <h3 className="text-base font-black text-slate-900">{selectedSupplier.name}</h3>
+                    <h3 className="text-base font-bold text-slate-900">{selectedSupplier.name}</h3>
                     <div className="flex items-center gap-2 mt-1 flex-wrap">
                       <span className="font-mono text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-lg flex items-center gap-1.5">
                         <span>ID: {selectedSupplier.code}</span>
@@ -775,7 +775,7 @@ export const AdminSuppliersView: React.FC = () => {
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
                       Commercial Representative
                     </span>
-                    <div className="font-extrabold text-sm text-slate-900">{selectedSupplier.contactPerson}</div>
+                    <div className="font-semibold text-sm text-slate-900">{selectedSupplier.contactPerson}</div>
                     <div className="space-y-1 pt-1 text-slate-600">
                       <div className="flex items-center gap-2">
                         <Phone className="w-3.5 h-3.5 text-slate-400" />
@@ -881,7 +881,7 @@ export const AdminSuppliersView: React.FC = () => {
                           <div className="space-y-0.5">
                             <div className="flex items-center gap-2">
                               <span className="font-mono font-bold text-indigo-600">{p.sku}</span>
-                              <span className="font-extrabold text-slate-900">{p.name}</span>
+                              <span className="font-semibold text-slate-900">{p.name}</span>
                             </div>
                             <div className="text-[11px] text-slate-500">
                               {p.categoryName} • Unit: {p.unit}
@@ -953,7 +953,7 @@ export const AdminSuppliersView: React.FC = () => {
 
                           <div className="flex items-center gap-3">
                             <div className="text-right">
-                              <span className="font-mono font-black text-slate-900 block">
+                              <span className="font-mono font-bold text-slate-900 block">
                                 ₹{(po.totalCost || po.totalAmount || 0).toLocaleString('en-IN')}
                               </span>
                               <span className="text-[10px] text-slate-400">{po.lines.length} Line items</span>
@@ -1006,7 +1006,7 @@ export const AdminSuppliersView: React.FC = () => {
                       Track record for physical count variances, transport leakage, and debit note settlements.
                     </p>
                   </div>
-                  <span className="font-mono font-extrabold text-lg text-amber-950">
+                  <span className="font-mono font-semibold text-lg text-amber-950">
                     {selectedSupplier.rating ? `${(selectedSupplier.rating * 20).toFixed(0)}%` : '96%'}
                   </span>
                 </div>

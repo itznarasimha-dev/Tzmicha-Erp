@@ -27,7 +27,7 @@ export const StockMovementsLedger: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             Physical Stock Movement Ledger
             <Badge variant="warning" size="sm">Audit Ledger</Badge>
           </h1>
@@ -120,7 +120,7 @@ export const StockMovementsLedger: React.FC = () => {
                     <td className="py-3 font-mono text-slate-800">{m.batchNumber || '—'}</td>
                     <td className="py-3 text-slate-700">{m.warehouseName}</td>
                     <td
-                      className={`py-3 text-right font-extrabold text-sm ${
+                      className={`py-3 text-right font-semibold text-sm ${
                         isInward ? 'text-emerald-700' : 'text-slate-900'
                       }`}
                     >

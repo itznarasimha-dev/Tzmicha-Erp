@@ -60,6 +60,7 @@ import {
   UserCheck,
   ClipboardList,
   LayoutGrid,
+  X,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { Badge } from '../ui/Badge';
@@ -1164,28 +1165,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Sidebar Container */}
       <aside
         className={clsx(
-          'glass-sidebar sticky top-0 h-screen inset-y-0 left-0 z-50 flex flex-col transition-all duration-300 ease-in-out border-r border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl shadow-2xs',
-          collapsed ? 'w-20' : 'w-64',
-          mobileOpen ? 'translate-x-0 fixed' : '-translate-x-full lg:translate-x-0'
+          'glass-sidebar sticky top-0 h-screen inset-y-0 left-0 z-50 flex flex-col transition-all duration-300 ease-in-out border-r border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl',
+          mobileOpen
+            ? 'w-[280px] sm:w-64 translate-x-0 fixed shadow-2xl'
+            : clsx(
+                collapsed ? 'w-20' : 'w-64',
+                '-translate-x-full lg:translate-x-0 shadow-2xs'
+              )
         )}
       >
         {/* Brand Header */}
-        <div className="h-[72px] shrink-0 px-4 flex items-center">
-          {!collapsed && (
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-violet-600 to-fuchsia-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25 ring-1 ring-white/20">
+        <div className="h-[64px] sm:h-[72px] shrink-0 px-4 flex items-center justify-between border-b border-slate-100 dark:border-slate-800/60">
+          {(!collapsed || mobileOpen) && (
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-violet-600 to-fuchsia-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25 ring-1 ring-white/20 shrink-0">
                 <Boxes className="w-4 h-4 text-white" />
               </div>
-              <div className="text-left">
+              <div className="text-left min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-medium text-[15px] tracking-tight text-slate-900 leading-tight block">
+                  <span className="font-medium text-[15px] tracking-tight text-slate-900 leading-tight block truncate">
                     TZMICHA
                   </span>
-                  <span className="text-[10px] font-mono font-medium px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 uppercase">
+                  <span className="text-[10px] font-mono font-medium px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 uppercase shrink-0">
                     ERP
                   </span>
                 </div>
-                <span className="text-[9px] text-slate-400 font-medium uppercase tracking-[0.08em] block">
+                <span className="text-[9px] text-slate-400 font-medium uppercase tracking-[0.08em] block truncate">
                   {activeRole === 'sales'
                     ? (currentUser.salesSubRole === 'sales_manager'
                         ? 'Sales Manager'
@@ -1214,10 +1219,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           )}
 
-          {collapsed && (
+          {collapsed && !mobileOpen && (
             <div className="mx-auto w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-violet-600 to-fuchsia-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25 ring-1 ring-white/20" title="Tzmicha ERP">
               <Boxes className="w-4 h-4 text-white" />
             </div>
+          )}
+
+          {/* Dedicated Mobile Close Button */}
+          {mobileOpen && (
+            <button
+              onClick={onCloseMobile}
+              type="button"
+              className="lg:hidden p-1.5 rounded-xl text-slate-400 hover:text-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              title="Close navigation"
+            >
+              <X className="w-5 h-5" />
+            </button>
           )}
         </div>
 
@@ -1230,12 +1247,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
               title="Return to Administrator Dashboard"
             >
               <Shield className="w-3.5 h-3.5 text-lime-400 shrink-0" />
-              {!collapsed && <span className="truncate">← Admin Console</span>}
+              {(!collapsed || mobileOpen) && <span className="truncate">← Admin Console</span>}
             </Link>
           )}
           {currentNavItems.map((item, idx) => {
             if ('group' in item) {
-              if (collapsed) return <div key={idx} className="my-2 border-t border-slate-100" />;
+              if (collapsed && !mobileOpen) return <div key={idx} className="my-2 border-t border-slate-100" />;
               return (
                 <div
                   key={idx}
@@ -1251,7 +1268,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 key={item.path}
                 to={item.path}
                 onClick={onCloseMobile}
-                title={collapsed ? item.name : undefined}
+                title={collapsed && !mobileOpen ? item.name : undefined}
                 className={({ isActive }) =>
                   clsx(
                     'flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-normal transition-all duration-150 group relative',
@@ -1273,11 +1290,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       {item.icon}
                     </span>
 
-                    {!collapsed && (
+                    {(!collapsed || mobileOpen) && (
                       <span className="truncate flex-1 tracking-tight text-xs">{item.name}</span>
                     )}
 
-                    {!collapsed && item.badge !== undefined && (
+                    {(!collapsed || mobileOpen) && item.badge !== undefined && (
                       <span className="px-1.5 py-0.2 rounded-full bg-slate-900 text-white text-[10px] font-mono font-medium tracking-tight">
                         {item.badge}
                       </span>

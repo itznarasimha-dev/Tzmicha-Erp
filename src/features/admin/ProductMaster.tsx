@@ -578,7 +578,7 @@ export const ProductMaster: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
             Product Costing &amp; Selling Price
             <Badge variant="purple" size="sm">Admin Pricing Engine</Badge>
           </h1>
@@ -607,7 +607,7 @@ export const ProductMaster: React.FC = () => {
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
               Total Products
             </span>
-            <div className="text-2xl font-black text-slate-900 mt-1">
+            <div className="text-2xl font-bold text-slate-900 mt-1">
               {products.length}
             </div>
             <span className="text-[10px] text-slate-500 font-semibold mt-0.5 block">
@@ -625,7 +625,7 @@ export const ProductMaster: React.FC = () => {
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
               Avg Actual Cost
             </span>
-            <div className="text-2xl font-black text-rose-700 mt-1 font-mono">
+            <div className="text-2xl font-bold text-rose-700 mt-1 font-mono">
               ₹{Math.round(avgActualCost).toLocaleString('en-IN')}
             </div>
             <span className="text-[10px] text-slate-500 font-semibold mt-0.5 block">
@@ -643,7 +643,7 @@ export const ProductMaster: React.FC = () => {
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
               Avg Selling Price
             </span>
-            <div className="text-2xl font-black text-indigo-700 mt-1 font-mono">
+            <div className="text-2xl font-bold text-indigo-700 mt-1 font-mono">
               ₹{Math.round(avgSellingPrice).toLocaleString('en-IN')}
             </div>
             <span className="text-[10px] text-indigo-600 font-semibold mt-0.5 block">
@@ -669,7 +669,7 @@ export const ProductMaster: React.FC = () => {
                 <HelpCircle className="w-3 h-3" />
               </span>
             </div>
-            <div className="text-2xl font-black text-emerald-700 mt-1 font-mono">
+            <div className="text-2xl font-bold text-emerald-700 mt-1 font-mono">
               ₹{Math.round(totalEstimatedMonthlyProfit).toLocaleString('en-IN')}
             </div>
             <span className="text-[10px] text-emerald-700 font-semibold mt-0.5 block truncate max-w-[150px]" title="Standard velocity assumption: ~100 units/mo per SKU. Not realized accounting profit.">
@@ -990,11 +990,11 @@ export const ProductMaster: React.FC = () => {
                 <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-50 to-indigo-50/40 border border-slate-200 space-y-3">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white font-black text-sm flex items-center justify-center shadow-md font-mono">
+                      <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white font-bold text-sm flex items-center justify-center shadow-md font-mono">
                         {drawerProduct.sku.slice(0, 3)}
                       </div>
                       <div>
-                        <h3 className="text-base font-black text-slate-900">{drawerProduct.name}</h3>
+                        <h3 className="text-base font-bold text-slate-900">{drawerProduct.name}</h3>
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className="font-mono text-[11px] text-slate-600 font-semibold">SKU: {drawerProduct.sku}</span>
                           <span className="text-slate-300">•</span>
@@ -1049,7 +1049,7 @@ export const ProductMaster: React.FC = () => {
                     <span className="text-rose-700 text-[10px] font-bold uppercase tracking-wider block">
                       Actual Cost per Unit
                     </span>
-                    <span className="text-xl font-black font-mono text-rose-800 mt-1 block">
+                    <span className="text-xl font-bold font-mono text-rose-800 mt-1 block">
                       ₹{metrics.actualCost.toLocaleString('en-IN')}
                     </span>
                     <span className="text-[10px] text-slate-500 mt-0.5 block">
@@ -1061,7 +1061,7 @@ export const ProductMaster: React.FC = () => {
                     <span className="text-indigo-700 text-[10px] font-bold uppercase tracking-wider block">
                       Selling Price per Unit
                     </span>
-                    <span className="text-xl font-black font-mono text-indigo-800 mt-1 block">
+                    <span className="text-xl font-bold font-mono text-indigo-800 mt-1 block">
                       ₹{metrics.sellingPrice.toLocaleString('en-IN')}
                     </span>
                     <span className="text-[10px] text-slate-500 mt-0.5 block">
@@ -1073,7 +1073,7 @@ export const ProductMaster: React.FC = () => {
                     <span className="text-emerald-700 text-[10px] font-bold uppercase tracking-wider block">
                       Profit &amp; Margin
                     </span>
-                    <span className="text-xl font-black font-mono text-emerald-800 mt-1 block">
+                    <span className="text-xl font-bold font-mono text-emerald-800 mt-1 block">
                       +{metrics.profitMargin.toFixed(1)}%
                     </span>
                     <span className="text-[10px] text-emerald-700 font-semibold mt-0.5 block">
@@ -1121,7 +1121,7 @@ export const ProductMaster: React.FC = () => {
                         <span className="font-mono font-bold text-slate-900">₹{supBreakdown.otherAcquisitionCosts.toLocaleString('en-IN')}</span>
                       </div>
 
-                      <div className="pt-2 border-t-2 border-slate-200 flex justify-between items-center text-rose-800 font-black">
+                      <div className="pt-2 border-t-2 border-slate-200 flex justify-between items-center text-rose-800 font-bold">
                         <span>Total Actual Landed Cost per Unit:</span>
                         <span className="font-mono text-sm">₹{metrics.actualCost.toLocaleString('en-IN')}</span>
                       </div>
@@ -1157,7 +1157,7 @@ export const ProductMaster: React.FC = () => {
                         <span className="font-mono font-bold text-slate-900">₹{mfgBreakdown.otherProductionCosts.toLocaleString('en-IN')}</span>
                       </div>
 
-                      <div className="pt-2 border-t-2 border-slate-200 flex justify-between items-center text-rose-800 font-black">
+                      <div className="pt-2 border-t-2 border-slate-200 flex justify-between items-center text-rose-800 font-bold">
                         <span>Total Actual Manufacturing Cost per Unit:</span>
                         <span className="font-mono text-sm">₹{metrics.actualCost.toLocaleString('en-IN')}</span>
                       </div>
@@ -1496,7 +1496,7 @@ export const ProductMaster: React.FC = () => {
                 <span className="text-[10px] uppercase font-bold text-slate-400 block">
                   Automatically Calculated Actual Cost / Unit
                 </span>
-                <span className="text-lg font-black font-mono text-rose-700">
+                <span className="text-lg font-bold font-mono text-rose-700">
                   ₹{formCalculatedActualCost.toLocaleString('en-IN')}
                 </span>
               </div>

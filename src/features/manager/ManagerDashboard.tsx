@@ -170,7 +170,7 @@ export const ManagerDashboard: React.FC = () => {
               Operations &amp; Tactical Management
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100 tracking-tight mt-1">
             Operations Management Console
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -240,7 +240,7 @@ export const ManagerDashboard: React.FC = () => {
                 <Clock className="w-4 h-4" />
               </span>
             </div>
-            <CardTitle className="text-2xl font-black mt-2 text-slate-900 dark:text-slate-100">
+            <CardTitle className="text-2xl font-bold mt-2 text-slate-900 dark:text-slate-100">
               {totalPendingApprovals}
             </CardTitle>
             <CardDescription className="text-xs text-slate-500">
@@ -260,7 +260,7 @@ export const ManagerDashboard: React.FC = () => {
                 <Users className="w-4 h-4" />
               </span>
             </div>
-            <CardTitle className="text-2xl font-black mt-2 text-slate-900 dark:text-slate-100">
+            <CardTitle className="text-2xl font-bold mt-2 text-slate-900 dark:text-slate-100">
               {totalActiveUsers} Members
             </CardTitle>
             <CardDescription className="text-xs text-slate-500">
@@ -280,7 +280,7 @@ export const ManagerDashboard: React.FC = () => {
                 <DollarSign className="w-4 h-4" />
               </span>
             </div>
-            <CardTitle className="text-2xl font-black mt-2 text-slate-900 dark:text-slate-100">
+            <CardTitle className="text-2xl font-bold mt-2 text-slate-900 dark:text-slate-100">
               ₹{(totalGrossOrderValue / 100000).toFixed(1)} Lakhs
             </CardTitle>
             <CardDescription className="text-xs text-slate-500">
@@ -300,7 +300,7 @@ export const ManagerDashboard: React.FC = () => {
                 <Warehouse className="w-4 h-4" />
               </span>
             </div>
-            <CardTitle className="text-2xl font-black mt-2 text-slate-900 dark:text-slate-100">
+            <CardTitle className="text-2xl font-bold mt-2 text-slate-900 dark:text-slate-100">
               {lowStockBatches.length} Lots Low
             </CardTitle>
             <CardDescription className="text-xs text-slate-500">
@@ -318,7 +318,7 @@ export const ManagerDashboard: React.FC = () => {
               <span className="p-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600">
                 <FileCheck className="w-5 h-5" />
               </span>
-              <h2 className="text-lg font-black text-slate-900 dark:text-slate-100 tracking-tight">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">
                 Manager Approvals &amp; Exception Queue
               </h2>
             </div>
@@ -580,7 +580,7 @@ export const ManagerDashboard: React.FC = () => {
               Open Hub →
             </Button>
           </div>
-          <h3 className="text-base font-black text-slate-900 dark:text-slate-100">
+          <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
             Sales &amp; Customer Orders
           </h3>
           <p className="text-xs text-slate-500 leading-relaxed">
@@ -607,7 +607,7 @@ export const ManagerDashboard: React.FC = () => {
               Open Hub →
             </Button>
           </div>
-          <h3 className="text-base font-black text-slate-900 dark:text-slate-100">
+          <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
             Inventory &amp; Inward GRN
           </h3>
           <p className="text-xs text-slate-500 leading-relaxed">
@@ -634,7 +634,7 @@ export const ManagerDashboard: React.FC = () => {
               Open Hub →
             </Button>
           </div>
-          <h3 className="text-base font-black text-slate-900 dark:text-slate-100">
+          <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
             Workforce Attendance &amp; Leaves
           </h3>
           <p className="text-xs text-slate-500 leading-relaxed">

@@ -65,7 +65,7 @@ export function ProductionMaterials({ onMobileMenuOpen }: ProductionMaterialsPro
               </span>
               <span className="text-xs text-slate-400 font-medium">BOM &amp; Raw Material Staging</span>
             </div>
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">Production Materials</h1>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Production Materials</h1>
             <p className="text-slate-500 text-xs mt-0.5">
               Manage material requests, warehouse stage issues, shortage escalations, and unused materials returned from production lines.
             </p>
@@ -118,7 +118,7 @@ export function ProductionMaterials({ onMobileMenuOpen }: ProductionMaterialsPro
                 <span>{tab.label}</span>
                 {count > 0 && (
                   <span
-                    className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-full ${
+                    className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
                       isActive
                         ? 'bg-[#74d138] text-slate-900'
                         : 'bg-slate-200 text-slate-700'

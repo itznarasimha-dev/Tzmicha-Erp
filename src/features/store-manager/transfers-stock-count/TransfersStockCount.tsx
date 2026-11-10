@@ -56,7 +56,7 @@ export function TransfersStockCount({ onMobileMenuOpen }: TransfersStockCountPro
               </span>
               <span className="text-xs text-slate-400 font-medium">Inter-Warehouse Transit &amp; Auditing</span>
             </div>
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">Transfers &amp; Stock Count</h1>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Transfers &amp; Stock Count</h1>
             <p className="text-slate-500 text-xs mt-0.5">
               Manage warehouse transfers, track stock in transit, conduct cycle count audits, and reconcile physical variances against ledger balances.
             </p>

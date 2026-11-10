@@ -86,7 +86,7 @@ export const ComingSoonPage: React.FC = () => {
           {module.badge}
         </Badge>
 
-        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
           {module.title}
         </h1>
 

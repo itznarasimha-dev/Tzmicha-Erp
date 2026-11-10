@@ -192,7 +192,7 @@ export const FinanceGeneralLedgerView: React.FC = () => {
       {/* ─── HEADER ─── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-900 tracking-tight">
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
             General Ledger &amp; Double-Entry Accounting
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
@@ -405,7 +405,7 @@ export const FinanceGeneralLedgerView: React.FC = () => {
                     <td className="py-3 px-4 text-right font-mono text-slate-500">
                       ₹{acc.openingBalance.toLocaleString('en-IN')}
                     </td>
-                    <td className="py-3 px-4 text-right font-mono font-black text-slate-900 text-sm">
+                    <td className="py-3 px-4 text-right font-mono font-bold text-slate-900 text-sm">
                       ₹{acc.currentBalance.toLocaleString('en-IN')}
                     </td>
                     <td className="py-3 px-4 text-[11px] text-slate-400 max-w-xs truncate">
@@ -462,7 +462,7 @@ export const FinanceGeneralLedgerView: React.FC = () => {
                 ))}
               </tbody>
               <tfoot>
-                <tr className="bg-slate-100 font-black text-slate-900 border-t-2 border-slate-300">
+                <tr className="bg-slate-100 font-bold text-slate-900 border-t-2 border-slate-300">
                   <td colSpan={3} className="py-3.5 px-4 uppercase tracking-wide">
                     Total Balanced Equality
                   </td>
@@ -498,7 +498,7 @@ export const FinanceGeneralLedgerView: React.FC = () => {
           <div className="p-6 space-y-6 text-xs text-slate-800 max-w-3xl mx-auto">
             {/* Revenue */}
             <div className="space-y-2">
-              <div className="flex justify-between font-black text-sm text-emerald-950 border-b border-emerald-200 pb-1">
+              <div className="flex justify-between font-bold text-sm text-emerald-950 border-b border-emerald-200 pb-1">
                 <span>1. Operating Revenue &amp; Surcharges</span>
                 <span className="font-mono">₹{pnlData.totalRevenue.toLocaleString('en-IN')}</span>
               </div>
@@ -512,7 +512,7 @@ export const FinanceGeneralLedgerView: React.FC = () => {
 
             {/* COGS */}
             <div className="space-y-2">
-              <div className="flex justify-between font-black text-sm text-rose-950 border-b border-rose-200 pb-1">
+              <div className="flex justify-between font-bold text-sm text-rose-950 border-b border-rose-200 pb-1">
                 <span>2. Cost of Goods Sold (COGS)</span>
                 <span className="font-mono">-₹{pnlData.totalCogs.toLocaleString('en-IN')}</span>
               </div>
@@ -525,14 +525,14 @@ export const FinanceGeneralLedgerView: React.FC = () => {
             </div>
 
             {/* Gross Profit */}
-            <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-xl flex justify-between font-black text-sm text-indigo-950">
+            <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-xl flex justify-between font-bold text-sm text-indigo-950">
               <span>Gross Operating Profit (Revenue - COGS)</span>
               <span className="font-mono">₹{pnlData.grossProfit.toLocaleString('en-IN')}</span>
             </div>
 
             {/* Operating Expenses */}
             <div className="space-y-2">
-              <div className="flex justify-between font-black text-sm text-amber-950 border-b border-amber-200 pb-1">
+              <div className="flex justify-between font-bold text-sm text-amber-950 border-b border-amber-200 pb-1">
                 <span>3. Operating &amp; Administrative Expenses</span>
                 <span className="font-mono">-₹{pnlData.totalOpex.toLocaleString('en-IN')}</span>
               </div>
@@ -545,7 +545,7 @@ export const FinanceGeneralLedgerView: React.FC = () => {
             </div>
 
             {/* Net Operating Profit */}
-            <div className="p-4 bg-emerald-50 border-2 border-emerald-300 rounded-2xl flex justify-between font-black text-base text-emerald-950 shadow-xs">
+            <div className="p-4 bg-emerald-50 border-2 border-emerald-300 rounded-2xl flex justify-between font-bold text-base text-emerald-950 shadow-xs">
               <span>Net Operating Profit / (Loss)</span>
               <span className="font-mono text-lg">₹{pnlData.netProfit.toLocaleString('en-IN')}</span>
             </div>
@@ -572,7 +572,7 @@ export const FinanceGeneralLedgerView: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 text-xs text-slate-800">
             {/* Assets Side */}
             <div className="space-y-4 border-r border-slate-100 pr-4">
-              <div className="flex justify-between font-black text-sm text-indigo-950 border-b border-indigo-200 pb-1">
+              <div className="flex justify-between font-bold text-sm text-indigo-950 border-b border-indigo-200 pb-1">
                 <span>Total Assets</span>
                 <span className="font-mono">₹{balanceSheetData.totalAssets.toLocaleString('en-IN')}</span>
               </div>
@@ -593,7 +593,7 @@ export const FinanceGeneralLedgerView: React.FC = () => {
             <div className="space-y-6">
               {/* Liabilities */}
               <div className="space-y-2">
-                <div className="flex justify-between font-black text-sm text-rose-950 border-b border-rose-200 pb-1">
+                <div className="flex justify-between font-bold text-sm text-rose-950 border-b border-rose-200 pb-1">
                   <span>Liabilities</span>
                   <span className="font-mono">₹{balanceSheetData.totalLiabilities.toLocaleString('en-IN')}</span>
                 </div>
@@ -610,7 +610,7 @@ export const FinanceGeneralLedgerView: React.FC = () => {
 
               {/* Equity */}
               <div className="space-y-2">
-                <div className="flex justify-between font-black text-sm text-purple-950 border-b border-purple-200 pb-1">
+                <div className="flex justify-between font-bold text-sm text-purple-950 border-b border-purple-200 pb-1">
                   <span>Promoter Equity &amp; Retained Reserves</span>
                   <span className="font-mono">₹{balanceSheetData.totalEquity.toLocaleString('en-IN')}</span>
                 </div>
@@ -627,7 +627,7 @@ export const FinanceGeneralLedgerView: React.FC = () => {
               </div>
 
               {/* Total Liabilities & Equity */}
-              <div className="p-3 bg-purple-50 border border-purple-200 rounded-xl flex justify-between font-black text-sm text-purple-950">
+              <div className="p-3 bg-purple-50 border border-purple-200 rounded-xl flex justify-between font-bold text-sm text-purple-950">
                 <span>Total Liabilities + Equity</span>
                 <span className="font-mono">₹{balanceSheetData.totalLiabilitiesAndEquity.toLocaleString('en-IN')}</span>
               </div>
@@ -748,7 +748,7 @@ export const FinanceGeneralLedgerView: React.FC = () => {
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr className="bg-slate-100 font-black text-slate-900 border-t border-slate-200">
+                  <tr className="bg-slate-100 font-bold text-slate-900 border-t border-slate-200">
                     <td colSpan={2} className="py-2 px-3">Balanced Total</td>
                     <td className="py-2 px-3 text-right font-mono">₹{selectedEntry.totalDebit.toLocaleString('en-IN')}</td>
                     <td className="py-2 px-3 text-right font-mono">₹{selectedEntry.totalCredit.toLocaleString('en-IN')}</td>

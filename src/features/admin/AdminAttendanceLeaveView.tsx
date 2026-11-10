@@ -275,7 +275,7 @@ export const AdminAttendanceLeaveView: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
               Attendance &amp; Leave Governance
             </h1>
             <Badge variant="purple" size="sm">
@@ -356,7 +356,7 @@ export const AdminAttendanceLeaveView: React.FC = () => {
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Staff</span>
                 <Users className="w-4 h-4 text-slate-400" />
               </div>
-              <div className="text-2xl font-black text-slate-900">{attendanceMetrics.total}</div>
+              <div className="text-2xl font-bold text-slate-900">{attendanceMetrics.total}</div>
               <p className="text-[11px] text-slate-500 font-medium">On Roster for {selectedDate}</p>
             </div>
 
@@ -365,7 +365,7 @@ export const AdminAttendanceLeaveView: React.FC = () => {
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Present Today</span>
                 <UserCheck className="w-4 h-4" />
               </div>
-              <div className="text-2xl font-black text-slate-900 flex items-baseline gap-1.5">
+              <div className="text-2xl font-bold text-slate-900 flex items-baseline gap-1.5">
                 <span>{attendanceMetrics.present}</span>
                 <span className="text-xs font-bold text-emerald-600">({attendanceMetrics.presentPercentage}%)</span>
               </div>
@@ -377,7 +377,7 @@ export const AdminAttendanceLeaveView: React.FC = () => {
                 <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">Plan of Action (POA)</span>
                 <Target className="w-4 h-4" />
               </div>
-              <div className="text-2xl font-black text-indigo-900 flex items-baseline gap-1.5">
+              <div className="text-2xl font-bold text-indigo-900 flex items-baseline gap-1.5">
                 <span>{attendanceMetrics.poaSubmitted}</span>
                 <span className="text-xs font-bold text-indigo-600">({attendanceMetrics.poaRate}%)</span>
               </div>
@@ -389,7 +389,7 @@ export const AdminAttendanceLeaveView: React.FC = () => {
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Late Arrivals</span>
                 <Clock className="w-4 h-4" />
               </div>
-              <div className="text-2xl font-black text-slate-900">{attendanceMetrics.late}</div>
+              <div className="text-2xl font-bold text-slate-900">{attendanceMetrics.late}</div>
               <p className="text-[11px] text-amber-700 font-medium">Past Grace Period (&gt; 09:30 AM)</p>
             </div>
 
@@ -398,7 +398,7 @@ export const AdminAttendanceLeaveView: React.FC = () => {
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">On Approved Leave</span>
                 <CalendarCheck className="w-4 h-4" />
               </div>
-              <div className="text-2xl font-black text-slate-900">{attendanceMetrics.onLeave}</div>
+              <div className="text-2xl font-bold text-slate-900">{attendanceMetrics.onLeave}</div>
               <p className="text-[11px] text-purple-700 font-medium">Approved Leave Requests Active</p>
             </div>
 
@@ -407,7 +407,7 @@ export const AdminAttendanceLeaveView: React.FC = () => {
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Unplanned Absent</span>
                 <UserX className="w-4 h-4" />
               </div>
-              <div className="text-2xl font-black text-slate-900">{attendanceMetrics.absent}</div>
+              <div className="text-2xl font-bold text-slate-900">{attendanceMetrics.absent}</div>
               <p className="text-[11px] text-rose-700 font-medium">No Check-in Recorded by 10:30 AM</p>
             </div>
           </div>
@@ -513,7 +513,7 @@ export const AdminAttendanceLeaveView: React.FC = () => {
           <div className="rounded-3xl bg-white border border-slate-200/80 shadow-xs overflow-hidden">
             <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h3 className="text-sm font-black text-slate-900">
+                <h3 className="text-sm font-bold text-slate-900">
                   Staff Attendance Roster &amp; Daily Plans of Action — {selectedDate}
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
@@ -768,7 +768,7 @@ export const AdminAttendanceLeaveView: React.FC = () => {
                 </span>
                 <Clock className="w-4 h-4" />
               </div>
-              <div className="text-2xl font-black text-amber-900">{leaveMetrics.pending}</div>
+              <div className="text-2xl font-bold text-amber-900">{leaveMetrics.pending}</div>
               <p className="text-[11px] text-amber-700 font-medium">Awaiting Administrator Review</p>
             </div>
 
@@ -779,7 +779,7 @@ export const AdminAttendanceLeaveView: React.FC = () => {
                 </span>
                 <CheckCircle2 className="w-4 h-4" />
               </div>
-              <div className="text-2xl font-black text-slate-900">{leaveMetrics.approved}</div>
+              <div className="text-2xl font-bold text-slate-900">{leaveMetrics.approved}</div>
               <p className="text-[11px] text-emerald-700 font-medium">Synced with Attendance Roster</p>
             </div>
 
@@ -790,7 +790,7 @@ export const AdminAttendanceLeaveView: React.FC = () => {
                 </span>
                 <XCircle className="w-4 h-4" />
               </div>
-              <div className="text-2xl font-black text-slate-900">{leaveMetrics.rejected}</div>
+              <div className="text-2xl font-bold text-slate-900">{leaveMetrics.rejected}</div>
               <p className="text-[11px] text-rose-700 font-medium">Operational Conflict Decisions</p>
             </div>
 
@@ -801,7 +801,7 @@ export const AdminAttendanceLeaveView: React.FC = () => {
                 </span>
                 <Calendar className="w-4 h-4" />
               </div>
-              <div className="text-2xl font-black text-slate-900">{leaveMetrics.totalDaysOut} Days</div>
+              <div className="text-2xl font-bold text-slate-900">{leaveMetrics.totalDaysOut} Days</div>
               <p className="text-[11px] text-purple-700 font-medium">Total Reliever Hours Scheduled</p>
             </div>
           </div>
@@ -908,7 +908,7 @@ export const AdminAttendanceLeaveView: React.FC = () => {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           {getLeaveTypeBadge(req.leaveType)}
-                          <span className="font-black text-slate-900 font-mono">
+                          <span className="font-bold text-slate-900 font-mono">
                             {req.durationDays} {req.durationDays === 1 ? 'Day' : 'Days'}
                           </span>
                         </div>
@@ -1454,7 +1454,7 @@ export const AdminAttendanceLeaveView: React.FC = () => {
               </div>
               <div>
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Days</span>
-                <span className="font-black text-slate-900 font-mono mt-0.5 block">{viewingLeaveDetail.durationDays} Days</span>
+                <span className="font-bold text-slate-900 font-mono mt-0.5 block">{viewingLeaveDetail.durationDays} Days</span>
               </div>
               <div>
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Start Date</span>

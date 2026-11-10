@@ -272,7 +272,7 @@ export function StoreManagerOverview({ onMobileMenuOpen }: { onMobileMenuOpen?: 
               </span>
               <span className="text-xs text-slate-400 font-medium">8 Warehouse Workspaces Connected</span>
             </div>
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">Store Manager Overview</h1>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Store Manager Overview</h1>
             <p className="text-slate-500 text-xs mt-0.5">
               Live multi-depot operational visibility across goods receiving, inventory traceability, production materials, quality release, and customer dispatches.
             </p>
@@ -380,7 +380,7 @@ export function StoreManagerOverview({ onMobileMenuOpen }: { onMobileMenuOpen?: 
           <section className="bg-white rounded-3xl p-6 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-base font-black text-slate-900 tracking-tight">Quick Operational Actions</h3>
+                <h3 className="text-base font-bold text-slate-900 tracking-tight">Quick Operational Actions</h3>
                 <p className="text-xs text-slate-500">Jump directly into any primary warehouse transaction or task</p>
               </div>
             </div>
@@ -390,7 +390,7 @@ export function StoreManagerOverview({ onMobileMenuOpen }: { onMobileMenuOpen?: 
           {/* Section 2: Dashboard Summary Cards */}
           <section className="space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-black text-slate-900 tracking-tight">Executive Warehouse KPIs</h3>
+              <h3 className="text-base font-bold text-slate-900 tracking-tight">Executive Warehouse KPIs</h3>
               <span className="text-xs text-slate-400">Click any card to filter corresponding workspace</span>
             </div>
             <DashboardSummaryCards metrics={data?.metrics ?? null} isLoading={isLoading} />
@@ -400,7 +400,7 @@ export function StoreManagerOverview({ onMobileMenuOpen }: { onMobileMenuOpen?: 
           <section className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-black text-slate-900 tracking-tight">Warehouse Workspace Status Overview</h3>
+                <h3 className="text-base font-bold text-slate-900 tracking-tight">Warehouse Workspace Status Overview</h3>
                 <p className="text-xs text-slate-500">Live health, open count, and status across all 8 specialized functional centres</p>
               </div>
               <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
@@ -452,7 +452,7 @@ export function StoreManagerOverview({ onMobileMenuOpen }: { onMobileMenuOpen?: 
                     {activeWarehouse ? `${activeWarehouse.name} (${activeWarehouse.code})` : 'All Regional Depots'}
                   </span>
                 </div>
-                <div className="text-lg sm:text-xl font-black text-white tracking-tight mt-0.5 flex items-center gap-2">
+                <div className="text-lg sm:text-xl font-bold text-white tracking-tight mt-0.5 flex items-center gap-2">
                   <span>{assignedRegionName}</span>
                   <span className="text-xs font-normal text-slate-400">
                     • Storekeeper: <strong className="text-slate-200">{currentUser?.name || 'Devendra Rawat'}</strong> ({currentUser?.employeeId || 'EMP-STR-301'})
@@ -469,7 +469,7 @@ export function StoreManagerOverview({ onMobileMenuOpen }: { onMobileMenuOpen?: 
                 </div>
                 <div>
                   <div className="text-[10px] uppercase font-bold text-slate-300 tracking-wider">Storekeeper Wallet</div>
-                  <div className="text-base font-black text-lime-400 font-mono">
+                  <div className="text-base font-bold text-lime-400 font-mono">
                     ₹{(currentUser?.walletBalance || 5000).toLocaleString('en-IN')}
                   </div>
                 </div>
@@ -489,7 +489,7 @@ export function StoreManagerOverview({ onMobileMenuOpen }: { onMobileMenuOpen?: 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs">
               <span className="text-[11px] text-slate-500 font-medium">Available Units</span>
-              <div className="text-xl font-black text-slate-900 mt-1 font-mono">
+              <div className="text-xl font-bold text-slate-900 mt-1 font-mono">
                 {totalStockUnits.toLocaleString()}
               </div>
               <span className="text-[10px] text-emerald-600 font-semibold mt-0.5 block">Ready for Customer Orders</span>
@@ -497,7 +497,7 @@ export function StoreManagerOverview({ onMobileMenuOpen }: { onMobileMenuOpen?: 
 
             <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs">
               <span className="text-[11px] text-slate-500 font-medium">Active Batches</span>
-              <div className="text-xl font-black text-slate-900 mt-1 font-mono">
+              <div className="text-xl font-bold text-slate-900 mt-1 font-mono">
                 {activeBatches.length}
               </div>
               <span className="text-[10px] text-indigo-600 font-semibold mt-0.5 block">QR / Barcode Verified</span>
@@ -505,7 +505,7 @@ export function StoreManagerOverview({ onMobileMenuOpen }: { onMobileMenuOpen?: 
 
             <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs">
               <span className="text-[11px] text-slate-500 font-medium">Damaged / Held</span>
-              <div className="text-xl font-black text-rose-600 mt-1 font-mono">
+              <div className="text-xl font-bold text-rose-600 mt-1 font-mono">
                 {totalDamagedUnits}
               </div>
               <span className="text-[10px] text-rose-500 font-semibold mt-0.5 block">Quarantined from Sellable</span>
@@ -513,7 +513,7 @@ export function StoreManagerOverview({ onMobileMenuOpen }: { onMobileMenuOpen?: 
 
             <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs">
               <span className="text-[11px] text-slate-500 font-medium">Pending Inwards</span>
-              <div className="text-xl font-black text-amber-600 mt-1 font-mono">
+              <div className="text-xl font-bold text-amber-600 mt-1 font-mono">
                 {pendingInwards.length}
               </div>
               <span className="text-[10px] text-amber-600 font-semibold mt-0.5 block">QC &amp; Verification Due</span>
@@ -527,7 +527,7 @@ export function StoreManagerOverview({ onMobileMenuOpen }: { onMobileMenuOpen?: 
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
                   Active Regional Logistics &amp; Inward Control
                 </span>
-                <h2 className="text-xl font-black text-slate-900 tracking-tight mt-0.5">
+                <h2 className="text-xl font-bold text-slate-900 tracking-tight mt-0.5">
                   Depot Operations Desk
                 </h2>
               </div>
@@ -905,7 +905,7 @@ export function StoreManagerOverview({ onMobileMenuOpen }: { onMobileMenuOpen?: 
                     Batch: {discrepancyForm.batchNumber}
                   </span>
                 </div>
-                <h3 className="text-lg font-black text-slate-900 tracking-tight mt-1">
+                <h3 className="text-lg font-bold text-slate-900 tracking-tight mt-1">
                   Report Physical Count Discrepancy or Damage
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
@@ -1069,7 +1069,7 @@ export function StoreManagerOverview({ onMobileMenuOpen }: { onMobileMenuOpen?: 
                 <span className="px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800 text-[11px] font-bold border border-indigo-200">
                   {selectedDispatchForExpense.dispatchNumber}
                 </span>
-                <h3 className="text-lg font-black text-slate-900 tracking-tight mt-1">
+                <h3 className="text-lg font-bold text-slate-900 tracking-tight mt-1">
                   Record Delivery &amp; Freight Expense
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">

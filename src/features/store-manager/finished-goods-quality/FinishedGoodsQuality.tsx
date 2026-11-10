@@ -58,7 +58,7 @@ export function FinishedGoodsQuality({ onMobileMenuOpen }: FinishedGoodsQualityP
               </span>
               <span className="text-xs text-slate-400 font-medium">Finished Stock Clearance Gate</span>
             </div>
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">Finished Goods &amp; Quality</h1>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Finished Goods &amp; Quality</h1>
             <p className="text-slate-500 text-xs mt-0.5">
               Receive completed production output, manage warehouse staging, and track quality inspection clearance before goods become available to sell.
             </p>

@@ -61,7 +61,7 @@ export const Modal: React.FC<ModalProps> = ({
       >
         <div className="flex items-start justify-between pb-4 border-b border-slate-100 shrink-0">
           <div>
-            <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">{title}</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-slate-900 tracking-tight">{title}</h3>
             {description && <p className="text-xs text-slate-500 mt-0.5">{description}</p>}
           </div>
           <button

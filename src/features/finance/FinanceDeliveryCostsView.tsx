@@ -81,7 +81,7 @@ export const FinanceDeliveryCostsView: React.FC = () => {
       {/* ─── HEADER ─── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-900 tracking-tight">
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
             Storekeeper Delivery &amp; Operational Freight Costs
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
@@ -94,28 +94,28 @@ export const FinanceDeliveryCostsView: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
         <div className="glass-card p-3.5 rounded-2xl border border-indigo-200 bg-indigo-50/40">
           <span className="text-[10px] font-bold uppercase text-indigo-800 block">Total Delivery Outlay</span>
-          <div className="text-xl font-black text-indigo-950 font-mono mt-0.5">
+          <div className="text-xl font-bold text-indigo-950 font-mono mt-0.5">
             ₹{metrics.totalDeliveryOutlay.toLocaleString('en-IN')}
           </div>
           <span className="text-[10px] text-indigo-600">Sum of dispatch operational fees</span>
         </div>
         <div className="glass-card p-3.5 rounded-2xl border border-slate-200 bg-white">
           <span className="text-[10px] font-bold uppercase text-slate-500 block">Storekeeper Logistics Claims</span>
-          <div className="text-xl font-black text-slate-900 font-mono mt-0.5">
+          <div className="text-xl font-bold text-slate-900 font-mono mt-0.5">
             ₹{metrics.totalLogisticsVouchers.toLocaleString('en-IN')}
           </div>
           <span className="text-[10px] text-slate-400">Loading, toll, and freight vouchers</span>
         </div>
         <div className="glass-card p-3.5 rounded-2xl border border-amber-200 bg-amber-50/40">
           <span className="text-[10px] font-bold uppercase text-amber-800 block">Avg Cost / Customer Delivery</span>
-          <div className="text-xl font-black text-amber-950 font-mono mt-0.5">
+          <div className="text-xl font-bold text-amber-950 font-mono mt-0.5">
             ₹{metrics.avgDeliveryCost.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
           </div>
           <span className="text-[10px] text-amber-700">Cost per outbound shipment</span>
         </div>
         <div className="glass-card p-3.5 rounded-2xl border border-emerald-200 bg-emerald-50/40">
           <span className="text-[10px] font-bold uppercase text-emerald-800 block">Successfully Delivered</span>
-          <div className="text-xl font-black text-emerald-950 font-mono mt-0.5">
+          <div className="text-xl font-bold text-emerald-950 font-mono mt-0.5">
             {metrics.totalDeliveredShipments} Shipments
           </div>
           <span className="text-[10px] text-emerald-700">Proof of delivery on file</span>
@@ -194,7 +194,7 @@ export const FinanceDeliveryCostsView: React.FC = () => {
                     <td className="py-3 px-4 text-center font-bold">
                       {d.items?.reduce((s, it) => s + it.quantity, 0) || 0} units
                     </td>
-                    <td className="py-3 px-4 text-right font-mono font-black text-rose-700 text-sm">
+                    <td className="py-3 px-4 text-right font-mono font-bold text-rose-700 text-sm">
                       ₹{(d.totalDeliveryExpenses || 0).toLocaleString('en-IN')}
                     </td>
                     <td className="py-3 px-4 text-center">
@@ -279,7 +279,7 @@ export const FinanceDeliveryCostsView: React.FC = () => {
               </div>
             </div>
 
-            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-between font-black text-sm text-rose-950">
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-between font-bold text-sm text-rose-950">
               <span>Total Landed Delivery Cost:</span>
               <span className="font-mono">₹{(selectedDispatch.totalDeliveryExpenses || 0).toLocaleString('en-IN')}</span>
             </div>

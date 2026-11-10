@@ -157,7 +157,7 @@ export const FinancePayrollAttendanceView: React.FC = () => {
       {/* ─── HEADER ─── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-900 tracking-tight">
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
             Payroll, Salaries &amp; Attendance Verification
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
@@ -194,28 +194,28 @@ export const FinancePayrollAttendanceView: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
         <div className="glass-card p-3.5 rounded-2xl border border-purple-200 bg-purple-50/40">
           <span className="text-[10px] font-bold uppercase text-purple-800 block">Gross Salary Pool</span>
-          <div className="text-xl font-black text-purple-950 font-mono mt-0.5">
+          <div className="text-xl font-bold text-purple-950 font-mono mt-0.5">
             ₹{payrollMetrics.grossTotal.toLocaleString('en-IN')}
           </div>
           <span className="text-[10px] text-purple-700">Before statutory deductions</span>
         </div>
         <div className="glass-card p-3.5 rounded-2xl border border-amber-200 bg-amber-50/40">
           <span className="text-[10px] font-bold uppercase text-amber-800 block">Statutory Deductions &amp; TDS</span>
-          <div className="text-xl font-black text-amber-950 font-mono mt-0.5">
+          <div className="text-xl font-bold text-amber-950 font-mono mt-0.5">
             ₹{payrollMetrics.deductionsTotal.toLocaleString('en-IN')}
           </div>
           <span className="text-[10px] text-amber-700">PF, ESI &amp; TDS withholdings</span>
         </div>
         <div className="glass-card p-3.5 rounded-2xl border border-indigo-200 bg-indigo-50/40">
           <span className="text-[10px] font-bold uppercase text-indigo-800 block">Total Net Salary Payable</span>
-          <div className="text-xl font-black text-indigo-950 font-mono mt-0.5">
+          <div className="text-xl font-bold text-indigo-950 font-mono mt-0.5">
             ₹{payrollMetrics.netPayableTotal.toLocaleString('en-IN')}
           </div>
           <span className="text-[10px] text-indigo-600">Net take-home liability</span>
         </div>
         <div className="glass-card p-3.5 rounded-2xl border border-emerald-200 bg-emerald-50/40">
           <span className="text-[10px] font-bold uppercase text-emerald-800 block">Disbursed to Bank</span>
-          <div className="text-xl font-black text-emerald-950 font-mono mt-0.5">
+          <div className="text-xl font-bold text-emerald-950 font-mono mt-0.5">
             ₹{payrollMetrics.disbursedTotal.toLocaleString('en-IN')}
           </div>
           <span className="text-[10px] text-emerald-700">
@@ -290,7 +290,7 @@ export const FinancePayrollAttendanceView: React.FC = () => {
                       <td className="py-3 px-4 text-right font-mono text-emerald-700 font-semibold">
                         +₹{(p.earnedIncentives + p.approvedReimbursements).toLocaleString('en-IN')}
                       </td>
-                      <td className="py-3 px-4 text-right font-mono font-black text-indigo-950 text-sm">
+                      <td className="py-3 px-4 text-right font-mono font-bold text-indigo-950 text-sm">
                         ₹{p.netPayableSalary.toLocaleString('en-IN')}
                       </td>
                       <td className="py-3 px-4 text-center">
@@ -404,7 +404,7 @@ export const FinancePayrollAttendanceView: React.FC = () => {
                       <td className="py-3 px-4 text-center font-mono text-rose-600 font-bold">
                         {att.unpaidAbsenceDays}
                       </td>
-                      <td className="py-3 px-4 text-center font-mono font-black text-sm text-indigo-950">
+                      <td className="py-3 px-4 text-center font-mono font-bold text-sm text-indigo-950">
                         {att.payableWorkingDays} Days
                       </td>
                       <td className="py-3 px-4 text-center">
@@ -433,7 +433,7 @@ export const FinancePayrollAttendanceView: React.FC = () => {
             {/* Header */}
             <div className="flex items-start justify-between border-b border-slate-200 pb-3">
               <div>
-                <h3 className="text-base font-black text-slate-900">{selectedPayroll.employeeName}</h3>
+                <h3 className="text-base font-bold text-slate-900">{selectedPayroll.employeeName}</h3>
                 <p className="text-xs text-slate-500 font-medium">
                   {selectedPayroll.roleTitle} • {selectedPayroll.department}
                 </p>
@@ -472,7 +472,7 @@ export const FinancePayrollAttendanceView: React.FC = () => {
               </div>
               <div>
                 <span className="text-[10px] text-slate-400 block uppercase">Payable Days</span>
-                <span className="font-black text-indigo-950 font-mono">{selectedPayroll.payableDays}</span>
+                <span className="font-bold text-indigo-950 font-mono">{selectedPayroll.payableDays}</span>
               </div>
             </div>
 
@@ -545,7 +545,7 @@ export const FinancePayrollAttendanceView: React.FC = () => {
               </div>
               <div className="text-right">
                 <span className="text-[10px] text-indigo-700 uppercase font-bold block">Net Take-Home Salary</span>
-                <span className="text-xl font-black text-indigo-950 font-mono">
+                <span className="text-xl font-bold text-indigo-950 font-mono">
                   ₹{selectedPayroll.netPayableSalary.toLocaleString('en-IN')}
                 </span>
               </div>

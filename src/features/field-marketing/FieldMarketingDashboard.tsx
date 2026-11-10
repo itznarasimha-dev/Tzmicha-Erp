@@ -41,7 +41,7 @@ export const FieldMarketingDashboard: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             Field Marketing & Ground Operations
             <Badge variant="success" size="sm">North Territory Rep</Badge>
           </h1>
@@ -86,7 +86,7 @@ export const FieldMarketingDashboard: React.FC = () => {
                   Checked in at {activeVisit.checkInTime}
                 </span>
               </div>
-              <h3 className="text-base font-extrabold text-white">
+              <h3 className="text-base font-semibold text-white">
                 {activeVisit.prospectName || 'Dealer Store Consultation'}
               </h3>
               <p className="text-xs text-emerald-100">{activeVisit.locationAddress}</p>

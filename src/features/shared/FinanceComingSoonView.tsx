@@ -116,7 +116,7 @@ export const FinanceComingSoonView: React.FC = () => {
               <Landmark className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+              <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
                 Finance &amp; Treasury Control Center
               </h1>
               <p className="text-xs sm:text-sm text-purple-200/80 font-medium mt-0.5">
@@ -189,7 +189,7 @@ export const FinanceComingSoonView: React.FC = () => {
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
               Liquid Operating Cash Reserves
             </span>
-            <div className="text-xl font-black text-slate-900 font-mono">
+            <div className="text-xl font-bold text-slate-900 font-mono">
               ₹1,42,80,000
             </div>
             <div className="flex items-center gap-1 text-[11px] text-emerald-600 font-semibold">
@@ -201,7 +201,7 @@ export const FinanceComingSoonView: React.FC = () => {
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
               Projected Monthly Billing
             </span>
-            <div className="text-xl font-black text-slate-900 font-mono">
+            <div className="text-xl font-bold text-slate-900 font-mono">
               ₹86,45,200
             </div>
             <div className="flex items-center gap-1 text-[11px] text-indigo-600 font-semibold">
@@ -213,7 +213,7 @@ export const FinanceComingSoonView: React.FC = () => {
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
               Accounts Receivable Aging (A/R)
             </span>
-            <div className="text-xl font-black text-amber-700 font-mono">
+            <div className="text-xl font-bold text-amber-700 font-mono">
               ₹31,24,500
             </div>
             <div className="flex items-center gap-1 text-[11px] text-amber-600 font-semibold">
@@ -225,7 +225,7 @@ export const FinanceComingSoonView: React.FC = () => {
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
               Statutory GST Provisioning
             </span>
-            <div className="text-xl font-black text-slate-900 font-mono">
+            <div className="text-xl font-bold text-slate-900 font-mono">
               ₹14,82,600
             </div>
             <div className="flex items-center gap-1 text-[11px] text-emerald-600 font-semibold">

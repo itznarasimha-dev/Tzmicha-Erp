@@ -338,7 +338,7 @@ export const FieldExpensesSettlement: React.FC = () => {
             <Badge variant="purple" size="sm">Financial Governance</Badge>
             <span className="text-[11px] font-mono text-slate-400 font-semibold">Enterprise Claims &amp; Dispatches</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
             Expense Management &amp; Wallet Desk
           </h1>
           <p className="text-xs text-slate-500 mt-1 max-w-3xl">
@@ -386,7 +386,7 @@ export const FieldExpensesSettlement: React.FC = () => {
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Pending Approvals</span>
             <Clock className="w-4 h-4" />
           </div>
-          <div className="text-2xl font-black text-slate-900 tracking-tight">
+          <div className="text-2xl font-bold text-slate-900 tracking-tight">
             ₹{pendingAmount.toLocaleString('en-IN')}
           </div>
           <p className="text-[11px] text-slate-500 font-medium">
@@ -399,7 +399,7 @@ export const FieldExpensesSettlement: React.FC = () => {
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Total Settled</span>
             <CheckCircle2 className="w-4 h-4" />
           </div>
-          <div className="text-2xl font-black text-slate-900 tracking-tight">
+          <div className="text-2xl font-bold text-slate-900 tracking-tight">
             ₹{totalSettledAmount.toLocaleString('en-IN')}
           </div>
           <p className="text-[11px] text-slate-500 font-medium">Disbursed directly across all departments</p>
@@ -410,7 +410,7 @@ export const FieldExpensesSettlement: React.FC = () => {
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Dispatch Logistics</span>
             <Truck className="w-4 h-4" />
           </div>
-          <div className="text-2xl font-black text-slate-900 tracking-tight">
+          <div className="text-2xl font-bold text-slate-900 tracking-tight">
             ₹{customerDispatches.reduce((s, d) => s + (d.totalDeliveryExpenses || 0), 0).toLocaleString('en-IN')}
           </div>
           <p className="text-[11px] text-slate-500 font-medium">
@@ -423,7 +423,7 @@ export const FieldExpensesSettlement: React.FC = () => {
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Active Field Wallets</span>
             <Wallet className="w-4 h-4" />
           </div>
-          <div className="text-2xl font-black text-slate-900 tracking-tight">
+          <div className="text-2xl font-bold text-slate-900 tracking-tight">
             ₹{totalWalletBalances.toLocaleString('en-IN')}
           </div>
           <p className="text-[11px] text-slate-500 font-medium">
@@ -723,7 +723,7 @@ export const FieldExpensesSettlement: React.FC = () => {
 
                           {/* Amount */}
                           <td className="py-3 px-4 text-right">
-                            <span className="font-mono font-black text-slate-900 text-sm">
+                            <span className="font-mono font-bold text-slate-900 text-sm">
                               ₹{claim.amount.toLocaleString('en-IN')}
                             </span>
                           </td>
@@ -824,7 +824,7 @@ export const FieldExpensesSettlement: React.FC = () => {
                   {customerDispatches.map((dsp) => (
                     <tr key={dsp.id} className="hover:bg-slate-50/90 transition-colors">
                       <td className="py-3.5 px-4">
-                        <span className="font-mono font-extrabold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-lg">
+                        <span className="font-mono font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-lg">
                           {dsp.dispatchNumber}
                         </span>
                       </td>
@@ -867,7 +867,7 @@ export const FieldExpensesSettlement: React.FC = () => {
                       </td>
 
                       <td className="py-3.5 px-4 text-right">
-                        <span className="font-mono font-black text-emerald-700 text-sm">
+                        <span className="font-mono font-bold text-emerald-700 text-sm">
                           ₹{(dsp.totalDeliveryExpenses || 0).toLocaleString('en-IN')}
                         </span>
                       </td>
@@ -1006,7 +1006,7 @@ export const FieldExpensesSettlement: React.FC = () => {
                         </td>
 
                         <td className="py-3.5 px-4 text-right">
-                          <span className="font-mono font-black text-indigo-900 text-sm bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-200">
+                          <span className="font-mono font-bold text-indigo-900 text-sm bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-200">
                             ₹{(u.walletBalance || 0).toLocaleString('en-IN')}
                           </span>
                         </td>
@@ -1055,7 +1055,7 @@ export const FieldExpensesSettlement: React.FC = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500 font-medium">Claimed Amount:</span>
-                <span className="font-mono font-black text-indigo-700">₹{selectedClaim.amount.toLocaleString('en-IN')}</span>
+                <span className="font-mono font-bold text-indigo-700">₹{selectedClaim.amount.toLocaleString('en-IN')}</span>
               </div>
             </div>
 
@@ -1408,7 +1408,7 @@ export const FieldExpensesSettlement: React.FC = () => {
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-slate-500 font-medium">Audited Amount:</span>
-                <span className="font-mono font-black text-emerald-700 text-sm">₹{proofClaim.amount.toLocaleString('en-IN')}</span>
+                <span className="font-mono font-bold text-emerald-700 text-sm">₹{proofClaim.amount.toLocaleString('en-IN')}</span>
               </div>
             </div>
 

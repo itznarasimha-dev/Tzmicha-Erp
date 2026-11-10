@@ -43,8 +43,8 @@ export const Badge: React.FC<BadgeProps> = ({
   };
 
   const sizeStyles = {
-    sm: 'text-[10px] px-2 py-0.5 font-semibold tracking-wide',
-    md: 'text-xs px-2.5 py-1 font-semibold tracking-wide',
+    sm: 'text-[10px] px-2 py-0.5 font-medium tracking-wide',
+    md: 'text-xs px-2.5 py-1 font-medium tracking-wide',
   };
 
   return (

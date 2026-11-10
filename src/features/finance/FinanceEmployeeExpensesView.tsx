@@ -131,7 +131,7 @@ export const FinanceEmployeeExpensesView: React.FC = () => {
       {/* ─── HEADER ─── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-900 tracking-tight">
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
             Employee Expenses &amp; Reimbursement Settlements
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
@@ -144,28 +144,28 @@ export const FinanceEmployeeExpensesView: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
         <div className="glass-card p-3.5 rounded-2xl border border-slate-200 bg-white">
           <span className="text-[10px] font-bold uppercase text-slate-500 block">Total Claims Submitted</span>
-          <div className="text-xl font-black text-slate-900 font-mono mt-0.5">
+          <div className="text-xl font-bold text-slate-900 font-mono mt-0.5">
             ₹{metrics.totalClaimed.toLocaleString('en-IN')}
           </div>
           <span className="text-[10px] text-slate-400">{expenseClaims.length} total vouchers</span>
         </div>
         <div className="glass-card p-3.5 rounded-2xl border border-emerald-200 bg-emerald-50/40">
           <span className="text-[10px] font-bold uppercase text-emerald-800 block">Settled &amp; Reimbursed</span>
-          <div className="text-xl font-black text-emerald-950 font-mono mt-0.5">
+          <div className="text-xl font-bold text-emerald-950 font-mono mt-0.5">
             ₹{metrics.totalPaid.toLocaleString('en-IN')}
           </div>
           <span className="text-[10px] text-emerald-700">Bank / UPI / Wallet paid</span>
         </div>
         <div className="glass-card p-3.5 rounded-2xl border border-amber-200 bg-amber-50/40">
           <span className="text-[10px] font-bold uppercase text-amber-800 block">Pending Audit &amp; Settlement</span>
-          <div className="text-xl font-black text-amber-950 font-mono mt-0.5">
+          <div className="text-xl font-bold text-amber-950 font-mono mt-0.5">
             ₹{metrics.totalPending.toLocaleString('en-IN')}
           </div>
           <span className="text-[10px] text-amber-700">{metrics.pendingCount} submitted claims awaiting approval</span>
         </div>
         <div className="glass-card p-3.5 rounded-2xl border border-purple-200 bg-purple-50/40">
           <span className="text-[10px] font-bold uppercase text-purple-800 block">Staff Wallet Advance Floats</span>
-          <div className="text-xl font-black text-purple-950 font-mono mt-0.5">
+          <div className="text-xl font-bold text-purple-950 font-mono mt-0.5">
             ₹{(walletTransactions.reduce((s, w) => s + (w.type === 'advance_issued' ? w.amount : 0), 0) - walletTransactions.reduce((s, w) => s + (w.type === 'expense_deduction' ? w.amount : 0), 0)).toLocaleString('en-IN')}
           </div>
           <span className="text-[10px] text-purple-700">Current petty cash buffer float</span>
@@ -258,7 +258,7 @@ export const FinanceEmployeeExpensesView: React.FC = () => {
                     <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">
                       ₹{c.amount.toLocaleString('en-IN')}
                     </td>
-                    <td className="py-3 px-4 text-right font-mono font-black text-emerald-800">
+                    <td className="py-3 px-4 text-right font-mono font-bold text-emerald-800">
                       {c.settledAmount !== undefined ? `₹${c.settledAmount.toLocaleString('en-IN')}` : c.status === 'paid' ? `₹${c.amount.toLocaleString('en-IN')}` : '—'}
                     </td>
                     <td className="py-3 px-4 text-center">
@@ -364,7 +364,7 @@ export const FinanceEmployeeExpensesView: React.FC = () => {
               </div>
               <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
                 <span className="text-[10px] text-emerald-800 block uppercase">Settled Amount</span>
-                <span className="text-base font-black text-emerald-950 font-mono">
+                <span className="text-base font-bold text-emerald-950 font-mono">
                   {selectedClaim.settledAmount !== undefined ? `₹${selectedClaim.settledAmount.toLocaleString('en-IN')}` : selectedClaim.status === 'paid' ? `₹${selectedClaim.amount.toLocaleString('en-IN')}` : 'Pending'}
                 </span>
               </div>

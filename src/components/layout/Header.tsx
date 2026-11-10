@@ -267,7 +267,7 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           {notifOpen && (
-            <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-[0_20px_50px_rgba(0,0,0,0.18)] p-3 z-[999] ring-1 ring-slate-900/5 animate-in fade-in zoom-in-95 duration-150">
+            <div className="absolute right-[-48px] sm:right-0 mt-2 w-[calc(100vw-1.5rem)] sm:w-96 max-w-sm rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-[0_20px_50px_rgba(0,0,0,0.18)] p-3 z-[999] ring-1 ring-slate-900/5 animate-in fade-in zoom-in-95 duration-150">
               <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800 px-1">
                 <div className="flex items-center gap-2">
                   <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 tracking-wide">Notifications</h4>
@@ -336,7 +336,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Quick Settings Dropdown */}
           {settingsOpen && (
-            <div className="absolute right-0 mt-2 w-72 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-[0_20px_50px_rgba(0,0,0,0.18)] p-3.5 z-[999] ring-1 ring-slate-900/5 animate-in fade-in zoom-in-95 duration-150">
+            <div className="absolute right-[-24px] sm:right-0 mt-2 w-[calc(100vw-1.5rem)] sm:w-72 max-w-sm rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-[0_20px_50px_rgba(0,0,0,0.18)] p-3.5 z-[999] ring-1 ring-slate-900/5 animate-in fade-in zoom-in-95 duration-150">
               <div className="pb-2.5 border-b border-slate-100 dark:border-slate-800">
                 <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-slate-400">System Preferences</span>
                 <div className="text-xs font-medium text-slate-900 dark:text-slate-100 mt-0.5">{currentOrganization?.name || 'Tzmicha ERP'}</div>
@@ -406,7 +406,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* User Menu Dropdown */}
           {userMenuOpen && (
-            <div className="absolute right-0 mt-2 w-72 sm:w-80 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-[0_20px_50px_rgba(0,0,0,0.18)] p-3 z-[999] ring-1 ring-slate-900/5 animate-in fade-in zoom-in-95 duration-150">
+            <div className="absolute right-0 mt-2 w-[calc(100vw-1.5rem)] sm:w-80 max-w-sm rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-[0_20px_50px_rgba(0,0,0,0.18)] p-3 z-[999] ring-1 ring-slate-900/5 animate-in fade-in zoom-in-95 duration-150">
               <div className="px-2 pb-2.5 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2.5">
                 <img
                   src={currentUser.avatar}

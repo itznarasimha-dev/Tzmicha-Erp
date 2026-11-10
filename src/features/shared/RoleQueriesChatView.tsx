@@ -368,7 +368,7 @@ export const RoleQueriesChatView: React.FC<RoleQueriesChatViewProps> = ({ roleCo
                 <MessageSquare className="w-5 h-5 text-indigo-100" />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
                   Role Queries & Internal Helpdesk Chat
                   <span className="text-[11px] px-2.5 py-0.5 rounded-full font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
                     Live Desk
@@ -408,7 +408,7 @@ export const RoleQueriesChatView: React.FC<RoleQueriesChatViewProps> = ({ roleCo
           <div className="bg-slate-50/70 rounded-2xl p-3.5 border border-slate-200/60">
             <span className="text-[11px] font-semibold text-slate-500 block">Total Queries</span>
             <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-2xl font-black text-slate-900">{stats.total}</span>
+              <span className="text-2xl font-bold text-slate-900">{stats.total}</span>
               <span className="text-[10px] text-slate-400 font-medium">Logged</span>
             </div>
           </div>
@@ -419,7 +419,7 @@ export const RoleQueriesChatView: React.FC<RoleQueriesChatViewProps> = ({ roleCo
               <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
             </div>
             <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-2xl font-black text-amber-900">{stats.open}</span>
+              <span className="text-2xl font-bold text-amber-900">{stats.open}</span>
               <span className="text-[10px] text-amber-600 font-medium">Action Required</span>
             </div>
           </div>
@@ -427,7 +427,7 @@ export const RoleQueriesChatView: React.FC<RoleQueriesChatViewProps> = ({ roleCo
           <div className="bg-indigo-50/60 rounded-2xl p-3.5 border border-indigo-200/60">
             <span className="text-[11px] font-semibold text-indigo-700 block">In Progress</span>
             <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-2xl font-black text-indigo-900">{stats.inProgress}</span>
+              <span className="text-2xl font-bold text-indigo-900">{stats.inProgress}</span>
               <span className="text-[10px] text-indigo-600 font-medium">Under Review</span>
             </div>
           </div>
@@ -435,7 +435,7 @@ export const RoleQueriesChatView: React.FC<RoleQueriesChatViewProps> = ({ roleCo
           <div className="bg-emerald-50/60 rounded-2xl p-3.5 border border-emerald-200/60">
             <span className="text-[11px] font-semibold text-emerald-700 block">Resolved</span>
             <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-2xl font-black text-emerald-900">{stats.resolved}</span>
+              <span className="text-2xl font-bold text-emerald-900">{stats.resolved}</span>
               <span className="text-[10px] text-emerald-600 font-medium">Closed Today</span>
             </div>
           </div>
@@ -446,7 +446,7 @@ export const RoleQueriesChatView: React.FC<RoleQueriesChatViewProps> = ({ roleCo
               <Flame className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
             </div>
             <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-2xl font-black text-rose-900">{stats.urgent}</span>
+              <span className="text-2xl font-bold text-rose-900">{stats.urgent}</span>
               <span className="text-[10px] text-rose-600 font-medium">Escalated</span>
             </div>
           </div>

@@ -81,7 +81,7 @@ export const GoodsInward: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             Goods Inward & Physical Batch Registration
             <Badge variant="warning" size="sm">Noida Warehouse</Badge>
           </h1>
@@ -131,7 +131,7 @@ export const GoodsInward: React.FC = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-extrabold text-sm text-slate-900 font-mono">{r.receiptNumber}</span>
+                      <span className="font-semibold text-sm text-slate-900 font-mono">{r.receiptNumber}</span>
                       <Badge variant={isCompleted ? 'success' : 'warning'} size="sm">
                         {isCompleted ? 'Stock Active & Available' : 'Consignment Expected / At Gate'}
                       </Badge>
@@ -169,13 +169,13 @@ export const GoodsInward: React.FC = () => {
 
                   <div>
                     <span className="text-[10px] text-slate-400 uppercase">Batch Registered</span>
-                    <div className="font-extrabold text-indigo-700 font-mono">{r.batchNumber}</div>
+                    <div className="font-semibold text-indigo-700 font-mono">{r.batchNumber}</div>
                     <div className="text-[10px] text-slate-500">Exp: {r.expiryDate}</div>
                   </div>
 
                   <div>
                     <span className="text-[10px] text-slate-400 uppercase">Quantity Received</span>
-                    <div className="font-extrabold text-slate-900">{r.receivedQuantity} {r.unit}</div>
+                    <div className="font-semibold text-slate-900">{r.receivedQuantity} {r.unit}</div>
                   </div>
 
                   <div>

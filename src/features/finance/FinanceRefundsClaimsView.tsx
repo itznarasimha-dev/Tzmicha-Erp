@@ -163,7 +163,7 @@ export const FinanceRefundsClaimsView: React.FC = () => {
       {/* ─── HEADER ─── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-900 tracking-tight">
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
             Refunds, Customer Returns &amp; Damage Claims
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
@@ -216,28 +216,28 @@ export const FinanceRefundsClaimsView: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
         <div className="glass-card p-3.5 rounded-2xl border border-purple-200 bg-purple-50/40">
           <span className="text-[10px] font-bold uppercase text-purple-800 block">Total Claimed Value</span>
-          <div className="text-xl font-black text-purple-950 font-mono mt-0.5">
+          <div className="text-xl font-bold text-purple-950 font-mono mt-0.5">
             ₹{metrics.totalRequested.toLocaleString('en-IN')}
           </div>
           <span className="text-[10px] text-purple-700">Gross damage &amp; return volume</span>
         </div>
         <div className="glass-card p-3.5 rounded-2xl border border-amber-200 bg-amber-50/40">
           <span className="text-[10px] font-bold uppercase text-amber-800 block">Approved (Pending Payout)</span>
-          <div className="text-xl font-black text-amber-950 font-mono mt-0.5">
+          <div className="text-xl font-bold text-amber-950 font-mono mt-0.5">
             ₹{metrics.totalApprovedPending.toLocaleString('en-IN')}
           </div>
           <span className="text-[10px] text-amber-700">Approved by Finance; awaiting wire</span>
         </div>
         <div className="glass-card p-3.5 rounded-2xl border border-emerald-200 bg-emerald-50/40">
           <span className="text-[10px] font-bold uppercase text-emerald-800 block">Total Settled / Disbursed</span>
-          <div className="text-xl font-black text-emerald-950 font-mono mt-0.5">
+          <div className="text-xl font-bold text-emerald-950 font-mono mt-0.5">
             ₹{metrics.totalDisbursed.toLocaleString('en-IN')}
           </div>
           <span className="text-[10px] text-emerald-700">Credit notes / RTGS disbursed</span>
         </div>
         <div className="glass-card p-3.5 rounded-2xl border border-rose-200 bg-rose-50/40">
           <span className="text-[10px] font-bold uppercase text-rose-800 block">Pending Inspection Claims</span>
-          <div className="text-xl font-black text-rose-950 font-mono mt-0.5">
+          <div className="text-xl font-bold text-rose-950 font-mono mt-0.5">
             {metrics.pendingCount} Claims
           </div>
           <span className="text-[10px] text-rose-700">Requires finance decision</span>
@@ -318,7 +318,7 @@ export const FinanceRefundsClaimsView: React.FC = () => {
                     <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">
                       ₹{c.requestedAmount.toLocaleString('en-IN')}
                     </td>
-                    <td className="py-3 px-4 text-right font-mono font-black text-emerald-800">
+                    <td className="py-3 px-4 text-right font-mono font-bold text-emerald-800">
                       {c.approvedAmount !== undefined ? `₹${c.approvedAmount.toLocaleString('en-IN')}` : '—'}
                     </td>
                     <td className="py-3 px-4 text-center">
@@ -410,7 +410,7 @@ export const FinanceRefundsClaimsView: React.FC = () => {
           <div className="space-y-4 text-xs text-slate-800">
             <div className="flex items-start justify-between border-b border-slate-200 pb-3">
               <div>
-                <h3 className="text-base font-black text-slate-900">{selectedClaim.partyName}</h3>
+                <h3 className="text-base font-bold text-slate-900">{selectedClaim.partyName}</h3>
                 <p className="text-xs text-slate-500 capitalize">
                   Type: {selectedClaim.type.replace(/_/g, ' ')} • Source: {selectedClaim.claimSource}
                 </p>
@@ -452,7 +452,7 @@ export const FinanceRefundsClaimsView: React.FC = () => {
               </div>
               <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
                 <span className="text-[10px] text-emerald-800 block uppercase">Approved Amount</span>
-                <span className="text-base font-black text-emerald-950 font-mono">
+                <span className="text-base font-bold text-emerald-950 font-mono">
                   {selectedClaim.approvedAmount !== undefined ? `₹${selectedClaim.approvedAmount.toLocaleString('en-IN')}` : 'Pending'}
                 </span>
               </div>
@@ -603,7 +603,7 @@ export const FinanceRefundsClaimsView: React.FC = () => {
               </div>
               <div className="flex justify-between">
                 <span>Authorized Amount:</span>
-                <span className="font-mono font-black text-emerald-700 text-sm">
+                <span className="font-mono font-bold text-emerald-700 text-sm">
                   ₹{(selectedClaim.approvedAmount || selectedClaim.requestedAmount).toLocaleString('en-IN')}
                 </span>
               </div>

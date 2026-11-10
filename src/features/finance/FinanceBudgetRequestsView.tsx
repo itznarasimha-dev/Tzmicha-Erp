@@ -127,7 +127,7 @@ export const FinanceBudgetRequestsView: React.FC = () => {
       {/* ─── HEADER ─── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-900 tracking-tight">
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
             Marketing Campaign Budget Governance
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
@@ -140,28 +140,28 @@ export const FinanceBudgetRequestsView: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
         <div className="glass-card p-3.5 rounded-2xl border border-indigo-200 bg-indigo-50/40">
           <span className="text-[10px] font-bold uppercase text-indigo-800 block">Total Requested Budget</span>
-          <div className="text-xl font-black text-indigo-950 font-mono mt-0.5">
+          <div className="text-xl font-bold text-indigo-950 font-mono mt-0.5">
             ₹{metrics.totalRequested.toLocaleString('en-IN')}
           </div>
           <span className="text-[10px] text-indigo-600">Across {budgetRequests.length} campaign proposals</span>
         </div>
         <div className="glass-card p-3.5 rounded-2xl border border-emerald-200 bg-emerald-50/40">
           <span className="text-[10px] font-bold uppercase text-emerald-800 block">Authorized Budget Cap</span>
-          <div className="text-xl font-black text-emerald-950 font-mono mt-0.5">
+          <div className="text-xl font-bold text-emerald-950 font-mono mt-0.5">
             ₹{metrics.totalApproved.toLocaleString('en-IN')}
           </div>
           <span className="text-[10px] text-emerald-700">Finance sanctioned ceiling</span>
         </div>
         <div className="glass-card p-3.5 rounded-2xl border border-slate-200 bg-white">
           <span className="text-[10px] font-bold uppercase text-slate-500 block">Actual Expenditure Incurred</span>
-          <div className="text-xl font-black text-slate-900 font-mono mt-0.5">
+          <div className="text-xl font-bold text-slate-900 font-mono mt-0.5">
             ₹{metrics.totalSpent.toLocaleString('en-IN')}
           </div>
           <span className="text-[10px] text-slate-400">Verified bills posted to date</span>
         </div>
         <div className="glass-card p-3.5 rounded-2xl border border-amber-200 bg-amber-50/40">
           <span className="text-[10px] font-bold uppercase text-amber-800 block">Proposals Awaiting Decision</span>
-          <div className="text-xl font-black text-amber-950 font-mono mt-0.5">
+          <div className="text-xl font-bold text-amber-950 font-mono mt-0.5">
             {metrics.pendingCount} Pending
           </div>
           <span className="text-[10px] text-amber-700">Requires CFO review</span>
@@ -233,7 +233,7 @@ export const FinanceBudgetRequestsView: React.FC = () => {
                     <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">
                       ₹{b.requestedAmount.toLocaleString('en-IN')}
                     </td>
-                    <td className="py-3 px-4 text-right font-mono font-black text-emerald-800 text-sm">
+                    <td className="py-3 px-4 text-right font-mono font-bold text-emerald-800 text-sm">
                       {b.approvedAmount !== undefined ? `₹${b.approvedAmount.toLocaleString('en-IN')}` : '—'}
                     </td>
                     <td className="py-3 px-4 text-right font-mono text-slate-600">

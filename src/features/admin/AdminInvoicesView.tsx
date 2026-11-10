@@ -427,7 +427,7 @@ export const AdminInvoicesView: React.FC = () => {
   return (
     <div className="space-y-6 max-w-[1600px] mx-auto pb-12">
       {/* ─── PAGE HEADER & CONTROLS ─── */}
-      <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
@@ -435,7 +435,7 @@ export const AdminInvoicesView: React.FC = () => {
             </span>
             <span className="text-xs text-slate-400 font-medium">Centralized Enterprise Register</span>
           </div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             Invoices &amp; Billing Register
           </h1>
           <p className="text-slate-500 text-xs mt-0.5">
@@ -475,25 +475,25 @@ export const AdminInvoicesView: React.FC = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
           <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Total Invoiced</div>
-          <div className="text-2xl font-black text-slate-900 mt-1">{formatINR(metrics.totalInvoiced)}</div>
+          <div className="text-2xl font-bold text-slate-900 mt-1">{formatINR(metrics.totalInvoiced)}</div>
           <div className="text-[11px] text-slate-500 mt-0.5">{invoices.length} total issued invoices</div>
         </div>
 
         <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
           <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Payments Collected</div>
-          <div className="text-2xl font-black text-emerald-600 mt-1">{formatINR(metrics.totalCollected)}</div>
+          <div className="text-2xl font-bold text-emerald-600 mt-1">{formatINR(metrics.totalCollected)}</div>
           <div className="text-[11px] text-slate-500 mt-0.5">{metrics.paidCount} invoices paid in full</div>
         </div>
 
         <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
           <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Outstanding Receivables</div>
-          <div className="text-2xl font-black text-amber-500 mt-1">{formatINR(metrics.totalOutstanding)}</div>
+          <div className="text-2xl font-bold text-amber-500 mt-1">{formatINR(metrics.totalOutstanding)}</div>
           <div className="text-[11px] text-slate-500 mt-0.5">{metrics.pendingCount} unpaid / partial balances</div>
         </div>
 
         <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
           <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Overdue Alerts</div>
-          <div className="text-2xl font-black text-rose-500 mt-1">{formatINR(metrics.overdueAmount)}</div>
+          <div className="text-2xl font-bold text-rose-500 mt-1">{formatINR(metrics.overdueAmount)}</div>
           <div className="text-[11px] text-slate-500 mt-0.5">{metrics.overdueCount} invoices past due window</div>
         </div>
       </div>
@@ -1152,7 +1152,7 @@ export const AdminInvoicesView: React.FC = () => {
             <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 grid grid-cols-2 md:grid-cols-4 gap-3">
               <div>
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Invoice Number</span>
-                <span className="font-mono text-base font-black text-slate-900 block">{selectedInvoice.invoiceNumber}</span>
+                <span className="font-mono text-base font-bold text-slate-900 block">{selectedInvoice.invoiceNumber}</span>
                 <span className="text-[11px] text-slate-500">Order: {selectedInvoice.orderNumber || 'Direct Allocation'}</span>
               </div>
               <div>

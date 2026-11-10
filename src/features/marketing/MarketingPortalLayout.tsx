@@ -122,7 +122,7 @@ function MarketingHeaderRibbon() {
   }, [location.pathname, roleNavItems]);
 
   return (
-    <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] space-y-4">
+    <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] space-y-4">
       {/* ─── 1. TOP TITLE BANNER & ACTIVE ROLE IDENTITY ─── */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>

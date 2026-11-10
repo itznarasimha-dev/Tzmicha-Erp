@@ -409,7 +409,7 @@ export const SubscriptionBillingView: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
               Subscription &amp; Billing
             </h1>
             <Badge variant="purple" size="sm">
@@ -464,7 +464,7 @@ export const SubscriptionBillingView: React.FC = () => {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-black text-amber-900 dark:text-amber-200 uppercase tracking-wide">
+                <h3 className="text-sm font-bold text-amber-900 dark:text-amber-200 uppercase tracking-wide">
                   Urgent: Subscription Expiring in {daysRemaining} Days
                 </h3>
                 <Badge variant="warning" size="sm">Action Required</Badge>
@@ -506,7 +506,7 @@ export const SubscriptionBillingView: React.FC = () => {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-black text-rose-900 dark:text-rose-200 uppercase tracking-wide">
+                <h3 className="text-sm font-bold text-rose-900 dark:text-rose-200 uppercase tracking-wide">
                   Critical Alert: License Expired on {expiryDate}
                 </h3>
                 <Badge variant="danger" size="sm">Read-Only Mode Active</Badge>
@@ -542,7 +542,7 @@ export const SubscriptionBillingView: React.FC = () => {
             {/* Top Row: Plan Badge & Status */}
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-2">
-                <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-indigo-500/30 text-indigo-200 border border-indigo-400/30">
+                <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-indigo-500/30 text-indigo-200 border border-indigo-400/30">
                   Current Active License
                 </span>
                 <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
@@ -570,7 +570,7 @@ export const SubscriptionBillingView: React.FC = () => {
             {/* Plan Title & Pricing */}
             <div className="mt-5 flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-2">
               <div>
-                <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+                <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
                   {org.plan === 'Enterprise' ? 'Enterprise Multi-Tenant' : org.plan === 'Professional' ? 'Professional Multi-Depot' : 'Standard Growth'}
                 </h2>
                 <p className="text-xs sm:text-sm text-indigo-200/80 mt-1 max-w-xl">
@@ -579,7 +579,7 @@ export const SubscriptionBillingView: React.FC = () => {
               </div>
 
               <div className="text-right sm:text-right mt-2 sm:mt-0">
-                <div className="text-3xl sm:text-4xl font-black text-white tracking-tight">
+                <div className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
                   {limits.price}
                 </div>
                 <div className="text-[11px] text-indigo-300 uppercase tracking-wider font-semibold">
@@ -620,9 +620,9 @@ export const SubscriptionBillingView: React.FC = () => {
                 </div>
                 <div className="text-sm font-bold text-white mt-1">
                   {daysRemaining > 0 ? (
-                    <span className="text-emerald-400 font-black">{daysRemaining} Days Remaining</span>
+                    <span className="text-emerald-400 font-bold">{daysRemaining} Days Remaining</span>
                   ) : (
-                    <span className="text-rose-400 font-black">0 Days (Overdue)</span>
+                    <span className="text-rose-400 font-bold">0 Days (Overdue)</span>
                   )}
                 </div>
               </div>
@@ -762,7 +762,7 @@ export const SubscriptionBillingView: React.FC = () => {
               {limits.maxEmployees > 50 ? 'Unlimited' : `${currentUsersCount}/${limits.maxEmployees}`}
             </Badge>
           </div>
-          <div className="text-xl font-black text-slate-900 dark:text-slate-100">
+          <div className="text-xl font-bold text-slate-900 dark:text-slate-100">
             {currentUsersCount} <span className="text-xs font-normal text-slate-400">Personnel Registered</span>
           </div>
           <div className="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
@@ -784,7 +784,7 @@ export const SubscriptionBillingView: React.FC = () => {
               {limits.maxWarehouses > 50 ? 'Unlimited' : `${currentDepotsCount}/${limits.maxWarehouses}`}
             </Badge>
           </div>
-          <div className="text-xl font-black text-slate-900 dark:text-slate-100">
+          <div className="text-xl font-bold text-slate-900 dark:text-slate-100">
             {currentDepotsCount} <span className="text-xs font-normal text-slate-400">Warehouses Active</span>
           </div>
           <div className="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
@@ -806,7 +806,7 @@ export const SubscriptionBillingView: React.FC = () => {
               {limits.maxRegions > 50 ? 'Unlimited' : `${currentRegionsCount}/${limits.maxRegions}`}
             </Badge>
           </div>
-          <div className="text-xl font-black text-slate-900 dark:text-slate-100">
+          <div className="text-xl font-bold text-slate-900 dark:text-slate-100">
             {currentRegionsCount} <span className="text-xs font-normal text-slate-400">Territories Configured</span>
           </div>
           <div className="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
@@ -826,7 +826,7 @@ export const SubscriptionBillingView: React.FC = () => {
             </span>
             <Badge variant="purple" size="sm">24% Utilized</Badge>
           </div>
-          <div className="text-xl font-black text-slate-900 dark:text-slate-100">
+          <div className="text-xl font-bold text-slate-900 dark:text-slate-100">
             {currentProductsCount || 34} <span className="text-xs font-normal text-slate-400">/ 10,000 Catalog SKUs</span>
           </div>
           <div className="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
@@ -839,7 +839,7 @@ export const SubscriptionBillingView: React.FC = () => {
       <div className="space-y-4 pt-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h2 className="text-lg font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-indigo-600" />
               Available Plans &amp; Recharge Tiers
             </h2>
@@ -870,7 +870,7 @@ export const SubscriptionBillingView: React.FC = () => {
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
               }`}
             >
-              Quarterly <span className="text-[10px] text-emerald-600 font-extrabold">-5%</span>
+              Quarterly <span className="text-[10px] text-emerald-600 font-semibold">-5%</span>
             </button>
             <button
               type="button"
@@ -881,7 +881,7 @@ export const SubscriptionBillingView: React.FC = () => {
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
               }`}
             >
-              Half-Yearly <span className="text-[10px] text-emerald-600 font-extrabold">-10%</span>
+              Half-Yearly <span className="text-[10px] text-emerald-600 font-semibold">-10%</span>
             </button>
             <button
               type="button"
@@ -893,7 +893,7 @@ export const SubscriptionBillingView: React.FC = () => {
               }`}
             >
               Yearly
-              <span className="px-1.5 py-0.2 rounded-md bg-white text-indigo-700 text-[10px] font-black uppercase">
+              <span className="px-1.5 py-0.2 rounded-md bg-white text-indigo-700 text-[10px] font-bold uppercase">
                 Save 20%
               </span>
             </button>
@@ -919,7 +919,7 @@ export const SubscriptionBillingView: React.FC = () => {
                 {/* Badges */}
                 {plan.badge && (
                   <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                    <span className="px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase bg-indigo-600 text-white shadow-md">
+                    <span className="px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase bg-indigo-600 text-white shadow-md">
                       {plan.badge}
                     </span>
                   </div>
@@ -927,7 +927,7 @@ export const SubscriptionBillingView: React.FC = () => {
 
                 <div>
                   <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-black text-slate-900 dark:text-slate-100">
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
                       {plan.name}
                     </h3>
                     {isCurrent && (
@@ -941,7 +941,7 @@ export const SubscriptionBillingView: React.FC = () => {
                   {/* Price Block */}
                   <div className="mt-5 pb-5 border-b border-slate-100 dark:border-slate-800">
                     <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-black text-slate-900 dark:text-slate-100">
+                      <span className="text-3xl font-bold text-slate-900 dark:text-slate-100">
                         ₹{pricing.monthlyEffective.toLocaleString('en-IN')}
                       </span>
                       <span className="text-xs text-slate-400 font-medium">/ month</span>
@@ -1022,7 +1022,7 @@ export const SubscriptionBillingView: React.FC = () => {
               Dedicated Billing Registry Module
             </span>
           </div>
-          <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
+          <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
             Billing Ledger &amp; Master Traceability Matrix
           </h2>
           <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
@@ -1086,7 +1086,7 @@ export const SubscriptionBillingView: React.FC = () => {
               </div>
 
               <div>
-                <h3 className="text-xl font-black text-slate-900 dark:text-slate-100">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">
                   Payment Confirmed &amp; License Provisioned!
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
@@ -1149,7 +1149,7 @@ export const SubscriptionBillingView: React.FC = () => {
                     </span>
                     <Badge variant="purple" size="sm">{targetPlan.tier}</Badge>
                   </div>
-                  <h4 className="text-lg font-black text-slate-900 dark:text-slate-100 mt-0.5">
+                  <h4 className="text-lg font-bold text-slate-900 dark:text-slate-100 mt-0.5">
                     {targetPlan.name}
                   </h4>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -1417,7 +1417,7 @@ export const SubscriptionBillingView: React.FC = () => {
 
                     <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex justify-between items-baseline text-slate-900 dark:text-slate-100 font-bold">
                       <span className="text-sm">Net Total Payable:</span>
-                      <span className="text-xl font-black text-indigo-600 dark:text-indigo-400 font-mono">
+                      <span className="text-xl font-bold text-indigo-600 dark:text-indigo-400 font-mono">
                         ₹{costs.netTotal.toLocaleString('en-IN')}
                       </span>
                     </div>

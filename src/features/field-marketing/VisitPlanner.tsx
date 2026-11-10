@@ -90,7 +90,7 @@ export const VisitPlanner: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             Field Visit Planner & On-Ground Attendance
             <Badge variant="success" size="sm">Physical Visits</Badge>
           </h1>
@@ -132,7 +132,7 @@ export const VisitPlanner: React.FC = () => {
             >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <span className="font-extrabold text-sm text-slate-900">
+                  <span className="font-semibold text-sm text-slate-900">
                     {v.prospectName || 'Dealer Store Consultation'}
                   </span>
                   <Badge variant={v.status === 'in_progress' ? 'warning' : 'success'} size="sm">

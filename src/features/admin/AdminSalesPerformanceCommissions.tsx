@@ -603,7 +603,7 @@ export const AdminSalesPerformanceCommissions: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
               All-Roles Team Performance &amp; Commission Matrix
             </h1>
             <Badge variant="purple" size="sm">
@@ -660,7 +660,7 @@ export const AdminSalesPerformanceCommissions: React.FC = () => {
             <p className="text-[10px] font-bold text-indigo-800 uppercase tracking-wider">
               Sales Quota Delivery
             </p>
-            <div className="text-2xl font-black text-slate-900 mt-0.5 font-mono">
+            <div className="text-2xl font-bold text-slate-900 mt-0.5 font-mono">
               ₹{totalDeliveredRevenue.toLocaleString('en-IN')}
             </div>
             <p className="text-[11px] text-slate-500 mt-0.5">
@@ -682,7 +682,7 @@ export const AdminSalesPerformanceCommissions: React.FC = () => {
             <p className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">
               Quotations Created
             </p>
-            <div className="text-2xl font-black text-emerald-950 mt-0.5 font-mono">
+            <div className="text-2xl font-bold text-emerald-950 mt-0.5 font-mono">
               {totalQuotationsCount} Quotes
             </div>
             <p className="text-[11px] text-slate-500 mt-0.5 font-mono">
@@ -700,7 +700,7 @@ export const AdminSalesPerformanceCommissions: React.FC = () => {
             <p className="text-[10px] font-bold text-amber-800 uppercase tracking-wider">
               Accounts Handled
             </p>
-            <div className="text-2xl font-black text-amber-950 mt-0.5 font-mono">
+            <div className="text-2xl font-bold text-amber-950 mt-0.5 font-mono">
               {totalCustomersManaged} Accounts
             </div>
             <p className="text-[11px] text-slate-500 mt-0.5">
@@ -718,7 +718,7 @@ export const AdminSalesPerformanceCommissions: React.FC = () => {
             <p className="text-[10px] font-bold text-purple-800 uppercase tracking-wider">
               Total Incentive Pool
             </p>
-            <div className="text-2xl font-black text-purple-950 mt-0.5 font-mono">
+            <div className="text-2xl font-bold text-purple-950 mt-0.5 font-mono">
               ₹{totalIncentivePool.toLocaleString('en-IN')}
             </div>
             <p className="text-[11px] text-slate-500 mt-0.5">
@@ -896,7 +896,7 @@ export const AdminSalesPerformanceCommissions: React.FC = () => {
                       <td className="py-3.5 px-4">
                         <div>
                           <div className="flex items-center gap-1.5">
-                            <span className="font-extrabold text-slate-900 block font-mono">
+                            <span className="font-semibold text-slate-900 block font-mono">
                               {sc.invoicesCreatedCount} Invoices
                             </span>
                             <span className="text-[10px] text-slate-400">
@@ -921,7 +921,7 @@ export const AdminSalesPerformanceCommissions: React.FC = () => {
                       {/* Quotations Created Aspect */}
                       <td className="py-3.5 px-4">
                         <div>
-                          <span className="font-extrabold text-slate-900 block">
+                          <span className="font-semibold text-slate-900 block">
                             {sc.quotationsCreated} Quotations
                           </span>
                           <span className="text-[10px] text-emerald-700 font-semibold block">
@@ -936,7 +936,7 @@ export const AdminSalesPerformanceCommissions: React.FC = () => {
                       {/* Customers Handled Aspect */}
                       <td className="py-3.5 px-4">
                         <div>
-                          <span className="font-extrabold text-slate-900 block font-mono">
+                          <span className="font-semibold text-slate-900 block font-mono">
                             {sc.customersHandledCount} Accounts
                           </span>
                           <span className="text-[10px] text-indigo-600 font-medium block">
@@ -963,7 +963,7 @@ export const AdminSalesPerformanceCommissions: React.FC = () => {
                       {/* Delivered Volume & Amount */}
                       <td className="py-3.5 px-4">
                         <div>
-                          <span className="font-extrabold text-indigo-900 block font-mono">
+                          <span className="font-semibold text-indigo-900 block font-mono">
                             ₹{sc.achievedTotalAmount.toLocaleString('en-IN')}
                           </span>
                           <span className="text-[10px] text-slate-500 font-medium block">
@@ -977,7 +977,7 @@ export const AdminSalesPerformanceCommissions: React.FC = () => {
                         <div className="space-y-1">
                           <div className="flex items-center justify-between text-[11px] font-semibold">
                             <span
-                              className={`font-black ${
+                              className={`font-bold ${
                                 isExceeded
                                   ? 'text-emerald-700'
                                   : isOnTrack
@@ -1021,7 +1021,7 @@ export const AdminSalesPerformanceCommissions: React.FC = () => {
                       </td>
 
                       {/* Incentive Payable */}
-                      <td className="py-3.5 px-4 text-right font-mono font-black text-sm text-emerald-800">
+                      <td className="py-3.5 px-4 text-right font-mono font-bold text-sm text-emerald-800">
                         ₹{sc.commissionPayable.toLocaleString('en-IN')}
                       </td>
 
@@ -1081,7 +1081,7 @@ export const AdminSalesPerformanceCommissions: React.FC = () => {
                   className="w-12 h-12 rounded-2xl object-cover border border-slate-200 shadow-sm"
                 />
                 <div>
-                  <h3 className="text-base font-black text-slate-900">
+                  <h3 className="text-base font-bold text-slate-900">
                     {selectedScorecard.user.name}
                   </h3>
                   <p className="text-xs text-slate-500 font-medium">
@@ -1105,7 +1105,7 @@ export const AdminSalesPerformanceCommissions: React.FC = () => {
                   <Receipt className="w-4 h-4 text-emerald-600" />
                   1. Invoicing &amp; Revenue Collections Ledger
                 </span>
-                <span className="text-xs font-extrabold text-emerald-800">
+                <span className="text-xs font-semibold text-emerald-800">
                   {selectedScorecard.invoicesCreatedCount} Invoices Issued
                 </span>
               </div>
@@ -1113,19 +1113,19 @@ export const AdminSalesPerformanceCommissions: React.FC = () => {
               <div className="grid grid-cols-3 gap-2.5 pt-1 text-center">
                 <div className="p-2 rounded-xl bg-white border border-emerald-100">
                   <span className="text-[10px] text-slate-400 block">Total Invoiced</span>
-                  <span className="text-sm font-black text-slate-900 font-mono">
+                  <span className="text-sm font-bold text-slate-900 font-mono">
                     ₹{selectedScorecard.totalInvoicedValue.toLocaleString('en-IN')}
                   </span>
                 </div>
                 <div className="p-2 rounded-xl bg-white border border-emerald-100">
                   <span className="text-[10px] text-slate-400 block">Payments Collected</span>
-                  <span className="text-sm font-black text-emerald-700 font-mono">
+                  <span className="text-sm font-bold text-emerald-700 font-mono">
                     ₹{selectedScorecard.paymentsCollected.toLocaleString('en-IN')}
                   </span>
                 </div>
                 <div className="p-2 rounded-xl bg-white border border-emerald-100">
                   <span className="text-[10px] text-slate-400 block">Outstanding Balance</span>
-                  <span className="text-sm font-black text-rose-600 font-mono">
+                  <span className="text-sm font-bold text-rose-600 font-mono">
                     ₹{selectedScorecard.outstandingInvoiceValue.toLocaleString('en-IN')}
                   </span>
                 </div>
@@ -1171,7 +1171,7 @@ export const AdminSalesPerformanceCommissions: React.FC = () => {
                   <TrendingUp className="w-4 h-4 text-sky-600" />
                   2. Orders &amp; Execution Work Breakdown
                 </span>
-                <span className="text-xs font-extrabold text-sky-800">
+                <span className="text-xs font-semibold text-sky-800">
                   {selectedScorecard.ordersCompletedCount} Completed / {selectedScorecard.ordersPendingCount} Pending
                 </span>
               </div>
@@ -1179,13 +1179,13 @@ export const AdminSalesPerformanceCommissions: React.FC = () => {
               <div className="grid grid-cols-2 gap-2.5 pt-1 text-center">
                 <div className="p-2 rounded-xl bg-white border border-sky-100">
                   <span className="text-[10px] text-slate-400 block">Orders Completed &amp; Dispatched</span>
-                  <span className="text-base font-black text-emerald-700 font-mono">
+                  <span className="text-base font-bold text-emerald-700 font-mono">
                     {selectedScorecard.ordersCompletedCount} Orders
                   </span>
                 </div>
                 <div className="p-2 rounded-xl bg-white border border-sky-100">
                   <span className="text-[10px] text-slate-400 block">Orders Pending / In Progress</span>
-                  <span className="text-base font-black text-amber-600 font-mono">
+                  <span className="text-base font-bold text-amber-600 font-mono">
                     {selectedScorecard.ordersPendingCount} Orders
                   </span>
                 </div>
@@ -1199,7 +1199,7 @@ export const AdminSalesPerformanceCommissions: React.FC = () => {
                   <FileText className="w-4 h-4 text-indigo-600" />
                   3. Quotations Aspect Breakdown
                 </span>
-                <span className="text-xs font-extrabold text-indigo-700">
+                <span className="text-xs font-semibold text-indigo-700">
                   {selectedScorecard.quotationConversionRate}% Conversion Rate
                 </span>
               </div>
@@ -1207,19 +1207,19 @@ export const AdminSalesPerformanceCommissions: React.FC = () => {
               <div className="grid grid-cols-3 gap-2.5 pt-1 text-center">
                 <div className="p-2 rounded-xl bg-white border border-indigo-100">
                   <span className="text-[10px] text-slate-400 block">Total Created</span>
-                  <span className="text-base font-black text-slate-900 font-mono">
+                  <span className="text-base font-bold text-slate-900 font-mono">
                     {selectedScorecard.quotationsCreated} Quotes
                   </span>
                 </div>
                 <div className="p-2 rounded-xl bg-white border border-indigo-100">
                   <span className="text-[10px] text-slate-400 block">Converted into Orders</span>
-                  <span className="text-base font-black text-emerald-700 font-mono">
+                  <span className="text-base font-bold text-emerald-700 font-mono">
                     {selectedScorecard.quotationsConverted} Won
                   </span>
                 </div>
                 <div className="p-2 rounded-xl bg-white border border-indigo-100">
                   <span className="text-[10px] text-slate-400 block">Gross Quote Value</span>
-                  <span className="text-base font-black text-indigo-900 font-mono">
+                  <span className="text-base font-bold text-indigo-900 font-mono">
                     ₹{selectedScorecard.quotationsTotalValue.toLocaleString('en-IN')}
                   </span>
                 </div>
@@ -1291,7 +1291,7 @@ export const AdminSalesPerformanceCommissions: React.FC = () => {
                 </div>
                 <div className="p-2 rounded-xl bg-white border border-slate-200">
                   <span className="text-[10px] text-slate-400 block">Total Quota</span>
-                  <span className="font-black text-slate-900 text-xs font-mono block mt-0.5">
+                  <span className="font-bold text-slate-900 text-xs font-mono block mt-0.5">
                     ₹{selectedScorecard.targetTotalAmount.toLocaleString('en-IN')}
                   </span>
                 </div>
@@ -1301,7 +1301,7 @@ export const AdminSalesPerformanceCommissions: React.FC = () => {
                 <span className="text-[11px] text-indigo-900 font-semibold">
                   Achieved: {selectedScorecard.achievedUnits} {selectedScorecard.unitType} × ₹{selectedScorecard.amountPerUnit}/unit = ₹{selectedScorecard.achievedTotalAmount.toLocaleString('en-IN')}
                 </span>
-                <span className="text-xs font-black text-indigo-700 font-mono">
+                <span className="text-xs font-bold text-indigo-700 font-mono">
                   {selectedScorecard.achievementPercent.toFixed(1)}% Attainment
                 </span>
               </div>
@@ -1312,7 +1312,7 @@ export const AdminSalesPerformanceCommissions: React.FC = () => {
               <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">
                 Authorized Performance Commission
               </span>
-              <div className="text-3xl font-black font-mono text-emerald-950">
+              <div className="text-3xl font-bold font-mono text-emerald-950">
                 ₹{selectedScorecard.commissionPayable.toLocaleString('en-IN')}
               </div>
               <p className="text-[11px] text-emerald-700">

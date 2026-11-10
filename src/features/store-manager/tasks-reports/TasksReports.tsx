@@ -57,7 +57,7 @@ export function TasksReports({ onMobileMenuOpen }: TasksReportsProps) {
               </span>
               <span className="text-xs text-slate-400 font-medium">Shift Workflows &amp; Performance KPIs</span>
             </div>
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">Tasks &amp; Reports</h1>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Tasks &amp; Reports</h1>
             <p className="text-slate-500 text-xs mt-0.5">
               Track warehouse operations, coordinate departmental shift handoffs, and audit performance metrics across store depots.
             </p>

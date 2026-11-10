@@ -108,7 +108,7 @@ export const AdminCustomerCreditLedger: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
             Customer Credit Limits & Accounts Receivable
             <Badge variant="purple" size="sm">Sales Oversight</Badge>
           </h1>
@@ -149,7 +149,7 @@ export const AdminCustomerCreditLedger: React.FC = () => {
         <div className="glass-card p-5 border border-indigo-200 bg-indigo-50/40 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-bold text-indigo-800 uppercase tracking-wider">Total Credit Extended</p>
-            <div className="text-2xl font-black text-slate-900 mt-0.5 font-mono">
+            <div className="text-2xl font-bold text-slate-900 mt-0.5 font-mono">
               ₹{totalCreditLimit.toLocaleString('en-IN')}
             </div>
             <p className="text-[11px] text-slate-500 mt-0.5">Approved sanctioned limit</p>
@@ -162,7 +162,7 @@ export const AdminCustomerCreditLedger: React.FC = () => {
         <div className="glass-card p-5 border border-rose-200 bg-rose-50/40 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-bold text-rose-800 uppercase tracking-wider">Total Receivables Outstanding</p>
-            <div className="text-2xl font-black text-rose-700 mt-0.5 font-mono">
+            <div className="text-2xl font-bold text-rose-700 mt-0.5 font-mono">
               ₹{totalOutstanding.toLocaleString('en-IN')}
             </div>
             <p className="text-[11px] text-slate-500 mt-0.5">
@@ -177,7 +177,7 @@ export const AdminCustomerCreditLedger: React.FC = () => {
         <div className="glass-card p-5 border border-amber-200 bg-amber-50/40 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-bold text-amber-800 uppercase tracking-wider">Accounts Over Credit Limit</p>
-            <div className="text-2xl font-black text-slate-900 mt-0.5 font-mono">{overLimitCount} Accounts</div>
+            <div className="text-2xl font-bold text-slate-900 mt-0.5 font-mono">{overLimitCount} Accounts</div>
             <p className="text-[11px] text-slate-500 mt-0.5">Sales order booking restricted</p>
           </div>
           <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
@@ -188,7 +188,7 @@ export const AdminCustomerCreditLedger: React.FC = () => {
         <div className="glass-card p-5 border border-emerald-200 bg-emerald-50/40 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Available Undrawn Credit</p>
-            <div className="text-2xl font-black text-slate-900 mt-0.5 font-mono">
+            <div className="text-2xl font-bold text-slate-900 mt-0.5 font-mono">
               ₹{Math.max(0, totalCreditLimit - totalOutstanding).toLocaleString('en-IN')}
             </div>
             <p className="text-[11px] text-slate-500 mt-0.5">Headroom for new sales orders</p>
@@ -298,7 +298,7 @@ export const AdminCustomerCreditLedger: React.FC = () => {
                       <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-900">
                         ₹{c.creditLimit.toLocaleString('en-IN')}
                       </td>
-                      <td className="py-3.5 px-4 text-right font-mono font-extrabold text-rose-700">
+                      <td className="py-3.5 px-4 text-right font-mono font-semibold text-rose-700">
                         ₹{c.currentOutstanding.toLocaleString('en-IN')}
                       </td>
                       <td className="py-3.5 px-4">

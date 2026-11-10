@@ -106,7 +106,7 @@ function HRNavigationHeader() {
   }, [location.pathname]);
 
   return (
-    <div className="hr-portal-workspace bg-white rounded-3xl p-6 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] space-y-5">
+    <div className="hr-portal-workspace bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] space-y-4 sm:space-y-5">
       {/* Top Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -116,7 +116,7 @@ function HRNavigationHeader() {
             </span>
             <span className="text-xs text-slate-400 font-medium">14 Integrated Modules Active</span>
           </div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             HR Management Portal
             <Sparkles className="w-5 h-5 text-indigo-500" />
           </h1>

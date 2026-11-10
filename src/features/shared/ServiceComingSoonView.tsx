@@ -113,7 +113,7 @@ export const ServiceComingSoonView: React.FC = () => {
               <Headset className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+              <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
                 Customer Service &amp; Support Desk
               </h1>
               <p className="text-xs sm:text-sm text-sky-200/80 font-medium mt-0.5">
@@ -186,7 +186,7 @@ export const ServiceComingSoonView: React.FC = () => {
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
               Active RMA Claims
             </span>
-            <div className="text-xl font-black text-slate-900 font-mono">
+            <div className="text-xl font-bold text-slate-900 font-mono">
               14 Tickets
             </div>
             <div className="flex items-center gap-1 text-[11px] text-sky-600 font-semibold">
@@ -198,7 +198,7 @@ export const ServiceComingSoonView: React.FC = () => {
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
               Avg Resolution Turnaround
             </span>
-            <div className="text-xl font-black text-slate-900 font-mono">
+            <div className="text-xl font-bold text-slate-900 font-mono">
               2.4 Days
             </div>
             <div className="flex items-center gap-1 text-[11px] text-emerald-600 font-semibold">
@@ -210,7 +210,7 @@ export const ServiceComingSoonView: React.FC = () => {
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
               Warranty Coverage Rate
             </span>
-            <div className="text-xl font-black text-slate-900 font-mono">
+            <div className="text-xl font-bold text-slate-900 font-mono">
               98.2%
             </div>
             <div className="flex items-center gap-1 text-[11px] text-emerald-600 font-semibold">
@@ -222,7 +222,7 @@ export const ServiceComingSoonView: React.FC = () => {
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
               Customer CSAT Score
             </span>
-            <div className="text-xl font-black text-amber-700 font-mono">
+            <div className="text-xl font-bold text-amber-700 font-mono">
               4.85 / 5.0
             </div>
             <div className="flex items-center gap-1 text-[11px] text-amber-600 font-semibold">

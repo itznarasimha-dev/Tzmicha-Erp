@@ -166,30 +166,33 @@ export const FinanceDashboard: React.FC = () => {
       )}
 
       {/* ─── BANNER / HEADER ─── */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white p-6 rounded-3xl shadow-lg relative overflow-hidden">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] relative overflow-hidden">
         <div className="relative z-10 space-y-1">
           <div className="flex items-center gap-2">
-            <Badge variant="purple" size="sm" className="bg-purple-800/80 text-purple-200 border-purple-600/50">
+            <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
               Central Financial Governance
-            </Badge>
-            <span className="text-[11px] text-purple-300 font-mono">
+            </span>
+            <span className="text-xs text-slate-400 font-mono">
               FY 2026–27 • Tzmicha ERP Operations
             </span>
           </div>
-          <h1 className="text-2xl font-black tracking-tight">Finance &amp; Treasury Command Hub</h1>
-          <p className="text-xs text-purple-200/90 max-w-xl">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            Finance &amp; Treasury Command Hub
+            <Sparkles className="w-5 h-5 text-indigo-500" />
+          </h1>
+          <p className="text-slate-500 text-xs sm:text-sm mt-0.5 max-w-xl">
             Live monitoring of revenue receipts, customer receivables, supplier payables, payroll accruals, and departmental expenses across all regional hubs.
           </p>
         </div>
 
         {/* Date Filter & Export */}
         <div className="relative z-10 flex flex-wrap items-center gap-2.5">
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-1 border border-white/20 flex items-center text-xs">
+          <div className="bg-slate-100/80 rounded-2xl p-1 border border-slate-200/70 flex items-center text-xs">
             <button
               type="button"
               onClick={() => setDatePeriod('this_month')}
               className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
-                datePeriod === 'this_month' ? 'bg-white text-indigo-900 shadow-sm' : 'text-purple-100 hover:text-white'
+                datePeriod === 'this_month' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               This Month
@@ -198,7 +201,7 @@ export const FinanceDashboard: React.FC = () => {
               type="button"
               onClick={() => setDatePeriod('last_month')}
               className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
-                datePeriod === 'last_month' ? 'bg-white text-indigo-900 shadow-sm' : 'text-purple-100 hover:text-white'
+                datePeriod === 'last_month' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               Last Month
@@ -207,7 +210,7 @@ export const FinanceDashboard: React.FC = () => {
               type="button"
               onClick={() => setDatePeriod('this_quarter')}
               className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
-                datePeriod === 'this_quarter' ? 'bg-white text-indigo-900 shadow-sm' : 'text-purple-100 hover:text-white'
+                datePeriod === 'this_quarter' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               Q3 FY26
@@ -216,7 +219,7 @@ export const FinanceDashboard: React.FC = () => {
               type="button"
               onClick={() => setDatePeriod('full_fy')}
               className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
-                datePeriod === 'full_fy' ? 'bg-white text-indigo-900 shadow-sm' : 'text-purple-100 hover:text-white'
+                datePeriod === 'full_fy' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               Full Year
@@ -227,7 +230,7 @@ export const FinanceDashboard: React.FC = () => {
             variant="secondary"
             size="sm"
             onClick={handleExportStatement}
-            className="bg-white text-slate-800 hover:bg-slate-100 shadow-xs text-xs"
+            className="bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 rounded-2xl shadow-xs text-xs"
           >
             <Download className="w-3.5 h-3.5 mr-1 text-indigo-600" />
             Export Statement
@@ -241,7 +244,7 @@ export const FinanceDashboard: React.FC = () => {
         <div className="glass-card p-4 rounded-2xl border border-indigo-100 bg-indigo-50/30 flex items-start justify-between">
           <div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 block">Total Invoiced Revenue</span>
-            <div className="text-2xl font-black text-slate-900 font-mono mt-1">
+            <div className="text-2xl font-bold text-slate-900 font-mono mt-1">
               ₹{metrics.totalInvoicedRevenue.toLocaleString('en-IN')}
             </div>
             <p className="text-[11px] text-slate-500 mt-0.5">
@@ -257,7 +260,7 @@ export const FinanceDashboard: React.FC = () => {
         <div className="glass-card p-4 rounded-2xl border border-emerald-100 bg-emerald-50/30 flex items-start justify-between">
           <div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 block">Verified Cash Collected</span>
-            <div className="text-2xl font-black text-emerald-800 font-mono mt-1">
+            <div className="text-2xl font-bold text-emerald-800 font-mono mt-1">
               ₹{metrics.totalPaymentsCollected.toLocaleString('en-IN')}
             </div>
             <p className="text-[11px] text-emerald-600 font-medium mt-0.5">
@@ -273,7 +276,7 @@ export const FinanceDashboard: React.FC = () => {
         <div className="glass-card p-4 rounded-2xl border border-amber-100 bg-amber-50/30 flex items-start justify-between">
           <div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 block">Outstanding Receivables</span>
-            <div className="text-2xl font-black text-amber-900 font-mono mt-1">
+            <div className="text-2xl font-bold text-amber-900 font-mono mt-1">
               ₹{metrics.outstandingReceivables.toLocaleString('en-IN')}
             </div>
             <p className="text-[11px] text-rose-600 font-medium mt-0.5">
@@ -289,7 +292,7 @@ export const FinanceDashboard: React.FC = () => {
         <div className="glass-card p-4 rounded-2xl border border-rose-100 bg-rose-50/30 flex items-start justify-between">
           <div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700 block">Supplier Payables</span>
-            <div className="text-2xl font-black text-rose-900 font-mono mt-1">
+            <div className="text-2xl font-bold text-rose-900 font-mono mt-1">
               ₹{metrics.totalSupplierPayables.toLocaleString('en-IN')}
             </div>
             <p className="text-[11px] text-slate-500 mt-0.5">
@@ -313,7 +316,7 @@ export const FinanceDashboard: React.FC = () => {
             <span>Refunds Due</span>
             <ArrowUpRight className="w-3 h-3 text-slate-400" />
           </div>
-          <div className="text-base font-extrabold text-slate-900 font-mono mt-0.5">
+          <div className="text-base font-semibold text-slate-900 font-mono mt-0.5">
             ₹{metrics.totalPendingRefundsValue.toLocaleString('en-IN')}
           </div>
           <div className="text-[10px] text-amber-600 mt-0.5">{metrics.pendingRefundsCount} claims active</div>
@@ -328,7 +331,7 @@ export const FinanceDashboard: React.FC = () => {
             <span>Payroll Accrual</span>
             <ArrowUpRight className="w-3 h-3 text-slate-400" />
           </div>
-          <div className="text-base font-extrabold text-slate-900 font-mono mt-0.5">
+          <div className="text-base font-semibold text-slate-900 font-mono mt-0.5">
             ₹{metrics.totalPayrollLiability.toLocaleString('en-IN')}
           </div>
           <div className="text-[10px] text-purple-700 mt-0.5">{metrics.pendingPayrollCount} payroll lines</div>
@@ -343,7 +346,7 @@ export const FinanceDashboard: React.FC = () => {
             <span>Staff Expenses</span>
             <ArrowUpRight className="w-3 h-3 text-slate-400" />
           </div>
-          <div className="text-base font-extrabold text-slate-900 font-mono mt-0.5">
+          <div className="text-base font-semibold text-slate-900 font-mono mt-0.5">
             ₹{metrics.totalApprovedExpenses.toLocaleString('en-IN')}
           </div>
           <div className="text-[10px] text-indigo-600 mt-0.5">₹{metrics.totalPendingExpenses.toLocaleString('en-IN')} pending</div>
@@ -358,7 +361,7 @@ export const FinanceDashboard: React.FC = () => {
             <span>Delivery Freight</span>
             <ArrowUpRight className="w-3 h-3 text-slate-400" />
           </div>
-          <div className="text-base font-extrabold text-slate-900 font-mono mt-0.5">
+          <div className="text-base font-semibold text-slate-900 font-mono mt-0.5">
             ₹{metrics.totalDeliveryExpenses.toLocaleString('en-IN')}
           </div>
           <div className="text-[10px] text-slate-500 mt-0.5">Dispatches logged</div>
@@ -373,7 +376,7 @@ export const FinanceDashboard: React.FC = () => {
             <span>Marketing Budget</span>
             <ArrowUpRight className="w-3 h-3 text-slate-400" />
           </div>
-          <div className="text-base font-extrabold text-slate-900 font-mono mt-0.5">
+          <div className="text-base font-semibold text-slate-900 font-mono mt-0.5">
             ₹{metrics.totalMarketingAllocated.toLocaleString('en-IN')}
           </div>
           <div className="text-[10px] text-emerald-600 mt-0.5">₹{metrics.totalMarketingSpent.toLocaleString('en-IN')} utilized</div>
@@ -388,7 +391,7 @@ export const FinanceDashboard: React.FC = () => {
             <span>Sales Quota Payouts</span>
             <ArrowUpRight className="w-3 h-3 text-slate-400" />
           </div>
-          <div className="text-base font-extrabold text-slate-900 font-mono mt-0.5">
+          <div className="text-base font-semibold text-slate-900 font-mono mt-0.5">
             ₹{metrics.totalIncentivesApproved.toLocaleString('en-IN')}
           </div>
           <div className="text-[10px] text-purple-700 mt-0.5">₹{metrics.pendingIncentivePayouts.toLocaleString('en-IN')} awaiting NEFT</div>
@@ -418,7 +421,7 @@ export const FinanceDashboard: React.FC = () => {
                 <span className="flex items-center gap-1.5">
                   <TrendingUp className="w-4 h-4 text-emerald-600" /> Total Verified Inflows
                 </span>
-                <span className="text-base font-black text-emerald-800 font-mono">
+                <span className="text-base font-bold text-emerald-800 font-mono">
                   ₹{metrics.totalPaymentsCollected.toLocaleString('en-IN')}
                 </span>
               </div>
@@ -444,7 +447,7 @@ export const FinanceDashboard: React.FC = () => {
                 <span className="flex items-center gap-1.5">
                   <TrendingDown className="w-4 h-4 text-rose-600" /> Total Approved Outflows
                 </span>
-                <span className="text-base font-black text-rose-800 font-mono">
+                <span className="text-base font-bold text-rose-800 font-mono">
                   ₹{metrics.totalOutflows.toLocaleString('en-IN')}
                 </span>
               </div>

@@ -53,7 +53,7 @@ export const StockTransfers: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             Inter-Warehouse Stock Transfers
             <Badge variant="warning" size="sm">Logistics Transfer</Badge>
           </h1>
@@ -127,7 +127,7 @@ export const StockTransfers: React.FC = () => {
                       </Badge>
                     </td>
                     <td className="py-3 text-slate-800">{m.warehouseName}</td>
-                    <td className="py-3 text-right font-extrabold text-slate-900">
+                    <td className="py-3 text-right font-semibold text-slate-900">
                       {m.quantity} units
                     </td>
                   </tr>

@@ -396,7 +396,7 @@ export const QuotationsManagement: React.FC = () => {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-2 border-b border-slate-200/80">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
               Quotations & Inward RFQs
             </h1>
             <Badge variant="purple" size="sm">Admin Role Delegation</Badge>
@@ -444,7 +444,7 @@ export const QuotationsManagement: React.FC = () => {
             </div>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-black text-slate-900">{metrics.total}</span>
+            <span className="text-2xl font-bold text-slate-900">{metrics.total}</span>
             <span className="text-xs font-semibold text-slate-500">
               (₹{(metrics.pipelineValue / 100000).toFixed(2)}L Value)
             </span>
@@ -464,7 +464,7 @@ export const QuotationsManagement: React.FC = () => {
             </div>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-black text-amber-900">{metrics.unassigned}</span>
+            <span className="text-2xl font-bold text-amber-900">{metrics.unassigned}</span>
             <span className="text-xs font-bold text-amber-600">Action Required</span>
           </div>
           <div className="mt-2 flex items-center gap-1.5 text-[11px] text-amber-700">
@@ -483,7 +483,7 @@ export const QuotationsManagement: React.FC = () => {
             </div>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-black text-slate-900">{metrics.assigned}</span>
+            <span className="text-2xl font-bold text-slate-900">{metrics.assigned}</span>
             <span className="text-xs font-semibold text-emerald-600">Active Rep Pipeline</span>
           </div>
           <div className="mt-2 flex items-center gap-1.5 text-[11px] text-slate-500">
@@ -502,7 +502,7 @@ export const QuotationsManagement: React.FC = () => {
             </div>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-black text-slate-900">{metrics.converted}</span>
+            <span className="text-2xl font-bold text-slate-900">{metrics.converted}</span>
             <span className="text-xs font-bold text-purple-600">
               {metrics.total > 0 ? ((metrics.converted / metrics.total) * 100).toFixed(0) : 0}% Conversion
             </span>
@@ -651,7 +651,7 @@ export const QuotationsManagement: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Building2 className="w-5 h-5 text-indigo-600" />
-              <h2 className="text-base font-extrabold text-slate-900">
+              <h2 className="text-base font-semibold text-slate-900">
                 Sender Portfolios & Inbound Inquiries
               </h2>
               <span className="text-xs text-slate-400 font-medium">
@@ -670,7 +670,7 @@ export const QuotationsManagement: React.FC = () => {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-indigo-600 text-white font-black text-sm flex items-center justify-center shadow-md shadow-indigo-500/20">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-indigo-600 text-white font-bold text-sm flex items-center justify-center shadow-md shadow-indigo-500/20">
                         {sender.senderName
                           .split(' ')
                           .map((n) => n[0])
@@ -679,7 +679,7 @@ export const QuotationsManagement: React.FC = () => {
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="font-extrabold text-slate-900 text-base">
+                          <h3 className="font-semibold text-slate-900 text-base">
                             {sender.senderName}
                           </h3>
                           {sender.unassignedCount > 0 && (
@@ -732,7 +732,7 @@ export const QuotationsManagement: React.FC = () => {
                       <span className="text-slate-400 font-semibold block text-[10px] uppercase">
                         Total Quotes
                       </span>
-                      <span className="font-black text-slate-900 text-sm">
+                      <span className="font-bold text-slate-900 text-sm">
                         {sender.quotes.length} Quotes
                       </span>
                     </div>
@@ -741,7 +741,7 @@ export const QuotationsManagement: React.FC = () => {
                       <span className="text-slate-400 font-semibold block text-[10px] uppercase">
                         Cumulative Value
                       </span>
-                      <span className="font-black text-indigo-600 text-sm">
+                      <span className="font-bold text-indigo-600 text-sm">
                         ₹{sender.totalValue.toLocaleString('en-IN')}
                       </span>
                     </div>
@@ -760,7 +760,7 @@ export const QuotationsManagement: React.FC = () => {
 
                   {/* Mini Quotes List */}
                   <div className="mt-4 space-y-2 bg-slate-50/80 p-2.5 rounded-xl border border-slate-100">
-                    <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider block">
+                    <span className="text-[10px] font-semibold uppercase text-slate-400 tracking-wider block">
                       Sender Inquiries ({sender.quotes.length}):
                     </span>
                     {sender.quotes.map((q) => (
@@ -769,7 +769,7 @@ export const QuotationsManagement: React.FC = () => {
                         className="flex items-center justify-between bg-white px-3 py-1.5 rounded-lg border border-slate-200/80 text-xs hover:border-indigo-300 transition-all"
                       >
                         <div className="flex items-center gap-2">
-                          <span className="font-extrabold text-indigo-700">{q.quotationNo}</span>
+                          <span className="font-semibold text-indigo-700">{q.quotationNo}</span>
                           {getPriorityBadge(q.priority)}
                           <span className="text-slate-500 font-medium">
                             ₹{q.grandTotal.toLocaleString('en-IN')}
@@ -849,7 +849,7 @@ export const QuotationsManagement: React.FC = () => {
                         {/* Quotation # & Priority */}
                         <td className="py-3 px-4">
                           <div className="flex flex-col gap-1">
-                            <span className="font-extrabold text-indigo-700 text-sm">
+                            <span className="font-semibold text-indigo-700 text-sm">
                               {q.quotationNo}
                             </span>
                             <div className="flex items-center gap-1.5">
@@ -866,7 +866,7 @@ export const QuotationsManagement: React.FC = () => {
                         {/* Sender Details */}
                         <td className="py-3 px-4">
                           <div>
-                            <span className="font-extrabold text-slate-900 block text-sm">
+                            <span className="font-semibold text-slate-900 block text-sm">
                               {q.senderName}
                             </span>
                             <span className="text-slate-600 font-semibold block text-[11px]">
@@ -934,7 +934,7 @@ export const QuotationsManagement: React.FC = () => {
 
                         {/* Value */}
                         <td className="py-3 px-4 text-right">
-                          <span className="font-black text-slate-900 text-sm block">
+                          <span className="font-bold text-slate-900 text-sm block">
                             ₹{q.grandTotal.toLocaleString('en-IN')}
                           </span>
                           <span className="text-[10px] text-slate-400">
@@ -1009,7 +1009,7 @@ export const QuotationsManagement: React.FC = () => {
               </span>
               <div className="mt-1 flex items-center justify-between">
                 <div>
-                  <h4 className="font-extrabold text-slate-900 text-sm">
+                  <h4 className="font-semibold text-slate-900 text-sm">
                     {selectedQuoteForAssign.senderName}
                   </h4>
                   <p className="text-xs text-slate-600 font-semibold">
@@ -1017,7 +1017,7 @@ export const QuotationsManagement: React.FC = () => {
                   </p>
                 </div>
                 <div className="text-right">
-                  <span className="text-xs font-black text-indigo-600 block">
+                  <span className="text-xs font-bold text-indigo-600 block">
                     ₹{selectedQuoteForAssign.grandTotal.toLocaleString('en-IN')}
                   </span>
                   <span className="text-[10px] text-slate-500">
@@ -1188,7 +1188,7 @@ export const QuotationsManagement: React.FC = () => {
           <form onSubmit={handleCreateQuotationSubmit} className="space-y-4 max-h-[80vh] overflow-y-auto pr-1">
             {/* Sender / Customer Section */}
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
-              <span className="text-xs font-extrabold uppercase text-indigo-700 tracking-wider block">
+              <span className="text-xs font-semibold uppercase text-indigo-700 tracking-wider block">
                 1. Sender & Buyer Details (Inquirer)
               </span>
 
@@ -1251,7 +1251,7 @@ export const QuotationsManagement: React.FC = () => {
 
             {/* Sales Delegation & Territory Section */}
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
-              <span className="text-xs font-extrabold uppercase text-indigo-700 tracking-wider block">
+              <span className="text-xs font-semibold uppercase text-indigo-700 tracking-wider block">
                 2. Sales Role Delegation & Territory
               </span>
 
@@ -1311,7 +1311,7 @@ export const QuotationsManagement: React.FC = () => {
             {/* Line Items Section */}
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-extrabold uppercase text-indigo-700 tracking-wider">
+                <span className="text-xs font-semibold uppercase text-indigo-700 tracking-wider">
                   3. Requested Products & Volume
                 </span>
                 <Button
@@ -1400,7 +1400,7 @@ export const QuotationsManagement: React.FC = () => {
               </div>
 
               {/* Grand Total Preview */}
-              <div className="pt-2 text-right font-black text-indigo-700 text-sm">
+              <div className="pt-2 text-right font-bold text-indigo-700 text-sm">
                 Total Quotation Value: ₹{Math.round(calculateNewQuoteTotals().grandTotal).toLocaleString('en-IN')}
               </div>
             </div>
@@ -1449,7 +1449,7 @@ export const QuotationsManagement: React.FC = () => {
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-lg font-extrabold text-slate-900">
+                  <h3 className="text-lg font-semibold text-slate-900">
                     {viewingQuote.quotationNo}
                   </h3>
                   {getStatusBadge(viewingQuote.status)}
@@ -1464,7 +1464,7 @@ export const QuotationsManagement: React.FC = () => {
                 <span className="text-xs font-bold text-slate-400 block uppercase">
                   Grand Total (incl. GST)
                 </span>
-                <span className="text-xl font-black text-indigo-600">
+                <span className="text-xl font-bold text-indigo-600">
                   ₹{viewingQuote.grandTotal.toLocaleString('en-IN')}
                 </span>
               </div>
@@ -1476,7 +1476,7 @@ export const QuotationsManagement: React.FC = () => {
                 <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider block">
                   Sender (Inquiring Customer)
                 </span>
-                <h4 className="font-extrabold text-slate-900 text-sm">
+                <h4 className="font-semibold text-slate-900 text-sm">
                   {viewingQuote.senderName}
                 </h4>
                 <p className="text-xs text-slate-700 font-semibold">
@@ -1496,7 +1496,7 @@ export const QuotationsManagement: React.FC = () => {
                 </span>
                 {viewingQuote.assignedSalesUserName ? (
                   <>
-                    <h4 className="font-extrabold text-indigo-700 text-sm">
+                    <h4 className="font-semibold text-indigo-700 text-sm">
                       {viewingQuote.assignedSalesUserName}
                     </h4>
                     <p className="text-xs text-slate-600 font-medium">

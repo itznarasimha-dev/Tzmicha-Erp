@@ -39,7 +39,7 @@ export const AccessDeniedPage: React.FC = () => {
           <Badge variant="danger" size="sm">
             Security Policy Barrier (RBAC)
           </Badge>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Access Restricted</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Access Restricted</h2>
           <p className="text-xs text-slate-500 leading-relaxed">
             Your current account credentials and role (<strong className="capitalize text-slate-800">{currentRole.replace('_', ' ')}</strong>) do not have authorization to view this module.
           </p>

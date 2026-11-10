@@ -110,7 +110,7 @@ export const RegionsManagement: React.FC = () => {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200/80">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
             Regional Territories & Warehouses
             <Badge variant="purple" size="sm">Admin Master</Badge>
           </h1>
@@ -152,7 +152,7 @@ export const RegionsManagement: React.FC = () => {
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Operating Zones</span>
             <Building2 className="w-4 h-4" />
           </div>
-          <div className="text-2xl font-black text-slate-900 tracking-tight">{regions.length} Regions</div>
+          <div className="text-2xl font-bold text-slate-900 tracking-tight">{regions.length} Regions</div>
           <p className="text-[11px] text-slate-500 font-medium">Pan-India distribution matrix</p>
         </div>
 
@@ -161,7 +161,7 @@ export const RegionsManagement: React.FC = () => {
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Total Depots</span>
             <WarehouseIcon className="w-4 h-4" />
           </div>
-          <div className="text-2xl font-black text-slate-900 tracking-tight">{warehouses.length} Warehouses</div>
+          <div className="text-2xl font-bold text-slate-900 tracking-tight">{warehouses.length} Warehouses</div>
           <p className="text-[11px] text-slate-500 font-medium">Fulfillment & dispatch centers</p>
         </div>
 
@@ -170,7 +170,7 @@ export const RegionsManagement: React.FC = () => {
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Storage Footprint</span>
             <Layers className="w-4 h-4" />
           </div>
-          <div className="text-2xl font-black text-slate-900 tracking-tight">
+          <div className="text-2xl font-bold text-slate-900 tracking-tight">
             {totalCapacity.toLocaleString('en-IN')} <span className="text-xs font-bold text-slate-500">Sq. Ft.</span>
           </div>
           <p className="text-[11px] text-slate-500 font-medium">Aggregate floor storage capacity</p>
@@ -181,7 +181,7 @@ export const RegionsManagement: React.FC = () => {
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Inventory Valuation</span>
             <TrendingUp className="w-4 h-4" />
           </div>
-          <div className="text-2xl font-black text-slate-900 tracking-tight">
+          <div className="text-2xl font-bold text-slate-900 tracking-tight">
             ₹{(totalStockValuation / 10000000).toFixed(2)} Cr
           </div>
           <p className="text-[11px] text-slate-500 font-medium">Consolidated live batch value</p>
@@ -214,11 +214,11 @@ export const RegionsManagement: React.FC = () => {
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-500 flex items-center justify-center text-white font-black text-sm shadow-sm shadow-indigo-500/20">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-500 flex items-center justify-center text-white font-bold text-sm shadow-sm shadow-indigo-500/20">
                       {reg.code.substring(0, 3)}
                     </div>
                     <div>
-                      <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                      <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
                         {reg.name}
                         <Badge variant="success" size="sm">Active</Badge>
                       </h3>
@@ -244,15 +244,15 @@ export const RegionsManagement: React.FC = () => {
                 <div className="grid grid-cols-3 gap-2.5 py-2.5 px-3 rounded-xl bg-slate-50/80 border border-slate-100 text-center">
                   <div>
                     <span className="text-[10px] uppercase font-bold text-slate-400 block">Warehouses</span>
-                    <span className="text-sm font-extrabold text-slate-800">{linkedWh.length} Depots</span>
+                    <span className="text-sm font-semibold text-slate-800">{linkedWh.length} Depots</span>
                   </div>
                   <div>
                     <span className="text-[10px] uppercase font-bold text-slate-400 block">Sales Reps</span>
-                    <span className="text-sm font-extrabold text-slate-800">{salesReps.length} Assigned</span>
+                    <span className="text-sm font-semibold text-slate-800">{salesReps.length} Assigned</span>
                   </div>
                   <div>
                     <span className="text-[10px] uppercase font-bold text-slate-400 block">Available Stock</span>
-                    <span className="text-sm font-extrabold text-slate-800">{regStockQty.toLocaleString('en-IN')} Units</span>
+                    <span className="text-sm font-semibold text-slate-800">{regStockQty.toLocaleString('en-IN')} Units</span>
                   </div>
                 </div>
 

@@ -472,7 +472,7 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
           </div>
           <div className="text-right">
             <span className="text-[10px] uppercase font-bold text-slate-400 block">Total PO Commitment</span>
-            <div className="text-lg font-black text-indigo-900 font-mono">
+            <div className="text-lg font-bold text-indigo-900 font-mono">
               ₹{grandTotal.toLocaleString('en-IN')}
             </div>
           </div>

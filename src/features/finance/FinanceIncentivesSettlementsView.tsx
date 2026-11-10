@@ -124,7 +124,7 @@ export const FinanceIncentivesSettlementsView: React.FC = () => {
       {/* ─── HEADER ─── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-900 tracking-tight">
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
             Sales &amp; Marketing Incentives &amp; Settlements
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
@@ -167,28 +167,28 @@ export const FinanceIncentivesSettlementsView: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
         <div className="glass-card p-3.5 rounded-2xl border border-purple-200 bg-purple-50/40">
           <span className="text-[10px] font-bold uppercase text-purple-800 block">Calculated Commission Pool</span>
-          <div className="text-xl font-black text-purple-950 font-mono mt-0.5">
+          <div className="text-xl font-bold text-purple-950 font-mono mt-0.5">
             ₹{metrics.totalCalculated.toLocaleString('en-IN')}
           </div>
           <span className="text-[10px] text-purple-700">Theoretical incentive earned</span>
         </div>
         <div className="glass-card p-3.5 rounded-2xl border border-indigo-200 bg-indigo-50/40">
           <span className="text-[10px] font-bold uppercase text-indigo-800 block">Finance Approved Incentives</span>
-          <div className="text-xl font-black text-indigo-950 font-mono mt-0.5">
+          <div className="text-xl font-bold text-indigo-950 font-mono mt-0.5">
             ₹{metrics.totalApproved.toLocaleString('en-IN')}
           </div>
           <span className="text-[10px] text-indigo-600">Authorized post-collection audits</span>
         </div>
         <div className="glass-card p-3.5 rounded-2xl border border-emerald-200 bg-emerald-50/40">
           <span className="text-[10px] font-bold uppercase text-emerald-800 block">Disbursed via Bank Transfer</span>
-          <div className="text-xl font-black text-emerald-950 font-mono mt-0.5">
+          <div className="text-xl font-bold text-emerald-950 font-mono mt-0.5">
             ₹{metrics.totalPaid.toLocaleString('en-IN')}
           </div>
           <span className="text-[10px] text-emerald-700">Settled to employee bank A/c</span>
         </div>
         <div className="glass-card p-3.5 rounded-2xl border border-amber-200 bg-amber-50/40">
           <span className="text-[10px] font-bold uppercase text-amber-800 block">Pending Payout Batch</span>
-          <div className="text-xl font-black text-amber-950 font-mono mt-0.5">
+          <div className="text-xl font-bold text-amber-950 font-mono mt-0.5">
             ₹{metrics.pendingSettlement.toLocaleString('en-IN')}
           </div>
           <span className="text-[10px] text-amber-700">Awaiting month-end NEFT wire</span>
@@ -265,7 +265,7 @@ export const FinanceIncentivesSettlementsView: React.FC = () => {
                     <td className="py-3 px-4 text-right font-mono font-bold text-slate-700">
                       ₹{inc.calculatedIncentive.toLocaleString('en-IN')}
                     </td>
-                    <td className="py-3 px-4 text-right font-mono font-black text-emerald-800 text-sm">
+                    <td className="py-3 px-4 text-right font-mono font-bold text-emerald-800 text-sm">
                       ₹{inc.approvedIncentive.toLocaleString('en-IN')}
                     </td>
                     <td className="py-3 px-4 text-center">
@@ -365,7 +365,7 @@ export const FinanceIncentivesSettlementsView: React.FC = () => {
               </div>
               <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
                 <span className="text-[10px] text-emerald-800 block uppercase">Authorized Payout</span>
-                <span className="text-base font-black text-emerald-950 font-mono">
+                <span className="text-base font-bold text-emerald-950 font-mono">
                   ₹{selectedSettlement.approvedIncentive.toLocaleString('en-IN')}
                 </span>
               </div>
@@ -442,7 +442,7 @@ export const FinanceIncentivesSettlementsView: React.FC = () => {
                 <span>Beneficiary:</span>
                 <span>{selectedSettlement.employeeName}</span>
               </div>
-              <div className="flex justify-between text-emerald-950 font-black text-sm">
+              <div className="flex justify-between text-emerald-950 font-bold text-sm">
                 <span>Amount:</span>
                 <span className="font-mono">₹{selectedSettlement.approvedIncentive.toLocaleString('en-IN')}</span>
               </div>

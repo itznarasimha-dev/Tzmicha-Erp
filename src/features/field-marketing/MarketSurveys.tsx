@@ -54,7 +54,7 @@ export const MarketSurveys: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             Field Market Surveys & Competitor Pricing
             <Badge variant="success" size="sm">Ground Intel</Badge>
           </h1>
@@ -78,7 +78,7 @@ export const MarketSurveys: React.FC = () => {
           <Card key={s.id} className="space-y-3">
             <div className="flex items-start justify-between">
               <div>
-                <span className="font-extrabold text-sm text-slate-900">{s.dealerName}</span>
+                <span className="font-semibold text-sm text-slate-900">{s.dealerName}</span>
                 <span className="text-slate-400 text-xs block">{s.date}</span>
               </div>
               <Badge variant={s.marketDemandStatus === 'high' ? 'success' : 'neutral'} size="sm">
@@ -91,14 +91,14 @@ export const MarketSurveys: React.FC = () => {
                 <span className="text-slate-400 block text-[10px] uppercase font-bold">Competitor</span>
                 <span className="font-bold text-rose-700">{s.competitorBrand}</span>
                 <div className="text-slate-600 truncate">{s.competitorProduct}</div>
-                <div className="font-extrabold text-slate-900 mt-1">₹{s.competitorPricePerUnit.toLocaleString('en-IN')}</div>
+                <div className="font-semibold text-slate-900 mt-1">₹{s.competitorPricePerUnit.toLocaleString('en-IN')}</div>
               </div>
 
               <div>
                 <span className="text-slate-400 block text-[10px] uppercase font-bold">Our Equivalent</span>
                 <span className="font-bold text-indigo-700">{s.ourEquivalentProduct}</span>
                 <div className="text-slate-400 text-[11px]">Approved Standard</div>
-                <div className="font-extrabold text-indigo-900 mt-1">₹{s.ourSellingPrice.toLocaleString('en-IN')}</div>
+                <div className="font-semibold text-indigo-900 mt-1">₹{s.ourSellingPrice.toLocaleString('en-IN')}</div>
               </div>
             </div>
 

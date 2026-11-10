@@ -19,17 +19,17 @@ export const AppLayout: React.FC = () => {
         <div className="grid-overlay" />
 
         {/* 3D Floating Glass Torus (Top-Right) */}
-        <div className="absolute top-[8%] right-[4%] w-48 h-48 float-3d-1 opacity-70 dark:opacity-40">
+        <div className="hidden sm:block absolute top-[8%] right-[4%] w-48 h-48 float-3d-1 opacity-70 dark:opacity-40">
           <div className="w-full h-full glass-torus" />
         </div>
 
         {/* 3D Floating Glass Sphere (Mid-Left) */}
-        <div className="absolute top-[38%] left-[-40px] w-56 h-56 float-3d-2 opacity-65 dark:opacity-30">
+        <div className="hidden sm:block absolute top-[38%] left-[-40px] w-56 h-56 float-3d-2 opacity-65 dark:opacity-30">
           <div className="w-full h-full glass-sphere" />
         </div>
 
         {/* 3D Floating Octahedron / Prism (Bottom-Right) */}
-        <div className="absolute bottom-[10%] right-[10%] w-40 h-40 float-3d-3 opacity-60 dark:opacity-35">
+        <div className="hidden sm:block absolute bottom-[10%] right-[10%] w-40 h-40 float-3d-3 opacity-60 dark:opacity-35">
           <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-2xl">
             <defs>
               <linearGradient id="prismGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -49,7 +49,7 @@ export const AppLayout: React.FC = () => {
         </div>
 
         {/* 3D Floating Frosted Isometric Capsule (Mid-Bottom Center) */}
-        <div className="absolute bottom-[2%] left-[30%] w-44 h-24 float-3d-4 opacity-50 dark:opacity-20 rotate-12">
+        <div className="hidden sm:block absolute bottom-[2%] left-[30%] w-44 h-24 float-3d-4 opacity-50 dark:opacity-20 rotate-12">
           <div className="w-full h-full rounded-full bg-gradient-to-r from-lime-300/30 via-emerald-400/20 to-sky-400/30 backdrop-blur-md border border-white/60 shadow-xl" />
         </div>
       </div>
@@ -73,7 +73,7 @@ export const AppLayout: React.FC = () => {
         />
 
         {/* Scrollable Main Viewport with Strict X-Axis Containment and Smooth Y-Axis Scrolling */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain p-4 sm:p-6 lg:p-8 w-full max-w-[1600px] mx-auto space-y-6 pb-20">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain p-3 sm:p-6 lg:p-8 w-full max-w-[1600px] mx-auto space-y-4 sm:space-y-6 pb-20">
           <Outlet />
         </main>
       </div>

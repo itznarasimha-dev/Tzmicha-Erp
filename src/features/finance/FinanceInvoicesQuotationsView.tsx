@@ -170,7 +170,7 @@ export const FinanceInvoicesQuotationsView: React.FC = () => {
       {/* ─── HEADER / BANNER ─── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-900 tracking-tight">
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
             Commercial Invoices &amp; Quotations Management
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
@@ -212,28 +212,28 @@ export const FinanceInvoicesQuotationsView: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
           <div className="glass-card p-3.5 rounded-2xl border border-slate-200 bg-white">
             <span className="text-[10px] font-bold uppercase text-slate-500 block">Total Invoiced</span>
-            <div className="text-xl font-black text-slate-900 font-mono mt-0.5">
+            <div className="text-xl font-bold text-slate-900 font-mono mt-0.5">
               ₹{invoiceMetrics.totalInvoiced.toLocaleString('en-IN')}
             </div>
             <span className="text-[10px] text-slate-400">{invoices.length} total tax invoices</span>
           </div>
           <div className="glass-card p-3.5 rounded-2xl border border-emerald-200 bg-emerald-50/40">
             <span className="text-[10px] font-bold uppercase text-emerald-800 block">Payments Collected</span>
-            <div className="text-xl font-black text-emerald-900 font-mono mt-0.5">
+            <div className="text-xl font-bold text-emerald-900 font-mono mt-0.5">
               ₹{invoiceMetrics.totalCollected.toLocaleString('en-IN')}
             </div>
             <span className="text-[10px] text-emerald-700">Verified receipts</span>
           </div>
           <div className="glass-card p-3.5 rounded-2xl border border-amber-200 bg-amber-50/40">
             <span className="text-[10px] font-bold uppercase text-amber-800 block">Outstanding Receivables</span>
-            <div className="text-xl font-black text-amber-950 font-mono mt-0.5">
+            <div className="text-xl font-bold text-amber-950 font-mono mt-0.5">
               ₹{invoiceMetrics.totalOutstanding.toLocaleString('en-IN')}
             </div>
             <span className="text-[10px] text-amber-700">Unpaid invoice dues</span>
           </div>
           <div className="glass-card p-3.5 rounded-2xl border border-rose-200 bg-rose-50/40">
             <span className="text-[10px] font-bold uppercase text-rose-800 block">Overdue Invoices</span>
-            <div className="text-xl font-black text-rose-950 font-mono mt-0.5">
+            <div className="text-xl font-bold text-rose-950 font-mono mt-0.5">
               {invoiceMetrics.overdueCount} Invoices
             </div>
             <span className="text-[10px] text-rose-700">Exceeded credit payment terms</span>
@@ -243,21 +243,21 @@ export const FinanceInvoicesQuotationsView: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="glass-card p-3.5 rounded-2xl border border-indigo-200 bg-indigo-50/40">
             <span className="text-[10px] font-bold uppercase text-indigo-800 block">Total Active Quotations</span>
-            <div className="text-xl font-black text-indigo-950 font-mono mt-0.5">
+            <div className="text-xl font-bold text-indigo-950 font-mono mt-0.5">
               {quotationMetrics.totalQuotes} Quotations
             </div>
             <span className="text-[10px] text-indigo-600">Pending customer purchase orders</span>
           </div>
           <div className="glass-card p-3.5 rounded-2xl border border-slate-200 bg-white">
             <span className="text-[10px] font-bold uppercase text-slate-500 block">Estimated Quotation Pipeline</span>
-            <div className="text-xl font-black text-slate-900 font-mono mt-0.5">
+            <div className="text-xl font-bold text-slate-900 font-mono mt-0.5">
               ₹{quotationMetrics.totalQuotedValue.toLocaleString('en-IN')}
             </div>
             <span className="text-[10px] text-slate-400">Not recognized as accounting revenue</span>
           </div>
           <div className="glass-card p-3.5 rounded-2xl border border-emerald-200 bg-emerald-50/40">
             <span className="text-[10px] font-bold uppercase text-emerald-800 block">Successfully Converted</span>
-            <div className="text-xl font-black text-emerald-900 font-mono mt-0.5">
+            <div className="text-xl font-bold text-emerald-900 font-mono mt-0.5">
               {quotationMetrics.convertedCount} Converted
             </div>
             <span className="text-[10px] text-emerald-700">Converted into confirmed sales orders</span>
@@ -352,7 +352,7 @@ export const FinanceInvoicesQuotationsView: React.FC = () => {
                             </span>
                           )}
                         </td>
-                        <td className="py-3 px-4 text-right font-mono font-black text-slate-900">
+                        <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">
                           ₹{inv.totalAmount.toLocaleString('en-IN')}
                         </td>
                         <td className="py-3 px-4 text-right font-mono font-bold text-emerald-700">
@@ -360,7 +360,7 @@ export const FinanceInvoicesQuotationsView: React.FC = () => {
                         </td>
                         <td className="py-3 px-4 text-right font-mono font-bold">
                           {inv.outstandingBalance > 0 ? (
-                            <span className={isOverdue ? 'text-rose-600 font-black' : 'text-amber-700'}>
+                            <span className={isOverdue ? 'text-rose-600 font-bold' : 'text-amber-700'}>
                               ₹{inv.outstandingBalance.toLocaleString('en-IN')}
                             </span>
                           ) : (
@@ -493,7 +493,7 @@ export const FinanceInvoicesQuotationsView: React.FC = () => {
                         <span className="text-emerald-700 font-semibold block">-₹{q.discountTotal.toLocaleString('en-IN')} Disc</span>
                         <span className="text-slate-400 block">+₹{q.taxTotal.toLocaleString('en-IN')} GST</span>
                       </td>
-                      <td className="py-3 px-4 text-right font-mono font-black text-indigo-950">
+                      <td className="py-3 px-4 text-right font-mono font-bold text-indigo-950">
                         ₹{q.grandTotal.toLocaleString('en-IN')}
                       </td>
                       <td className="py-3 px-4 text-[11px] text-slate-600">
@@ -563,7 +563,7 @@ export const FinanceInvoicesQuotationsView: React.FC = () => {
             {/* Invoice Top Header */}
             <div className="flex items-start justify-between border-b border-slate-200 pb-3">
               <div>
-                <h3 className="text-base font-black text-slate-900 font-mono">
+                <h3 className="text-base font-bold text-slate-900 font-mono">
                   {selectedInvoice.invoiceNumber}
                 </h3>
                 <p className="text-[11px] text-slate-500 font-medium">
@@ -658,7 +658,7 @@ export const FinanceInvoicesQuotationsView: React.FC = () => {
                   <span>GST Taxes:</span>
                   <span className="font-mono">₹{selectedInvoice.totalTax.toLocaleString('en-IN')}</span>
                 </div>
-                <div className="flex justify-between text-slate-900 font-black text-sm border-t border-slate-200 pt-1">
+                <div className="flex justify-between text-slate-900 font-bold text-sm border-t border-slate-200 pt-1">
                   <span>Total Payable:</span>
                   <span className="font-mono">₹{selectedInvoice.totalAmount.toLocaleString('en-IN')}</span>
                 </div>
@@ -666,7 +666,7 @@ export const FinanceInvoicesQuotationsView: React.FC = () => {
                   <span>Paid to Date:</span>
                   <span className="font-mono">₹{selectedInvoice.paidAmount.toLocaleString('en-IN')}</span>
                 </div>
-                <div className="flex justify-between text-rose-700 font-black text-sm pt-0.5">
+                <div className="flex justify-between text-rose-700 font-bold text-sm pt-0.5">
                   <span>Balance Due:</span>
                   <span className="font-mono">₹{selectedInvoice.outstandingBalance.toLocaleString('en-IN')}</span>
                 </div>
@@ -727,7 +727,7 @@ export const FinanceInvoicesQuotationsView: React.FC = () => {
           <div className="space-y-4 text-xs text-slate-800">
             <div className="flex items-start justify-between border-b border-slate-200 pb-3">
               <div>
-                <h3 className="text-base font-black text-slate-900 font-mono">
+                <h3 className="text-base font-bold text-slate-900 font-mono">
                   {selectedQuotation.quotationNo}
                 </h3>
                 <p className="text-xs text-slate-500">
@@ -786,7 +786,7 @@ export const FinanceInvoicesQuotationsView: React.FC = () => {
                   <span>Estimated Tax:</span>
                   <span className="font-mono">+₹{selectedQuotation.taxTotal.toLocaleString('en-IN')}</span>
                 </div>
-                <div className="flex justify-between text-slate-900 font-black text-sm border-t border-slate-200 pt-1">
+                <div className="flex justify-between text-slate-900 font-bold text-sm border-t border-slate-200 pt-1">
                   <span>Quoted Total:</span>
                   <span className="font-mono">₹{selectedQuotation.grandTotal.toLocaleString('en-IN')}</span>
                 </div>
@@ -822,7 +822,7 @@ export const FinanceInvoicesQuotationsView: React.FC = () => {
               </div>
               <div className="flex justify-between mt-1 text-rose-600 font-semibold">
                 <span>Outstanding Dues:</span>
-                <span className="font-mono font-black">₹{selectedInvoice.outstandingBalance.toLocaleString('en-IN')}</span>
+                <span className="font-mono font-bold">₹{selectedInvoice.outstandingBalance.toLocaleString('en-IN')}</span>
               </div>
             </div>
 

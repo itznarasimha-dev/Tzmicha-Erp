@@ -149,7 +149,7 @@ export const ExecutiveDashboard: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
           <button
             onClick={() => navigate('/admin/subscription')}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-xs font-bold text-indigo-700 transition-all shadow-xs cursor-pointer"
@@ -234,7 +234,7 @@ export const ExecutiveDashboard: React.FC = () => {
                 {warehouses.length} Depots
               </span>
             </div>
-            <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mt-2">
+            <div className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight mt-2">
               ₹{Math.round(finance.totalInventoryValuation).toLocaleString('en-IN')}
             </div>
           </div>
@@ -290,7 +290,7 @@ export const ExecutiveDashboard: React.FC = () => {
                 {overLimitCustomers.length > 0 ? `${overLimitCustomers.length} Over Limit` : 'Healthy'}
               </span>
             </div>
-            <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mt-2">
+            <div className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight mt-2">
               ₹{Math.round(totalReceivables).toLocaleString('en-IN')}
             </div>
           </div>
@@ -315,7 +315,7 @@ export const ExecutiveDashboard: React.FC = () => {
                 Multi-Depot Provenance &amp; Dispatches
               </span>
             </div>
-            <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mt-1">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight mt-1">
               Supplier Inbound, Regional Stock &amp; Delivery Logistics
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
@@ -358,7 +358,7 @@ export const ExecutiveDashboard: React.FC = () => {
                   {totalPOs} Total
                 </span>
               </div>
-              <div className="text-2xl font-black text-slate-950 mt-1">
+              <div className="text-2xl font-bold text-slate-950 mt-1">
                 {poActiveSent + poReceiving} <span className="text-xs font-semibold text-slate-400 font-normal">Active Pipeline</span>
               </div>
 
@@ -366,7 +366,7 @@ export const ExecutiveDashboard: React.FC = () => {
               <div className="mt-3 space-y-1 text-xs">
                 <div className="flex items-center justify-between text-slate-600">
                   <span>Pending Approval:</span>
-                  <span className={`font-bold font-mono ${poPendingApproval > 0 ? 'text-amber-600 font-black' : 'text-slate-400'}`}>
+                  <span className={`font-bold font-mono ${poPendingApproval > 0 ? 'text-amber-600 font-bold' : 'text-slate-400'}`}>
                     {poPendingApproval} POs
                   </span>
                 </div>
@@ -403,7 +403,7 @@ export const ExecutiveDashboard: React.FC = () => {
                   {pendingInwards.length} QC Pending
                 </span>
               </div>
-              <div className="text-2xl font-black text-slate-950 mt-1">
+              <div className="text-2xl font-bold text-slate-950 mt-1">
                 {totalAcceptedInboundUnits.toLocaleString('en-IN')}{' '}
                 <span className="text-xs font-semibold text-slate-400 font-normal">Accepted</span>
               </div>
@@ -447,7 +447,7 @@ export const ExecutiveDashboard: React.FC = () => {
                   {openDiscrepancies.length > 0 ? `${openDiscrepancies.length} Open Issues` : 'All Resolved'}
                 </span>
               </div>
-              <div className="text-2xl font-black text-rose-700 mt-1">
+              <div className="text-2xl font-bold text-rose-700 mt-1">
                 {totalDamagedBatchUnits}{' '}
                 <span className="text-xs font-semibold text-slate-400 font-normal">Held / Damaged Units</span>
               </div>
@@ -489,7 +489,7 @@ export const ExecutiveDashboard: React.FC = () => {
                   {customerDispatches.length} Shipments
                 </span>
               </div>
-              <div className="text-2xl font-black text-slate-950 mt-1">
+              <div className="text-2xl font-bold text-slate-950 mt-1">
                 ₹{totalDeliveryExpenses.toLocaleString('en-IN')}{' '}
                 <span className="text-xs font-semibold text-slate-400 font-normal">Delivery Freight</span>
               </div>
@@ -600,7 +600,7 @@ export const ExecutiveDashboard: React.FC = () => {
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
                 Weekly Revenue Trend
               </span>
-              <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mt-0.5">
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight mt-0.5">
                 Dispatch &amp; Booking Volume
               </h2>
             </div>
@@ -661,7 +661,7 @@ export const ExecutiveDashboard: React.FC = () => {
                     {/* Day Label */}
                     <span
                       className={`text-xs font-semibold mt-3 ${
-                        d.isCurrent ? 'text-slate-950 font-black' : 'text-slate-400 group-hover:text-slate-700'
+                        d.isCurrent ? 'text-slate-950 font-bold' : 'text-slate-400 group-hover:text-slate-700'
                       }`}
                     >
                       {d.day}
@@ -694,7 +694,7 @@ export const ExecutiveDashboard: React.FC = () => {
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
               Admin Governance Hub
             </span>
-            <h2 className="text-xl font-black text-slate-900 tracking-tight mt-0.5">
+            <h2 className="text-xl font-bold text-slate-900 tracking-tight mt-0.5">
               Operations Control
             </h2>
           </div>
@@ -810,7 +810,7 @@ export const ExecutiveDashboard: React.FC = () => {
           className="bg-white rounded-3xl p-6 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:border-indigo-200 transition-all cursor-pointer space-y-4 flex flex-col justify-between group"
         >
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-black text-slate-900">Landed Cost Structure</h3>
+            <h3 className="text-sm font-bold text-slate-900">Landed Cost Structure</h3>
             <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
               Q1 2026
             </span>
@@ -870,7 +870,7 @@ export const ExecutiveDashboard: React.FC = () => {
           className="bg-white rounded-3xl p-6 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:border-indigo-200 transition-all cursor-pointer flex flex-col justify-between space-y-4 group"
         >
           <div>
-            <h3 className="text-sm font-black text-slate-900">Fulfillment SLA</h3>
+            <h3 className="text-sm font-bold text-slate-900">Fulfillment SLA</h3>
             <p className="text-[11px] text-slate-400 mt-0.5">On-time regional dispatch SLA benchmark</p>
           </div>
 
@@ -893,7 +893,7 @@ export const ExecutiveDashboard: React.FC = () => {
               />
             </svg>
             <div className="absolute bottom-2 flex flex-col items-center">
-              <span className="text-2xl font-black text-slate-900 leading-none">94%</span>
+              <span className="text-2xl font-bold text-slate-900 leading-none">94%</span>
               <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full mt-1 border border-emerald-200">
                 Optimal
               </span>
@@ -916,7 +916,7 @@ export const ExecutiveDashboard: React.FC = () => {
           className="bg-white rounded-3xl p-6 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:border-indigo-200 transition-all cursor-pointer space-y-4 flex flex-col justify-between group"
         >
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-black text-slate-900">Regional Targets</h3>
+            <h3 className="text-sm font-bold text-slate-900">Regional Targets</h3>
             <span className="text-xs font-bold text-slate-500 hover:text-slate-900">
               Manage →
             </span>
@@ -970,7 +970,7 @@ export const ExecutiveDashboard: React.FC = () => {
           className="bg-white rounded-3xl p-6 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:border-indigo-200 transition-all cursor-pointer space-y-4 flex flex-col justify-between group"
         >
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-black text-slate-900">Active Orders</h3>
+            <h3 className="text-sm font-bold text-slate-900">Active Orders</h3>
             <span className="text-xs font-bold text-slate-500 hover:text-slate-900">
               See all →
             </span>
@@ -980,7 +980,7 @@ export const ExecutiveDashboard: React.FC = () => {
             {salesOrders.slice(0, 4).map((order) => (
               <div key={order.id} className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-900 font-mono font-black text-[11px] flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-900 font-mono font-bold text-[11px] flex items-center justify-center shrink-0">
                     {order.customerName.slice(0, 2).toUpperCase()}
                   </div>
                   <div className="min-w-0">

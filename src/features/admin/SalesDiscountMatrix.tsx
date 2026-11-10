@@ -285,7 +285,7 @@ export const SalesDiscountMatrix: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200/80">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
             Discounts & Pricing Policies
             <Badge variant="primary" size="sm">Sales Allowances</Badge>
             <Badge variant="purple" size="sm">Batch & Stock Markdowns</Badge>
@@ -455,7 +455,7 @@ export const SalesDiscountMatrix: React.FC = () => {
                         {rep.assignedRegionId}
                       </span>
                     </td>
-                    <td className="py-3 px-3 font-extrabold text-indigo-700">
+                    <td className="py-3 px-3 font-semibold text-indigo-700">
                       <span className="px-2.5 py-1 rounded-xl bg-indigo-50 border border-indigo-200">
                         {rep.maxDiscountPercent || 0}% Max
                       </span>
@@ -538,7 +538,7 @@ export const SalesDiscountMatrix: React.FC = () => {
                           )}
                         </div>
                       </td>
-                      <td className="py-3 px-3 font-extrabold text-slate-900">
+                      <td className="py-3 px-3 font-semibold text-slate-900">
                         {b.availableQuantity} units
                       </td>
                       <td className="py-3 px-3">
@@ -613,13 +613,13 @@ export const SalesDiscountMatrix: React.FC = () => {
                         <span className="text-[10px] text-slate-400 font-mono">{p.sku} • {p.unit}</span>
                       </td>
                       <td className="py-3 px-3 text-slate-600">{p.categoryName}</td>
-                      <td className="py-3 px-3 font-extrabold text-slate-900">
+                      <td className="py-3 px-3 font-semibold text-slate-900">
                         ₹{p.standardSellingPrice.toLocaleString('en-IN')}
                       </td>
                       <td className="py-3 px-3 font-mono text-slate-500">
                         ₹{p.actualCost.toLocaleString('en-IN')}
                       </td>
-                      <td className="py-3 px-3 font-extrabold text-rose-700">
+                      <td className="py-3 px-3 font-semibold text-rose-700">
                         ₹{p.minAllowedPrice.toLocaleString('en-IN')}
                         <span className="text-[10px] text-slate-400 block font-normal">
                           ({marginAtFloor.toFixed(1)}% margin safeguard)
@@ -727,7 +727,7 @@ export const SalesDiscountMatrix: React.FC = () => {
                   <label className="text-xs font-semibold text-slate-700">
                     Proposed Customer Discount Percentage
                   </label>
-                  <span className="text-sm font-extrabold text-indigo-700">{simDiscountPercent}%</span>
+                  <span className="text-sm font-semibold text-indigo-700">{simDiscountPercent}%</span>
                 </div>
                 <input
                   type="range"
@@ -805,7 +805,7 @@ export const SalesDiscountMatrix: React.FC = () => {
                   </div>
                   <div className="flex justify-between py-1 border-b border-slate-200/60">
                     <span className="text-slate-700 font-semibold">Customer Quoted Unit Price</span>
-                    <span className="font-extrabold text-indigo-700 text-sm">₹{quotedUnitPrice.toFixed(2)}</span>
+                    <span className="font-semibold text-indigo-700 text-sm">₹{quotedUnitPrice.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-slate-200/60">
                     <span className="text-slate-500">Manufacturing Landed Cost</span>
@@ -813,7 +813,7 @@ export const SalesDiscountMatrix: React.FC = () => {
                   </div>
                   <div className="flex justify-between py-1 pt-1.5">
                     <span className="text-slate-900 font-bold">Gross Profit Margin</span>
-                    <span className={`font-black ${profitPerUnit > 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                    <span className={`font-bold ${profitPerUnit > 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
                       ₹{profitPerUnit.toFixed(2)} / unit ({grossMarginPercent.toFixed(1)}%)
                     </span>
                   </div>
@@ -998,7 +998,7 @@ export const SalesDiscountMatrix: React.FC = () => {
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <Layers className="w-4 h-4 text-indigo-600" />
-                    <span className="font-extrabold text-xs">Specific Batch Markdown</span>
+                    <span className="font-semibold text-xs">Specific Batch Markdown</span>
                   </div>
                   <p className="text-[11px] text-slate-500 leading-tight">
                     Discount physical batches (near-expiry or aged stock) without changing product base price.
@@ -1019,7 +1019,7 @@ export const SalesDiscountMatrix: React.FC = () => {
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <Tag className="w-4 h-4 text-indigo-600" />
-                    <span className="font-extrabold text-xs">Product Catalog Promotion</span>
+                    <span className="font-semibold text-xs">Product Catalog Promotion</span>
                   </div>
                   <p className="text-[11px] text-slate-500 leading-tight">
                     Apply promotional allowance across product SKUs or whole categories with floor safeguards.
@@ -1035,7 +1035,7 @@ export const SalesDiscountMatrix: React.FC = () => {
                   <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
                     2. Smart Batch Selection Rules
                   </label>
-                  <span className="text-[11px] font-extrabold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-200">
+                  <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-200">
                     {matchingBatches.length} Batches Targeted
                   </span>
                 </div>
@@ -1120,7 +1120,7 @@ export const SalesDiscountMatrix: React.FC = () => {
                   <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
                     2. Smart Product Selection Rules
                   </label>
-                  <span className="text-[11px] font-extrabold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-200">
+                  <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-200">
                     {matchingProducts.length} Products Targeted
                   </span>
                 </div>
@@ -1220,7 +1220,7 @@ export const SalesDiscountMatrix: React.FC = () => {
                 <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
                   3. Set Promotional Discount Allowance
                 </label>
-                <div className="font-mono font-black text-indigo-600 text-base">
+                <div className="font-mono font-bold text-indigo-600 text-base">
                   {smartDiscountPercent}%
                 </div>
               </div>
@@ -1310,7 +1310,7 @@ export const SalesDiscountMatrix: React.FC = () => {
                 </div>
                 <div>
                   <span className="text-slate-500 block text-[10px]">Discounted Price:</span>
-                  <span className="font-mono font-extrabold text-indigo-700">
+                  <span className="font-mono font-semibold text-indigo-700">
                     ₹{smartFinancials.discountedPrice.toLocaleString('en-IN')}
                   </span>
                 </div>

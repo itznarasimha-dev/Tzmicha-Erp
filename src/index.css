@@ -262,22 +262,22 @@ code, pre, kbd, samp, .font-mono {
    Strict adherence to standard font sizes (11px-26px) and weights (400-700)
    ============================================================ */
 
-/* 1. Global Font Weight Standards: 400, 500, 600, 700 */
+/* 1. Global Font Weight Standards: 200, 300, 400, 500, 600, 700 (Chillax Standard) */
 .font-black,
 [class*="font-black"],
 .font-extrabold,
 [class*="font-extrabold"] {
-  font-weight: 700 !important;
-  letter-spacing: -0.02em;
+  font-weight: 600 !important;
+  letter-spacing: -0.015em;
 }
 
 .font-bold {
-  font-weight: 700 !important;
+  font-weight: 600 !important;
   letter-spacing: -0.015em;
 }
 
 .font-semibold {
-  font-weight: 600 !important;
+  font-weight: 500 !important;
   letter-spacing: -0.01em;
 }
 
@@ -291,10 +291,25 @@ code, pre, kbd, samp, .font-mono {
   letter-spacing: -0.005em;
 }
 
-.font-light,
+.font-light {
+  font-weight: 300 !important;
+  letter-spacing: -0.005em;
+}
+
 .font-thin,
 .font-extralight {
-  font-weight: 400 !important;
+  font-weight: 200 !important;
+}
+
+/* Page titles and major KPI figures retain true bold (700) prominence */
+.page-title,
+.main-page-title,
+h1.page-title,
+.kpi-number,
+.stat-value-billion,
+.stat-kpi {
+  font-weight: 700 !important;
+  letter-spacing: -0.02em;
 }
 
 /* 2. Standardized Font Sizes & Line Heights According to Specification */
@@ -956,5 +971,146 @@ table tbody tr:hover,
   align-items: center !important;
   gap: 4px !important;
 }
+
+/* ============================================================
+   APEXFLOW ERP — COMPREHENSIVE MOBILE RESPONSIVENESS SYSTEM
+   Optimizes all roles, pages, cards, tables, navigation ribbons,
+   and dialogs for seamless mobile and tablet experiences.
+   ============================================================ */
+
+/* 1. Global Viewport Containment & Touch Ergonomics */
+@media (max-width: 768px) {
+  html, body {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Prevent iOS input auto-zoom by ensuring minimum 14px */
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 14px !important;
+  }
+
+  /* Touch Target Ergonomics */
+  button,
+  .btn,
+  .pill-button-dark,
+  .pill-button-outline {
+    touch-action: manipulation;
+  }
+
+  /* Typography Scaling for Mobile Screen Real-Estate */
+  .page-title,
+  .main-page-title,
+  .editorial-title,
+  h1.page-title,
+  h1:not([class*="text-"]):not([class*="text-["]) {
+    font-size: 20px !important;
+    line-height: 1.3 !important;
+  }
+
+  .page-description,
+  .page-desc,
+  .editorial-subtitle {
+    font-size: 12.5px !important;
+    line-height: 1.45 !important;
+  }
+
+  .kpi-number,
+  .stat-value-billion,
+  .stat-card-value,
+  .metric-card__value,
+  .stat-kpi {
+    font-size: 20px !important;
+    line-height: 1.25 !important;
+  }
+
+  /* Responsive Card Padding & Radii on Mobile */
+  .card,
+  .ws-card,
+  .sk-card,
+  .content-card,
+  .glass-card,
+  .glass-panel {
+    border-radius: 1rem !important;
+    padding: 14px 16px !important;
+  }
+
+  .metric-card,
+  .kpi,
+  .stat-card {
+    border-radius: 0.875rem !important;
+    padding: 12px 14px !important;
+  }
+
+  /* Responsive Table Sizing on Mobile */
+  .table-wrap,
+  .table-responsive,
+  .erp-table-wrapper,
+  .ws-table-wrap,
+  .table-container-card {
+    border-radius: 1rem !important;
+    margin-left: -0.25rem;
+    margin-right: -0.25rem;
+    width: calc(100% + 0.5rem) !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table th,
+  .table th,
+  .erp-table th,
+  .enterprise-table th,
+  .table-head {
+    padding: 9px 12px !important;
+    font-size: 10px !important;
+  }
+
+  table td,
+  .table td,
+  .erp-table td,
+  .enterprise-table td,
+  .table-cell {
+    padding: 10px 12px !important;
+    font-size: 12px !important;
+  }
+
+  /* Responsive Filter Bars & Search Bars */
+  .toolbar,
+  .filter-bar,
+  .search-filter-bar {
+    padding: 12px !important;
+    border-radius: 1rem !important;
+    gap: 8px !important;
+  }
+
+  /* Horizontal Sub-Navigation Touch Strips */
+  nav[class*="overflow-x-auto"],
+  .ws-tabs,
+  .sub-nav-tabs {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  nav[class*="overflow-x-auto"]::-webkit-scrollbar,
+  .ws-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Modals on Mobile Viewport */
+  [role="dialog"],
+  .modal-dialog,
+  .modal-content {
+    max-width: calc(100vw - 1.25rem) !important;
+    max-height: calc(100vh - 2rem) !important;
+    border-radius: 1.25rem !important;
+    padding: 16px !important;
+    margin: 0 auto;
+  }
+}
+
 
 

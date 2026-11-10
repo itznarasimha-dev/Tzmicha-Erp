@@ -62,7 +62,7 @@ export const AdminOrganizationsOverview: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
               Organization &amp; Corporate Profile
             </h1>
             <Badge variant="purple" size="sm">
@@ -109,7 +109,7 @@ export const AdminOrganizationsOverview: React.FC = () => {
             </span>
             <Building2 className="w-4 h-4" />
           </div>
-          <div className="text-2xl font-black text-slate-900 truncate">
+          <div className="text-2xl font-bold text-slate-900 truncate">
             {activeOrg.name}
           </div>
           <p className="text-[11px] text-slate-500 font-medium font-mono">Team ID: {activeOrg.teamId}</p>
@@ -122,7 +122,7 @@ export const AdminOrganizationsOverview: React.FC = () => {
             </span>
             <Shield className="w-4 h-4" />
           </div>
-          <div className="text-2xl font-black text-slate-900">
+          <div className="text-2xl font-bold text-slate-900">
             {activeOrg.plan || 'Enterprise'}
           </div>
           <p className="text-[11px] text-slate-500 font-medium">Unlimited Regional Depots &amp; Audits</p>
@@ -135,7 +135,7 @@ export const AdminOrganizationsOverview: React.FC = () => {
             </span>
             <Users className="w-4 h-4" />
           </div>
-          <div className="text-2xl font-black text-slate-900">
+          <div className="text-2xl font-bold text-slate-900">
             {totalEmployees} Members
           </div>
           <p className="text-[11px] text-slate-500 font-medium">Across Admin, Sales &amp; Store Keepers</p>
@@ -148,7 +148,7 @@ export const AdminOrganizationsOverview: React.FC = () => {
             </span>
             <Warehouse className="w-4 h-4" />
           </div>
-          <div className="text-2xl font-black text-slate-900">
+          <div className="text-2xl font-bold text-slate-900">
             {warehouses.length} Depots
           </div>
           <p className="text-[11px] text-slate-500 font-medium">{regions.length} Active Sales Territories</p>
@@ -245,7 +245,7 @@ export const AdminOrganizationsOverview: React.FC = () => {
 
           {/* Operational Capacity Quotas Progress */}
           <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-3">
-            <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
               Operational License Quotas &amp; Capacity Utilization
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

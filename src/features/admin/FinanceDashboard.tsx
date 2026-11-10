@@ -114,7 +114,7 @@ export const FinanceDashboard: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-100">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Finance & Profit/Loss Center</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Finance & Profit/Loss Center</h1>
             <Badge variant="purple" size="sm">Admin Restricted</Badge>
           </div>
           <p className="text-xs text-slate-500 mt-1">
@@ -190,7 +190,7 @@ export const FinanceDashboard: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="glass-card p-5 border border-cyan-200 bg-cyan-50/40">
           <p className="text-[10px] font-bold text-cyan-800 uppercase tracking-widest">Cash Collected</p>
-          <div className="text-2xl font-black text-slate-900 mt-1 font-mono">
+          <div className="text-2xl font-bold text-slate-900 mt-1 font-mono">
             ₹{Math.round(finance.totalCollectedCash).toLocaleString('en-IN')}
           </div>
           <p className="text-[11px] text-slate-500 mt-1">Real cash paid by customers/dealers</p>
@@ -198,7 +198,7 @@ export const FinanceDashboard: React.FC = () => {
 
         <div className="glass-card p-5 border border-amber-200 bg-amber-50/40">
           <p className="text-[10px] font-bold text-amber-800 uppercase tracking-widest">Outstanding Receivables</p>
-          <div className="text-2xl font-black text-amber-900 mt-1 font-mono">
+          <div className="text-2xl font-bold text-amber-900 mt-1 font-mono">
             ₹{Math.round(finance.outstandingReceivables).toLocaleString('en-IN')}
           </div>
           <p className="text-[11px] text-slate-500 mt-1">Customer ledger pending balances</p>
@@ -206,7 +206,7 @@ export const FinanceDashboard: React.FC = () => {
 
         <div className="glass-card p-5 border border-emerald-200 bg-emerald-50/40">
           <p className="text-[10px] font-bold text-emerald-800 uppercase tracking-widest">Stock Valuation (Landed Cost)</p>
-          <div className="text-2xl font-black text-emerald-900 mt-1 font-mono">
+          <div className="text-2xl font-bold text-emerald-900 mt-1 font-mono">
             ₹{Math.round(finance.totalInventoryValuation).toLocaleString('en-IN')}
           </div>
           <p className="text-[11px] text-slate-500 mt-1">Asset value of available & reserved stock</p>
@@ -217,7 +217,7 @@ export const FinanceDashboard: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="glass-card p-5 border border-blue-200 bg-blue-50/40">
           <p className="text-[10px] font-bold text-blue-800 uppercase tracking-widest">Customer Delivery Billed</p>
-          <div className="text-2xl font-black text-blue-900 mt-1 font-mono">
+          <div className="text-2xl font-bold text-blue-900 mt-1 font-mono">
             ₹{Math.round(finance.customerDeliveryRevenue).toLocaleString('en-IN')}
           </div>
           <p className="text-[11px] text-slate-500 mt-1">Freight & delivery charges billed on dispatches</p>
@@ -225,7 +225,7 @@ export const FinanceDashboard: React.FC = () => {
 
         <div className="glass-card p-5 border border-rose-200 bg-rose-50/40">
           <p className="text-[10px] font-bold text-rose-800 uppercase tracking-widest">Company Transport Paid</p>
-          <div className="text-2xl font-black text-rose-900 mt-1 font-mono">
+          <div className="text-2xl font-bold text-rose-900 mt-1 font-mono">
             ₹{Math.round(finance.companyTransportExpense).toLocaleString('en-IN')}
           </div>
           <p className="text-[11px] text-slate-500 mt-1">Actual freight & carrier costs paid by company</p>
@@ -233,7 +233,7 @@ export const FinanceDashboard: React.FC = () => {
 
         <div className="glass-card p-5 border border-indigo-200 bg-indigo-50/40">
           <p className="text-[10px] font-bold text-indigo-800 uppercase tracking-widest">Net Freight Recovery</p>
-          <div className={`text-2xl font-black mt-1 font-mono ${finance.transportRecoveryVariance >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+          <div className={`text-2xl font-bold mt-1 font-mono ${finance.transportRecoveryVariance >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
             {finance.transportRecoveryVariance >= 0 ? '+' : ''}₹{Math.round(finance.transportRecoveryVariance).toLocaleString('en-IN')}
           </div>
           <p className="text-[11px] text-slate-500 mt-1">
@@ -299,7 +299,7 @@ export const FinanceDashboard: React.FC = () => {
                     <td className="py-3.5 px-1 text-rose-700 font-mono font-medium">
                       ₹{Math.round(row.transportExpense).toLocaleString('en-IN')}
                     </td>
-                    <td className="py-3.5 px-1 text-right font-mono font-extrabold text-slate-900">
+                    <td className="py-3.5 px-1 text-right font-mono font-semibold text-slate-900">
                       ₹{Math.round(netContrib).toLocaleString('en-IN')}
                     </td>
                   </tr>

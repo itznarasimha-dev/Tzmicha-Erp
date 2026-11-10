@@ -58,7 +58,7 @@ export function SalesFulfilment({ onMobileMenuOpen }: SalesFulfilmentProps) {
               </span>
               <span className="text-xs text-slate-400 font-medium">Picking, Packing &amp; Dispatch Hub</span>
             </div>
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">Sales Fulfilment &amp; Returns</h1>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Sales Fulfilment &amp; Returns</h1>
             <p className="text-slate-500 text-xs mt-0.5">
               Manage warehouse picking, barcode pack confirmation, carrier dispatch SLA tracking, and RMA customer returns.
             </p>

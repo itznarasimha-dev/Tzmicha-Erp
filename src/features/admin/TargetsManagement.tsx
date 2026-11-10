@@ -242,7 +242,7 @@ export const TargetsManagement: React.FC = () => {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200/80">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
             Quota & Target Assignment & Tracking
             <Badge variant="purple" size="sm">Admin Oversight</Badge>
           </h1>
@@ -272,7 +272,7 @@ export const TargetsManagement: React.FC = () => {
             <TrendingUp className="w-4 h-4" />
           </div>
           <div className="flex items-baseline justify-between">
-            <div className="text-2xl font-black text-slate-900 tracking-tight">
+            <div className="text-2xl font-bold text-slate-900 tracking-tight">
               {overallSalesAttainment.toFixed(1)}%
             </div>
             <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
@@ -296,7 +296,7 @@ export const TargetsManagement: React.FC = () => {
             <Compass className="w-4 h-4" />
           </div>
           <div className="flex items-baseline justify-between">
-            <div className="text-2xl font-black text-slate-900 tracking-tight">
+            <div className="text-2xl font-bold text-slate-900 tracking-tight">
               {overallMarketingAttainment.toFixed(1)}%
             </div>
             <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
@@ -319,7 +319,7 @@ export const TargetsManagement: React.FC = () => {
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Incentive Pool Earned</span>
             <Award className="w-4 h-4" />
           </div>
-          <div className="text-2xl font-black text-slate-900 tracking-tight">
+          <div className="text-2xl font-bold text-slate-900 tracking-tight">
             ₹{totalIncentivesEarned.toLocaleString('en-IN')}
           </div>
           <p className="text-[11px] text-slate-500 font-medium">Accrued commissions & performance bonuses</p>
@@ -330,7 +330,7 @@ export const TargetsManagement: React.FC = () => {
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Tracked Personnel</span>
             <Users className="w-4 h-4" />
           </div>
-          <div className="text-2xl font-black text-slate-900 tracking-tight">
+          <div className="text-2xl font-bold text-slate-900 tracking-tight">
             {salesTargets.length + marketingTargets.length} <span className="text-xs font-bold text-slate-500">Quotas</span>
           </div>
           <p className="text-[11px] text-slate-500 font-medium">
@@ -354,7 +354,7 @@ export const TargetsManagement: React.FC = () => {
             >
               <div className="flex items-center justify-between">
                 <span className="font-bold text-xs text-slate-900 truncate">{reg.name}</span>
-                <span className="text-[10px] font-extrabold text-indigo-700 bg-indigo-50 px-1.5 py-0.2 rounded">
+                <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-50 px-1.5 py-0.2 rounded">
                   {pct.toFixed(0)}%
                 </span>
               </div>
@@ -523,7 +523,7 @@ export const TargetsManagement: React.FC = () => {
                         <td className="py-3 px-3 font-semibold text-slate-800">{target.period}</td>
 
                         <td className="py-3 px-3">
-                          <span className="font-extrabold text-slate-900 block font-mono">
+                          <span className="font-semibold text-slate-900 block font-mono">
                             ₹{target.targetAmount.toLocaleString('en-IN')}
                           </span>
                           <span className="text-[10px] text-indigo-700 font-semibold block bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200/60 mt-0.5">
@@ -532,7 +532,7 @@ export const TargetsManagement: React.FC = () => {
                         </td>
 
                         <td className="py-3 px-3">
-                          <span className="font-extrabold text-indigo-700 block font-mono">
+                          <span className="font-semibold text-indigo-700 block font-mono">
                             ₹{target.achievedAmount.toLocaleString('en-IN')}
                           </span>
                           <span className="text-[10px] text-slate-500 font-medium block">
@@ -544,7 +544,7 @@ export const TargetsManagement: React.FC = () => {
                           <div className="space-y-1">
                             <div className="flex items-center justify-between text-[11px]">
                               <span
-                                className={`font-black ${
+                                className={`font-bold ${
                                   isExceeding
                                     ? 'text-emerald-700'
                                     : isOnTrack
@@ -581,7 +581,7 @@ export const TargetsManagement: React.FC = () => {
                           </div>
                         </td>
 
-                        <td className="py-3 px-3 font-extrabold text-emerald-700">
+                        <td className="py-3 px-3 font-semibold text-emerald-700">
                           ₹{target.incentiveEstimate.toLocaleString('en-IN')}
                         </td>
 
@@ -675,7 +675,7 @@ export const TargetsManagement: React.FC = () => {
                         <td className="py-3 px-3 font-semibold text-slate-800">{target.period}</td>
 
                         <td className="py-3 px-3">
-                          <span className="font-extrabold text-slate-900 block">
+                          <span className="font-semibold text-slate-900 block">
                             {target.targetVisits} Field Visits
                           </span>
                           <span className="text-[10px] text-amber-800 font-semibold block bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/60 mt-0.5">
@@ -684,7 +684,7 @@ export const TargetsManagement: React.FC = () => {
                         </td>
 
                         <td className="py-3 px-3">
-                          <span className="font-extrabold text-blue-700 block">
+                          <span className="font-semibold text-blue-700 block">
                             {target.completedVisits} Visits
                           </span>
                           <span className="text-[10px] text-slate-500 font-medium block">
@@ -696,7 +696,7 @@ export const TargetsManagement: React.FC = () => {
                           <div className="space-y-1">
                             <div className="flex items-center justify-between text-[11px]">
                               <span
-                                className={`font-black ${
+                                className={`font-bold ${
                                   isExceeding ? 'text-emerald-700' : 'text-blue-700'
                                 }`}
                               >
@@ -902,7 +902,7 @@ export const TargetsManagement: React.FC = () => {
                   </span>
                 </div>
                 <div className="text-right">
-                  <span className="text-base font-black text-indigo-900 font-mono">
+                  <span className="text-base font-bold text-indigo-900 font-mono">
                     ₹{((parseInt(targetUnits, 10) || 0) * (parseFloat(targetAmountPerUnit) || 0)).toLocaleString('en-IN')}
                   </span>
                 </div>
@@ -982,7 +982,7 @@ export const TargetsManagement: React.FC = () => {
                   </span>
                 </div>
                 <div className="text-right">
-                  <span className="text-base font-black text-amber-950 font-mono">
+                  <span className="text-base font-bold text-amber-950 font-mono">
                     ₹{((parseInt(targetVisits, 10) || 0) * (parseFloat(ratePerVisit) || 0)).toLocaleString('en-IN')}
                   </span>
                 </div>
@@ -1083,7 +1083,7 @@ export const TargetsManagement: React.FC = () => {
           {/* Live computed total */}
           <div className="p-3 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-between text-xs">
             <span className="text-slate-600 font-medium">New Quota Target (Volume × Rate):</span>
-            <span className="text-sm font-black text-indigo-700 font-mono">
+            <span className="text-sm font-bold text-indigo-700 font-mono">
               ₹{((parseInt(adjustUnits, 10) || 0) * (parseFloat(adjustAmountPerUnit) || 0)).toLocaleString('en-IN')}
             </span>
           </div>
@@ -1147,7 +1147,7 @@ export const TargetsManagement: React.FC = () => {
           {/* Live computed travel budget */}
           <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-between text-xs">
             <span className="text-slate-600 font-medium">New Travel Budget (Visits × Rate):</span>
-            <span className="text-sm font-black text-amber-800 font-mono">
+            <span className="text-sm font-bold text-amber-800 font-mono">
               ₹{((parseInt(adjustVisits, 10) || 0) * (parseFloat(adjustRatePerVisit) || 0)).toLocaleString('en-IN')}
             </span>
           </div>

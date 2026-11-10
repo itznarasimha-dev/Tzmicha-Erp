@@ -84,7 +84,7 @@ export function InventoryTraceability({ onMobileMenuOpen }: InventoryTraceabilit
               </span>
               <span className="text-xs text-slate-400 font-medium">Multi-Depot Serial &amp; Lot Control</span>
             </div>
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">Inventory &amp; Traceability</h1>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Inventory &amp; Traceability</h1>
             <p className="text-slate-500 text-xs mt-0.5">
               Explore real-time depot stock, trace product batches from supplier GRN to customer dispatches, scan barcodes, and audit movements.
             </p>

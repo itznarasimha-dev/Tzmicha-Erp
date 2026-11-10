@@ -131,7 +131,7 @@ export const AdminWarehouseTransfersAudits: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
             Inter-Depot Transfers & Cycle Count Audits
             <Badge variant="purple" size="sm">Store Keeper Oversight</Badge>
           </h1>
@@ -188,7 +188,7 @@ export const AdminWarehouseTransfersAudits: React.FC = () => {
         <div className="glass-card p-5 border border-indigo-200 bg-indigo-50/40 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-bold text-indigo-800 uppercase tracking-wider">In-Transit Inventory Value</p>
-            <div className="text-2xl font-black text-slate-900 mt-0.5 font-mono">
+            <div className="text-2xl font-bold text-slate-900 mt-0.5 font-mono">
               ₹{totalInTransitValue.toLocaleString('en-IN')}
             </div>
             <p className="text-[11px] text-slate-500 mt-0.5">{inTransitList.length} active consignments on road</p>
@@ -201,7 +201,7 @@ export const AdminWarehouseTransfersAudits: React.FC = () => {
         <div className="glass-card p-5 border border-amber-200 bg-amber-50/40 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-bold text-amber-800 uppercase tracking-wider">Pending Variance Approvals</p>
-            <div className="text-2xl font-black text-slate-900 mt-0.5 font-mono">{pendingVariances.length} Audits</div>
+            <div className="text-2xl font-bold text-slate-900 mt-0.5 font-mono">{pendingVariances.length} Audits</div>
             <p className="text-[11px] text-slate-500 mt-0.5">Physical count discrepancies</p>
           </div>
           <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
@@ -212,7 +212,7 @@ export const AdminWarehouseTransfersAudits: React.FC = () => {
         <div className="glass-card p-5 border border-rose-200 bg-rose-50/40 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-bold text-rose-800 uppercase tracking-wider">Approved Shrinkage Write-offs</p>
-            <div className="text-2xl font-black text-slate-900 mt-0.5 font-mono">
+            <div className="text-2xl font-bold text-slate-900 mt-0.5 font-mono">
               ₹{totalShrinkageLoss.toLocaleString('en-IN')}
             </div>
             <p className="text-[11px] text-slate-500 mt-0.5">YTD damage & shortage loss</p>
@@ -225,7 +225,7 @@ export const AdminWarehouseTransfersAudits: React.FC = () => {
         <div className="glass-card p-5 border border-emerald-200 bg-emerald-50/40 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Depot Delivery On-Time Rate</p>
-            <div className="text-2xl font-black text-slate-900 mt-0.5 font-mono">94.8%</div>
+            <div className="text-2xl font-bold text-slate-900 mt-0.5 font-mono">94.8%</div>
             <p className="text-[11px] text-slate-500 mt-0.5">Inter-depot transfer SLA</p>
           </div>
           <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
@@ -359,7 +359,7 @@ export const AdminWarehouseTransfersAudits: React.FC = () => {
                         <span className="font-bold text-slate-900 block">{adj.productName}</span>
                         <span className="text-[10px] font-mono text-slate-500">Batch Ref: {adj.batchId}</span>
                       </td>
-                      <td className="py-3.5 px-4 text-center font-mono font-black text-sm">
+                      <td className="py-3.5 px-4 text-center font-mono font-bold text-sm">
                         <span
                           className={
                             adj.difference > 0
@@ -469,7 +469,7 @@ export const AdminWarehouseTransfersAudits: React.FC = () => {
                       <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-900">
                         {southQty}
                       </td>
-                      <td className="py-3.5 px-4 text-right font-mono font-black text-indigo-900 text-sm">
+                      <td className="py-3.5 px-4 text-right font-mono font-bold text-indigo-900 text-sm">
                         {total} {p.unit}
                       </td>
                       <td className="py-3.5 px-4 text-center">

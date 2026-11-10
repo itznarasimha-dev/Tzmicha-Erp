@@ -174,7 +174,7 @@ export const FinanceReceivablesPaymentsView: React.FC = () => {
       {/* ─── HEADER ─── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-900 tracking-tight">
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
             Customer Payments &amp; Accounts Receivable
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
@@ -216,28 +216,28 @@ export const FinanceReceivablesPaymentsView: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
         <div className="glass-card p-3.5 rounded-2xl border border-amber-200 bg-amber-50/40">
           <span className="text-[10px] font-bold uppercase text-amber-800 block">Total Receivables Outstanding</span>
-          <div className="text-xl font-black text-amber-950 font-mono mt-0.5">
+          <div className="text-xl font-bold text-amber-950 font-mono mt-0.5">
             ₹{receivablesSummary.totalOutstanding.toLocaleString('en-IN')}
           </div>
           <span className="text-[10px] text-amber-700">Across {customers.length} business accounts</span>
         </div>
         <div className="glass-card p-3.5 rounded-2xl border border-emerald-200 bg-emerald-50/40">
           <span className="text-[10px] font-bold uppercase text-emerald-800 block">Verified Collections (This Period)</span>
-          <div className="text-xl font-black text-emerald-950 font-mono mt-0.5">
+          <div className="text-xl font-bold text-emerald-950 font-mono mt-0.5">
             ₹{receivablesSummary.totalCollectionsMonth.toLocaleString('en-IN')}
           </div>
           <span className="text-[10px] text-emerald-700">Bank advice verified</span>
         </div>
         <div className="glass-card p-3.5 rounded-2xl border border-slate-200 bg-white">
           <span className="text-[10px] font-bold uppercase text-slate-500 block">Total Credit Limits Authorized</span>
-          <div className="text-xl font-black text-slate-900 font-mono mt-0.5">
+          <div className="text-xl font-bold text-slate-900 font-mono mt-0.5">
             ₹{receivablesSummary.totalCreditLimit.toLocaleString('en-IN')}
           </div>
           <span className="text-[10px] text-slate-400">Total exposure cap</span>
         </div>
         <div className="glass-card p-3.5 rounded-2xl border border-purple-200 bg-purple-50/40">
           <span className="text-[10px] font-bold uppercase text-purple-800 block">Remittances Awaiting Check</span>
-          <div className="text-xl font-black text-purple-950 font-mono mt-0.5">
+          <div className="text-xl font-bold text-purple-950 font-mono mt-0.5">
             {receivablesSummary.pendingVerificationCount} Pending
           </div>
           <span className="text-[10px] text-purple-700">Field agent deposit slips</span>
@@ -312,7 +312,7 @@ export const FinanceReceivablesPaymentsView: React.FC = () => {
                         <td className="py-3 px-4 text-right font-mono text-slate-700 font-semibold">
                           ₹{c.creditLimit.toLocaleString('en-IN')}
                         </td>
-                        <td className="py-3 px-4 text-right font-mono font-black">
+                        <td className="py-3 px-4 text-right font-mono font-bold">
                           {c.currentOutstanding > 0 ? (
                             <span className={isExceeded ? 'text-rose-600' : 'text-amber-900'}>
                               ₹{c.currentOutstanding.toLocaleString('en-IN')}
@@ -438,7 +438,7 @@ export const FinanceReceivablesPaymentsView: React.FC = () => {
                         <span className="font-bold text-slate-800 block uppercase text-[11px]">{rem.paymentMode.replace('_', ' ')}</span>
                         <span className="text-[10px] text-slate-500 font-mono">{rem.referenceNumber}</span>
                       </td>
-                      <td className="py-3 px-4 text-right font-mono font-black text-emerald-800 text-sm">
+                      <td className="py-3 px-4 text-right font-mono font-bold text-emerald-800 text-sm">
                         ₹{rem.amount.toLocaleString('en-IN')}
                       </td>
                       <td className="py-3 px-4 text-center">
@@ -700,7 +700,7 @@ export const FinanceReceivablesPaymentsView: React.FC = () => {
             <div className="grid grid-cols-3 gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
               <div>
                 <span className="text-[10px] text-slate-400 block uppercase">Outstanding Dues</span>
-                <span className="text-base font-black text-rose-600 font-mono">
+                <span className="text-base font-bold text-rose-600 font-mono">
                   ₹{selectedCustomer.currentOutstanding.toLocaleString('en-IN')}
                 </span>
               </div>

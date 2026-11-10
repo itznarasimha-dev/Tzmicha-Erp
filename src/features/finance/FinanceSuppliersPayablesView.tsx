@@ -174,7 +174,7 @@ export const FinanceSuppliersPayablesView: React.FC = () => {
       {/* ─── HEADER ─── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-900 tracking-tight">
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
             Suppliers &amp; Accounts Payable Governance
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
@@ -225,28 +225,28 @@ export const FinanceSuppliersPayablesView: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
         <div className="glass-card p-3.5 rounded-2xl border border-rose-200 bg-rose-50/40">
           <span className="text-[10px] font-bold uppercase text-rose-800 block">Total Supplier Payables</span>
-          <div className="text-xl font-black text-rose-950 font-mono mt-0.5">
+          <div className="text-xl font-bold text-rose-950 font-mono mt-0.5">
             ₹{metrics.totalPayable.toLocaleString('en-IN')}
           </div>
           <span className="text-[10px] text-rose-700">Outstanding raw chemical bills</span>
         </div>
         <div className="glass-card p-3.5 rounded-2xl border border-slate-200 bg-white">
           <span className="text-[10px] font-bold uppercase text-slate-500 block">Total Lifetime Procurement</span>
-          <div className="text-xl font-black text-slate-900 font-mono mt-0.5">
+          <div className="text-xl font-bold text-slate-900 font-mono mt-0.5">
             ₹{metrics.totalPurchases.toLocaleString('en-IN')}
           </div>
           <span className="text-[10px] text-slate-400">Cumulative invoiced purchase value</span>
         </div>
         <div className="glass-card p-3.5 rounded-2xl border border-emerald-200 bg-emerald-50/40">
           <span className="text-[10px] font-bold uppercase text-emerald-800 block">Active Verified Vendors</span>
-          <div className="text-xl font-black text-emerald-950 font-mono mt-0.5">
+          <div className="text-xl font-bold text-emerald-950 font-mono mt-0.5">
             {metrics.activeSuppliersCount} Suppliers
           </div>
           <span className="text-[10px] text-emerald-700">GST-registered chemical suppliers</span>
         </div>
         <div className="glass-card p-3.5 rounded-2xl border border-amber-200 bg-amber-50/40">
           <span className="text-[10px] font-bold uppercase text-amber-800 block">Pending Inward QC Inspections</span>
-          <div className="text-xl font-black text-amber-950 font-mono mt-0.5">
+          <div className="text-xl font-bold text-amber-950 font-mono mt-0.5">
             {metrics.pendingInspectionCount} Inwards
           </div>
           <span className="text-[10px] text-amber-700">GRNs awaiting QC acceptance</span>
@@ -309,7 +309,7 @@ export const FinanceSuppliersPayablesView: React.FC = () => {
                         <td className="py-3 px-4 text-right font-mono text-slate-700 font-bold">
                           ₹{(s.totalPurchasesAmount || 0).toLocaleString('en-IN')}
                         </td>
-                        <td className="py-3 px-4 text-right font-mono font-black text-rose-700">
+                        <td className="py-3 px-4 text-right font-mono font-bold text-rose-700">
                           ₹{payable.toLocaleString('en-IN')}
                         </td>
                         <td className="py-3 px-4 text-center">
@@ -387,7 +387,7 @@ export const FinanceSuppliersPayablesView: React.FC = () => {
                       <td className="py-3 px-4 text-center font-bold text-slate-800">
                         {po.lines?.reduce((s, it) => s + (it.orderedQty || 0), 0) || 0} units ({po.lines?.length || 0} SKUs)
                       </td>
-                      <td className="py-3 px-4 text-right font-mono font-black text-slate-900">
+                      <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">
                         ₹{(po.totalAmount || 0).toLocaleString('en-IN')}
                       </td>
                       <td className="py-3 px-4 text-[11px] text-slate-600">
@@ -484,7 +484,7 @@ export const FinanceSuppliersPayablesView: React.FC = () => {
                       <td className="py-3 px-4 text-right font-mono text-slate-700 font-semibold">
                         ₹{(grn.actualUnitCost || 0).toLocaleString('en-IN')}
                       </td>
-                      <td className="py-3 px-4 text-right font-mono font-black text-slate-900">
+                      <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">
                         ₹{(grn.totalCost || (grn.receivedQuantity * grn.actualUnitCost)).toLocaleString('en-IN')}
                       </td>
                       <td className="py-3 px-4 text-center">
@@ -750,7 +750,7 @@ export const FinanceSuppliersPayablesView: React.FC = () => {
             </div>
 
             <div className="flex justify-end pt-2 text-xs">
-              <div className="w-60 flex justify-between font-black text-sm text-slate-900 border-t border-slate-200 pt-1">
+              <div className="w-60 flex justify-between font-bold text-sm text-slate-900 border-t border-slate-200 pt-1">
                 <span>Total PO Value:</span>
                 <span className="font-mono">₹{(selectedPo.totalAmount || 0).toLocaleString('en-IN')}</span>
               </div>
@@ -811,7 +811,7 @@ export const FinanceSuppliersPayablesView: React.FC = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-indigo-900 font-semibold">Total Landed Batch Value:</span>
-                <span className="font-mono font-black text-indigo-950">₹{(selectedGrn.totalCost || (selectedGrn.receivedQuantity * selectedGrn.actualUnitCost)).toLocaleString('en-IN')}</span>
+                <span className="font-mono font-bold text-indigo-950">₹{(selectedGrn.totalCost || (selectedGrn.receivedQuantity * selectedGrn.actualUnitCost)).toLocaleString('en-IN')}</span>
               </div>
             </div>
 

@@ -38,7 +38,7 @@ export const CardTitle: React.FC<React.HTMLAttributes<HTMLHeadingElement>> = ({
 }) => {
   return (
     <h3
-      className={clsx('text-sm sm:text-base font-bold text-slate-900 tracking-tight flex items-center gap-2', className)}
+      className={clsx('text-sm sm:text-[15px] font-semibold text-slate-900 tracking-tight flex items-center gap-2', className)}
       {...props}
     >
       {children}

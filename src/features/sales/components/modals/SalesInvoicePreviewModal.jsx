@@ -179,7 +179,7 @@ export default function SalesInvoicePreviewModal({
         <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
           <div>
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Invoice Number</span>
-            <span className="text-base font-black text-slate-900 font-mono">{invoiceNo}</span>
+            <span className="text-base font-bold text-slate-900 font-mono">{invoiceNo}</span>
             <span className="text-[11px] text-slate-500 block mt-0.5">Linked Order: {orderNo}</span>
           </div>
           <div>

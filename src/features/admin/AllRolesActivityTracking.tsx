@@ -314,7 +314,7 @@ export const AllRolesActivityTracking: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200/80">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
             Enterprise All Roles Operational Activity Feed
             <Badge variant="purple" size="sm">Audit Stream</Badge>
           </h1>
@@ -349,7 +349,7 @@ export const AllRolesActivityTracking: React.FC = () => {
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Field Sales Activity</span>
             <Briefcase className="w-4 h-4" />
           </div>
-          <div className="text-2xl font-black text-slate-900">{salesCount} Events</div>
+          <div className="text-2xl font-bold text-slate-900">{salesCount} Events</div>
           <p className="text-[11px] text-slate-500 font-medium">Orders booked, quotations & collections</p>
         </div>
 
@@ -366,7 +366,7 @@ export const AllRolesActivityTracking: React.FC = () => {
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Warehouse & Depots</span>
             <Warehouse className="w-4 h-4" />
           </div>
-          <div className="text-2xl font-black text-slate-900">{warehouseCount} Events</div>
+          <div className="text-2xl font-bold text-slate-900">{warehouseCount} Events</div>
           <p className="text-[11px] text-slate-500 font-medium">Inward batches, dispatches & transfers</p>
         </div>
 
@@ -383,7 +383,7 @@ export const AllRolesActivityTracking: React.FC = () => {
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Ground Marketing</span>
             <Compass className="w-4 h-4" />
           </div>
-          <div className="text-2xl font-black text-slate-900">{marketingCount} Events</div>
+          <div className="text-2xl font-bold text-slate-900">{marketingCount} Events</div>
           <p className="text-[11px] text-slate-500 font-medium">Dealer visits, demo trials & competitor surveys</p>
         </div>
 
@@ -400,7 +400,7 @@ export const AllRolesActivityTracking: React.FC = () => {
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Executive Governance</span>
             <Shield className="w-4 h-4" />
           </div>
-          <div className="text-2xl font-black text-slate-900">{adminCount} Events</div>
+          <div className="text-2xl font-bold text-slate-900">{adminCount} Events</div>
           <p className="text-[11px] text-slate-500 font-medium">Price floor rules, approvals & user provisioning</p>
         </div>
       </div>
@@ -652,7 +652,7 @@ export const AllRolesActivityTracking: React.FC = () => {
                 {selectedEvent.amount !== undefined && (
                   <div className="flex justify-between items-center pt-1 border-t border-slate-200">
                     <span className="text-slate-700 font-bold">Transaction Value:</span>
-                    <span className="text-base font-black text-emerald-700">
+                    <span className="text-base font-bold text-emerald-700">
                       ₹{selectedEvent.amount.toLocaleString('en-IN')}
                     </span>
                   </div>

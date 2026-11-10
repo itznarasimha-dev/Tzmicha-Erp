@@ -27,7 +27,7 @@ export const AdminStockOverview: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
             Regional Stock Master & Batch Ledger
             <Badge variant="purple" size="sm">Admin Visibility</Badge>
           </h1>
@@ -60,7 +60,7 @@ export const AdminStockOverview: React.FC = () => {
         <div className="glass-card p-5 border border-emerald-200 bg-emerald-50/40 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Available Stock</p>
-            <div className="text-2xl font-black text-slate-900 mt-0.5 font-mono">{totalAvailable} units</div>
+            <div className="text-2xl font-bold text-slate-900 mt-0.5 font-mono">{totalAvailable} units</div>
             <p className="text-[11px] text-slate-500 mt-0.5">Ready for immediate sales order booking</p>
           </div>
           <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
@@ -71,7 +71,7 @@ export const AdminStockOverview: React.FC = () => {
         <div className="glass-card p-5 border border-blue-200 bg-blue-50/40 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-bold text-blue-800 uppercase tracking-wider">Reserved Stock</p>
-            <div className="text-2xl font-black text-slate-900 mt-0.5 font-mono">{totalReserved} units</div>
+            <div className="text-2xl font-bold text-slate-900 mt-0.5 font-mono">{totalReserved} units</div>
             <p className="text-[11px] text-slate-500 mt-0.5">Allocated to pending warehouse dispatch</p>
           </div>
           <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
@@ -82,7 +82,7 @@ export const AdminStockOverview: React.FC = () => {
         <div className="glass-card p-5 border border-purple-200 bg-purple-50/40 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-bold text-purple-800 uppercase tracking-wider">Dispatched (Outward)</p>
-            <div className="text-2xl font-black text-slate-900 mt-0.5 font-mono">{totalDispatched} units</div>
+            <div className="text-2xl font-bold text-slate-900 mt-0.5 font-mono">{totalDispatched} units</div>
             <p className="text-[11px] text-slate-500 mt-0.5">Completed customer deliveries</p>
           </div>
           <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center">

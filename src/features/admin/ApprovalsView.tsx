@@ -115,7 +115,7 @@ export const ApprovalsView: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
             Governance & Approval Center
             <Badge variant="purple" size="sm">Admin Authority</Badge>
           </h1>
@@ -145,7 +145,7 @@ export const ApprovalsView: React.FC = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-extrabold text-base text-slate-900 font-mono">{order.orderNumber}</span>
+                      <span className="font-semibold text-base text-slate-900 font-mono">{order.orderNumber}</span>
                       <Badge variant="warning" size="sm">Exceeds Rep Limit</Badge>
                       <span className="text-xs text-slate-500">
                         {new Date(order.createdAt).toLocaleDateString()}
@@ -208,7 +208,7 @@ export const ApprovalsView: React.FC = () => {
                           <td className="py-2.5 px-1 text-slate-500 font-mono">₹{item.standardPrice.toLocaleString('en-IN')}</td>
                           <td className="py-2.5 px-1 font-bold text-amber-800 font-mono">{item.discountPercent}%</td>
                           <td className="py-2.5 px-1 font-bold text-indigo-700 font-mono">₹{item.quotedUnitPrice.toLocaleString('en-IN')}</td>
-                          <td className="py-2.5 px-1 text-right font-extrabold text-slate-900 font-mono">
+                          <td className="py-2.5 px-1 text-right font-semibold text-slate-900 font-mono">
                             ₹{Math.round(item.netAmount).toLocaleString('en-IN')}
                           </td>
                         </tr>
@@ -254,7 +254,7 @@ export const ApprovalsView: React.FC = () => {
 
                   <div className="flex items-center gap-3">
                     <div className="text-right">
-                      <div className="text-base font-extrabold text-slate-900 font-mono">
+                      <div className="text-base font-semibold text-slate-900 font-mono">
                         ₹{claim.amount.toLocaleString('en-IN')}
                       </div>
                       <div className="text-[10px] text-slate-400">Claim Amount</div>
@@ -319,7 +319,7 @@ export const ApprovalsView: React.FC = () => {
 
                   <div className="flex items-center gap-3">
                     <div className="text-right">
-                      <div className="text-sm font-extrabold text-rose-700 font-mono">
+                      <div className="text-sm font-semibold text-rose-700 font-mono">
                         {adj.difference > 0 ? `+${adj.difference}` : adj.difference} units
                       </div>
                       <div className="text-[10px] text-slate-400">
@@ -379,7 +379,7 @@ export const ApprovalsView: React.FC = () => {
 
                   <div className="flex items-center gap-3">
                     <div className="text-right">
-                      <div className="text-base font-black text-rose-800 font-mono">
+                      <div className="text-base font-bold text-rose-800 font-mono">
                         ₹{Math.round(disc.financialValueAffected || ((disc.shortageQuantity || 0) * (disc.unitCost || 100))).toLocaleString('en-IN')}
                       </div>
                       <div className="text-[10px] text-slate-400">

@@ -318,7 +318,7 @@ export const SalesPersonLedgers: React.FC = () => {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-2 border-b border-slate-200/80">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
               Sales Collections & Remittance Ledger
             </h1>
             <Badge variant="purple" size="sm">Admin Audit Desk</Badge>
@@ -359,7 +359,7 @@ export const SalesPersonLedgers: React.FC = () => {
             </div>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-black text-slate-900">
+            <span className="text-2xl font-bold text-slate-900">
               ₹{metrics.totalCollected.toLocaleString('en-IN')}
             </span>
           </div>
@@ -378,7 +378,7 @@ export const SalesPersonLedgers: React.FC = () => {
             </div>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-black text-emerald-700">
+            <span className="text-2xl font-bold text-emerald-700">
               ₹{metrics.totalRemitted.toLocaleString('en-IN')}
             </span>
           </div>
@@ -397,7 +397,7 @@ export const SalesPersonLedgers: React.FC = () => {
             </div>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-black text-amber-900">
+            <span className="text-2xl font-bold text-amber-900">
               ₹{metrics.netCashInHand.toLocaleString('en-IN')}
             </span>
             <span className="text-xs font-bold text-amber-700">In Rep Possession</span>
@@ -417,7 +417,7 @@ export const SalesPersonLedgers: React.FC = () => {
             </div>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-black text-slate-900">
+            <span className="text-2xl font-bold text-slate-900">
               {metrics.pendingVerificationCount} Pending
             </span>
             {metrics.discrepancyCount > 0 && (
@@ -435,7 +435,7 @@ export const SalesPersonLedgers: React.FC = () => {
       {/* Per Sales Person Balances Cards */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+          <h2 className="text-base font-semibold text-slate-900 flex items-center gap-2">
             <Users className="w-4 h-4 text-indigo-600" />
             Sales Representatives Cash & Remittance Accounts
           </h2>
@@ -459,7 +459,7 @@ export const SalesPersonLedgers: React.FC = () => {
                       className="w-11 h-11 rounded-full object-cover border-2 border-indigo-100 shadow-sm"
                     />
                     <div>
-                      <h3 className="font-extrabold text-slate-900 text-sm">{rep.name}</h3>
+                      <h3 className="font-semibold text-slate-900 text-sm">{rep.name}</h3>
                       <p className="text-[11px] text-slate-500 font-semibold flex items-center gap-1">
                         <MapPin className="w-3 h-3 text-slate-400" />
                         {regionName}
@@ -479,7 +479,7 @@ export const SalesPersonLedgers: React.FC = () => {
                     <span className="text-slate-400 text-[10px] font-bold uppercase block">
                       Total Collected
                     </span>
-                    <span className="font-extrabold text-slate-900 text-sm">
+                    <span className="font-semibold text-slate-900 text-sm">
                       ₹{collected.toLocaleString('en-IN')}
                     </span>
                   </div>
@@ -488,7 +488,7 @@ export const SalesPersonLedgers: React.FC = () => {
                     <span className="text-slate-400 text-[10px] font-bold uppercase block">
                       Paid to Company
                     </span>
-                    <span className="font-extrabold text-emerald-700 text-sm">
+                    <span className="font-semibold text-emerald-700 text-sm">
                       ₹{remitted.toLocaleString('en-IN')}
                     </span>
                   </div>
@@ -499,7 +499,7 @@ export const SalesPersonLedgers: React.FC = () => {
                         Current In-Hand Cash Balance
                       </span>
                       <span
-                        className={`text-sm font-black ${
+                        className={`text-sm font-bold ${
                           inHand > 0 ? 'text-amber-700' : 'text-emerald-700'
                         }`}
                       >
@@ -542,7 +542,7 @@ export const SalesPersonLedgers: React.FC = () => {
           </div>
 
           <div className="text-xs font-semibold text-slate-500">
-            Showing <span className="font-extrabold text-slate-900">{filteredEntries.length}</span> of{' '}
+            Showing <span className="font-semibold text-slate-900">{filteredEntries.length}</span> of{' '}
             {salesRemittances.length} ledger transactions
           </div>
         </div>
@@ -664,7 +664,7 @@ export const SalesPersonLedgers: React.FC = () => {
                     <tr key={entry.id} className="hover:bg-slate-50/80 transition-colors">
                       {/* Entry # & Date */}
                       <td className="py-3 px-4">
-                        <span className="font-extrabold text-slate-900 block text-xs">
+                        <span className="font-semibold text-slate-900 block text-xs">
                           {entry.entryNumber}
                         </span>
                         <span className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
@@ -737,7 +737,7 @@ export const SalesPersonLedgers: React.FC = () => {
                       {/* Amount */}
                       <td className="py-3 px-4 text-right">
                         <span
-                          className={`font-black text-sm block ${
+                          className={`font-bold text-sm block ${
                             isRemit ? 'text-emerald-700' : 'text-indigo-900'
                           }`}
                         >
@@ -822,7 +822,7 @@ export const SalesPersonLedgers: React.FC = () => {
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-lg font-extrabold text-slate-900">
+                  <h3 className="text-lg font-semibold text-slate-900">
                     {selectedEntryForProof.entryNumber}
                   </h3>
                   {getStatusBadge(selectedEntryForProof.status)}
@@ -837,7 +837,7 @@ export const SalesPersonLedgers: React.FC = () => {
                 <span className="text-[10px] font-bold text-slate-400 uppercase block">
                   Amount
                 </span>
-                <span className="text-2xl font-black text-indigo-700">
+                <span className="text-2xl font-bold text-indigo-700">
                   ₹{selectedEntryForProof.amount.toLocaleString('en-IN')}
                 </span>
               </div>
@@ -911,7 +911,7 @@ export const SalesPersonLedgers: React.FC = () => {
                 <div className="bg-white p-5 rounded-lg shadow-sm border border-slate-200 max-w-lg mx-auto text-left relative overflow-hidden">
                   {/* Bank stamp watermark */}
                   <div className="absolute right-4 top-4 border-2 border-emerald-600/30 rounded-full w-20 h-20 flex items-center justify-center transform rotate-12 pointer-events-none">
-                    <span className="text-[9px] font-black uppercase text-emerald-700/40 text-center leading-tight">
+                    <span className="text-[9px] font-bold uppercase text-emerald-700/40 text-center leading-tight">
                       BANK CREDIT
                       <br />
                       VERIFIED
@@ -921,7 +921,7 @@ export const SalesPersonLedgers: React.FC = () => {
                   <div className="flex items-center justify-between pb-3 border-b border-slate-200">
                     <div className="flex items-center gap-2">
                       <Landmark className="w-5 h-5 text-indigo-700" />
-                      <span className="font-extrabold text-slate-900 text-sm">
+                      <span className="font-semibold text-slate-900 text-sm">
                         OFFICIAL TRANSACTION COUNTERFOIL
                       </span>
                     </div>
@@ -958,8 +958,8 @@ export const SalesPersonLedgers: React.FC = () => {
                     </div>
 
                     <div className="col-span-2 pt-2 border-t border-slate-100 flex items-center justify-between">
-                      <span className="font-extrabold text-slate-500">Amount Received:</span>
-                      <span className="font-black text-indigo-700 text-lg">
+                      <span className="font-semibold text-slate-500">Amount Received:</span>
+                      <span className="font-bold text-indigo-700 text-lg">
                         ₹{selectedEntryForProof.amount.toLocaleString('en-IN')}
                       </span>
                     </div>

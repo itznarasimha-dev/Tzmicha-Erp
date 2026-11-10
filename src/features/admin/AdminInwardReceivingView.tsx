@@ -275,7 +275,7 @@ export const AdminInwardReceivingView: React.FC = () => {
             <Badge variant="purple" size="sm">Inventory Lifecycle</Badge>
             <span className="text-[11px] font-mono text-slate-400 font-semibold">Inbound Supply Chain</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
             Inward Consignments, GRN &amp; Damage Approval
           </h1>
           <p className="text-xs text-slate-500 mt-1">
@@ -327,7 +327,7 @@ export const AdminInwardReceivingView: React.FC = () => {
         <div className="glass-card p-5 border border-indigo-200 bg-indigo-50/40 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-bold text-indigo-800 uppercase tracking-wider">Total Inward Value</p>
-            <div className="text-2xl font-black text-slate-900 mt-0.5 font-mono">
+            <div className="text-2xl font-bold text-slate-900 mt-0.5 font-mono">
               ₹{Math.round(totalInwardValue).toLocaleString('en-IN')}
             </div>
             <p className="text-[11px] text-slate-500 mt-0.5">Authoritative landed procurement cost</p>
@@ -340,7 +340,7 @@ export const AdminInwardReceivingView: React.FC = () => {
         <div className="glass-card p-5 border border-emerald-200 bg-emerald-50/40 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Stock In Active Inventory</p>
-            <div className="text-2xl font-black text-slate-900 mt-0.5 font-mono">{availableStockCount} Lots</div>
+            <div className="text-2xl font-bold text-slate-900 mt-0.5 font-mono">{availableStockCount} Lots</div>
             <p className="text-[11px] text-slate-500 mt-0.5">Posted and ready for order dispatch</p>
           </div>
           <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
@@ -351,7 +351,7 @@ export const AdminInwardReceivingView: React.FC = () => {
         <div className="glass-card p-5 border border-rose-200 bg-rose-50/40 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-bold text-rose-800 uppercase tracking-wider">Damage Approval Desk</p>
-            <div className="text-2xl font-black text-rose-900 mt-0.5 font-mono">
+            <div className="text-2xl font-bold text-rose-900 mt-0.5 font-mono">
               {openDamageApprovalsCount} Action Required
             </div>
             <p className="text-[11px] text-slate-500 mt-0.5">Partial accept, full reject, or hold</p>
@@ -364,7 +364,7 @@ export const AdminInwardReceivingView: React.FC = () => {
         <div className="glass-card p-5 border border-amber-200 bg-amber-50/40 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-bold text-amber-800 uppercase tracking-wider">Transit Freight Incidents</p>
-            <div className="text-2xl font-black text-amber-900 mt-0.5 font-mono">
+            <div className="text-2xl font-bold text-amber-900 mt-0.5 font-mono">
               {(transitDamageIncidents || []).length} Incidents
             </div>
             <p className="text-[11px] text-slate-500 mt-0.5">Carrier liability &amp; insurance claims</p>
@@ -591,7 +591,7 @@ export const AdminInwardReceivingView: React.FC = () => {
                             <span className="text-emerald-700 font-semibold">100% OK</span>
                           )}
                         </td>
-                        <td className="py-3.5 px-4 text-right font-mono font-extrabold text-indigo-950">
+                        <td className="py-3.5 px-4 text-right font-mono font-semibold text-indigo-950">
                           ₹{Math.round(r.totalCost).toLocaleString('en-IN')}
                           <span className="block text-[10px] text-slate-400 font-normal">
                             @ ₹{r.actualUnitCost.toLocaleString('en-IN')}/{r.unit}
@@ -879,12 +879,12 @@ export const AdminInwardReceivingView: React.FC = () => {
                   {/* Top Bar */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 font-black text-xs flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 font-bold text-xs flex items-center justify-center">
                         <Truck className="w-5 h-5" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-mono font-black text-slate-900 text-sm">{t.incidentNumber}</span>
+                          <span className="font-mono font-bold text-slate-900 text-sm">{t.incidentNumber}</span>
                           <span className="text-slate-300">•</span>
                           <span className="font-bold text-slate-700">{t.transporterName}</span>
                         </div>
@@ -934,7 +934,7 @@ export const AdminInwardReceivingView: React.FC = () => {
                       <p className="text-[11px] text-slate-500 font-mono">
                         Batch: {t.batchNumber || 'N/A'} • SKU: {t.productSku}
                       </p>
-                      <p className="font-mono font-black text-rose-700 text-sm pt-1">
+                      <p className="font-mono font-bold text-rose-700 text-sm pt-1">
                         {t.damagedQuantity} {t.unit} Damaged
                       </p>
                     </div>
@@ -943,7 +943,7 @@ export const AdminInwardReceivingView: React.FC = () => {
                       <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700 block">
                         Financial Impact &amp; Claim Value
                       </span>
-                      <p className="text-xl font-black font-mono text-rose-800">
+                      <p className="text-xl font-bold font-mono text-rose-800">
                         ₹{t.totalDamageValue.toLocaleString('en-IN')}
                       </p>
                       <p className="text-[11px] text-slate-600">
@@ -1052,7 +1052,7 @@ export const AdminInwardReceivingView: React.FC = () => {
             {/* Critical Alert Banner */}
             <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-950 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="font-extrabold flex items-center gap-2 text-rose-800 text-sm">
+                <span className="font-semibold flex items-center gap-2 text-rose-800 text-sm">
                   <ShieldAlert className="w-5 h-5 text-rose-600" />
                   Receiving Dock Inspection Reported Damage
                 </span>
@@ -1079,13 +1079,13 @@ export const AdminInwardReceivingView: React.FC = () => {
               </div>
               <div>
                 <span className="text-[10px] text-emerald-700 uppercase font-bold block">Eligible Good Units</span>
-                <span className="font-mono font-black text-emerald-800 text-sm">
+                <span className="font-mono font-bold text-emerald-800 text-sm">
                   {(damageReviewReceipt.receivedQuantity - (damageReviewReceipt.damagedQuantity || 0))} {damageReviewReceipt.unit}
                 </span>
               </div>
               <div>
                 <span className="text-[10px] text-rose-700 uppercase font-bold block">Damaged / Rejected</span>
-                <span className="font-mono font-black text-rose-800 text-sm">
+                <span className="font-mono font-bold text-rose-800 text-sm">
                   {damageReviewReceipt.damagedQuantity || 0} {damageReviewReceipt.unit}
                 </span>
               </div>
@@ -1117,7 +1117,7 @@ export const AdminInwardReceivingView: React.FC = () => {
 
             {/* 3 DISTINCT ADMIN REVIEW CHOICES */}
             <div className="space-y-3 pt-2">
-              <span className="font-extrabold text-slate-900 block text-xs">
+              <span className="font-semibold text-slate-900 block text-xs">
                 Select Executive Disposition Ruling:
               </span>
 
@@ -1128,7 +1128,7 @@ export const AdminInwardReceivingView: React.FC = () => {
                   className="p-3.5 rounded-2xl border-2 border-emerald-400/80 bg-emerald-50/50 hover:bg-emerald-100/60 cursor-pointer transition-all space-y-1.5 flex flex-col justify-between group"
                 >
                   <div>
-                    <div className="flex items-center gap-1.5 font-black text-emerald-900 text-xs">
+                    <div className="flex items-center gap-1.5 font-bold text-emerald-900 text-xs">
                       <Check className="w-4 h-4 text-emerald-700" />
                       <span>1. Partial Acceptance</span>
                     </div>
@@ -1147,7 +1147,7 @@ export const AdminInwardReceivingView: React.FC = () => {
                   className="p-3.5 rounded-2xl border-2 border-rose-400/80 bg-rose-50/50 hover:bg-rose-100/60 cursor-pointer transition-all space-y-1.5 flex flex-col justify-between group"
                 >
                   <div>
-                    <div className="flex items-center gap-1.5 font-black text-rose-900 text-xs">
+                    <div className="flex items-center gap-1.5 font-bold text-rose-900 text-xs">
                       <XCircle className="w-4 h-4 text-rose-700" />
                       <span>2. Full Rejection</span>
                     </div>
@@ -1166,7 +1166,7 @@ export const AdminInwardReceivingView: React.FC = () => {
                   className="p-3.5 rounded-2xl border-2 border-amber-400/80 bg-amber-50/50 hover:bg-amber-100/60 cursor-pointer transition-all space-y-1.5 flex flex-col justify-between group"
                 >
                   <div>
-                    <div className="flex items-center gap-1.5 font-black text-amber-900 text-xs">
+                    <div className="flex items-center gap-1.5 font-bold text-amber-900 text-xs">
                       <Clock className="w-4 h-4 text-amber-700" />
                       <span>3. Hold for Clarification</span>
                     </div>
@@ -1353,7 +1353,7 @@ export const AdminInwardReceivingView: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Supplier</span>
-                  <p className="text-sm font-extrabold text-slate-900">{selectedReceipt.supplierName}</p>
+                  <p className="text-sm font-semibold text-slate-900">{selectedReceipt.supplierName}</p>
                 </div>
                 {renderStatusBadge(selectedReceipt.status)}
               </div>
@@ -1439,7 +1439,7 @@ export const AdminInwardReceivingView: React.FC = () => {
                 </div>
                 <div>
                   <span className="text-slate-500 block text-[11px]">Total Consignment Value:</span>
-                  <span className="font-extrabold font-mono text-emerald-800 text-base">
+                  <span className="font-semibold font-mono text-emerald-800 text-base">
                     ₹{Math.round(selectedReceipt.totalCost).toLocaleString('en-IN')}
                   </span>
                 </div>

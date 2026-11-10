@@ -313,7 +313,7 @@ export const CustomersDirectoryView: React.FC<CustomersDirectoryViewProps> = ({ 
             <Badge variant="primary" size="sm">Commercial Accounts &amp; Dealers</Badge>
             <span className="text-[11px] font-mono text-slate-400 font-semibold">CRM &amp; Sales Ledger</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
             Customers &amp; Dealers Directory
           </h1>
           <p className="text-xs text-slate-500 mt-1 max-w-2xl">
@@ -341,7 +341,7 @@ export const CustomersDirectoryView: React.FC<CustomersDirectoryViewProps> = ({ 
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
               Registered Accounts
             </span>
-            <div className="text-2xl font-black text-slate-900 mt-1">
+            <div className="text-2xl font-bold text-slate-900 mt-1">
               {totalCustomersCount}
             </div>
             <span className="text-[10px] text-slate-500 font-semibold mt-0.5 block">
@@ -359,7 +359,7 @@ export const CustomersDirectoryView: React.FC<CustomersDirectoryViewProps> = ({ 
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
               Existing Customers
             </span>
-            <div className="text-2xl font-black text-emerald-700 mt-1 flex items-center gap-1.5">
+            <div className="text-2xl font-bold text-emerald-700 mt-1 flex items-center gap-1.5">
               {existingCustomersCount}
               <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                 Purchased
@@ -380,7 +380,7 @@ export const CustomersDirectoryView: React.FC<CustomersDirectoryViewProps> = ({ 
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
               New Customers
             </span>
-            <div className="text-2xl font-black text-blue-700 mt-1 flex items-center gap-1.5">
+            <div className="text-2xl font-bold text-blue-700 mt-1 flex items-center gap-1.5">
               {newCustomersCount}
               <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
                 0 Orders
@@ -401,7 +401,7 @@ export const CustomersDirectoryView: React.FC<CustomersDirectoryViewProps> = ({ 
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
               Total Outstanding A/R
             </span>
-            <div className="text-2xl font-black text-rose-700 mt-1 font-mono">
+            <div className="text-2xl font-bold text-rose-700 mt-1 font-mono">
               ₹{(totalReceivables / 100000).toFixed(2)} L
             </div>
             <span className="text-[10px] text-slate-500 font-semibold mt-0.5 block">
@@ -570,7 +570,7 @@ export const CustomersDirectoryView: React.FC<CustomersDirectoryViewProps> = ({ 
                       {/* 1. Customer Master ID */}
                       <td className="py-3.5 px-4" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-1.5">
-                          <span className="font-mono font-extrabold text-xs text-indigo-700 bg-indigo-50/90 border border-indigo-200/90 px-2 py-0.5 rounded-lg select-all">
+                          <span className="font-mono font-semibold text-xs text-indigo-700 bg-indigo-50/90 border border-indigo-200/90 px-2 py-0.5 rounded-lg select-all">
                             {displayCode}
                           </span>
                           <button
@@ -595,7 +595,7 @@ export const CustomersDirectoryView: React.FC<CustomersDirectoryViewProps> = ({ 
                       {/* 2. Name & Legal Entity */}
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-2.5">
-                          <div className={`w-8 h-8 rounded-xl font-black text-xs flex items-center justify-center shrink-0 border ${
+                          <div className={`w-8 h-8 rounded-xl font-bold text-xs flex items-center justify-center shrink-0 border ${
                             stats.isExisting
                               ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                               : 'bg-blue-50 text-blue-700 border-blue-200'
@@ -603,7 +603,7 @@ export const CustomersDirectoryView: React.FC<CustomersDirectoryViewProps> = ({ 
                             {c.code ? c.code.slice(5, 8) : c.businessName.slice(0, 2).toUpperCase()}
                           </div>
                           <div>
-                            <span className="font-extrabold text-slate-900 group-hover:text-indigo-600 transition-colors block">
+                            <span className="font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors block">
                               {c.businessName}
                             </span>
                             <span className="text-[10px] text-slate-500 font-medium">
@@ -616,12 +616,12 @@ export const CustomersDirectoryView: React.FC<CustomersDirectoryViewProps> = ({ 
                       {/* 3. Customer Classification Badge */}
                       <td className="py-3.5 px-4 text-center">
                         {stats.isExisting ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
                             <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                             Existing Customer
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
                             <Sparkles className="w-3 h-3 text-blue-600" />
                             New Customer
                           </span>
@@ -770,13 +770,13 @@ export const CustomersDirectoryView: React.FC<CustomersDirectoryViewProps> = ({ 
             <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-50 to-indigo-50/40 border border-slate-200 space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className={`w-12 h-12 rounded-2xl text-white font-black text-sm flex items-center justify-center shadow-md ${
+                  <div className={`w-12 h-12 rounded-2xl text-white font-bold text-sm flex items-center justify-center shadow-md ${
                     selectedStats?.isExisting ? 'bg-emerald-600' : 'bg-blue-600'
                   }`}>
                     {selectedCustomer.code ? selectedCustomer.code.slice(5, 8) : 'CUS'}
                   </div>
                   <div>
-                    <h3 className="text-base font-black text-slate-900">{selectedCustomer.businessName}</h3>
+                    <h3 className="text-base font-bold text-slate-900">{selectedCustomer.businessName}</h3>
                     <div className="flex flex-wrap items-center gap-2 mt-1">
                       <span className="font-mono text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-lg flex items-center gap-1.5">
                         <span>ID: {selectedCustomer.code || `CUST-${selectedCustomer.id.slice(-4).toUpperCase()}`}</span>
@@ -977,7 +977,7 @@ export const CustomersDirectoryView: React.FC<CustomersDirectoryViewProps> = ({ 
                         </div>
 
                         <div className="text-right">
-                          <span className="font-mono font-black text-slate-900 block text-sm">
+                          <span className="font-mono font-bold text-slate-900 block text-sm">
                             ₹{o.totalAmount.toLocaleString('en-IN')}
                           </span>
                           <span className="text-[10px] text-slate-400">
@@ -1021,7 +1021,7 @@ export const CustomersDirectoryView: React.FC<CustomersDirectoryViewProps> = ({ 
                             </div>
                           </div>
                           <div className="text-right">
-                            <span className="font-mono font-black text-slate-900 block text-sm">
+                            <span className="font-mono font-bold text-slate-900 block text-sm">
                               ₹{o.totalAmount.toLocaleString('en-IN')}
                             </span>
                             <span className="text-[10px] text-slate-400">
