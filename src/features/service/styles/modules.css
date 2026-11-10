@@ -1,0 +1,276 @@
+/* ==========================================================================
+   ApexERP – Modules Styling (Dashboard, Service Requests, Work Assignment)
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Data Tables
+   -------------------------------------------------------------------------- */
+.erp-table-container {
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.erp-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.erp-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: var(--font-size-xs);
+  min-width: 800px;
+}
+
+.erp-table thead {
+  background-color: #F8FAFC;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.erp-table th {
+  padding: 10px 14px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+
+.erp-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  color: var(--color-text-primary);
+  vertical-align: middle;
+}
+
+.erp-table tbody tr:hover {
+  background-color: #F8FAFD;
+}
+
+.erp-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table-footer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background-color: #F8FAFC;
+  border-top: 1px solid var(--color-border);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+/* --------------------------------------------------------------------------
+   Dashboard Role Layouts & Overviews
+   -------------------------------------------------------------------------- */
+.dashboard-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+@media (max-width: 1024px) {
+  .dashboard-grid-2col {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dashboard-card {
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.dashboard-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--color-border-subtle);
+  padding-bottom: var(--spacing-sm);
+}
+
+.dashboard-card-title {
+  font-size: 0.95rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Overview Breakdown Items */
+.breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.breakdown-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-radius: var(--radius-xs);
+  background-color: var(--color-main-bg);
+  font-size: var(--font-size-xs);
+}
+
+.breakdown-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.breakdown-val {
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+/* Priority Alerts Box */
+.priority-alerts-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.priority-alert-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background-color: #FEF2F2;
+  border: 1px solid #FEE2E2;
+}
+
+.priority-alert-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.priority-alert-title {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-danger);
+}
+
+.priority-alert-desc {
+  font-size: 0.72rem;
+  color: #7F1D1D;
+  line-height: 1.4;
+}
+
+/* Activity Feed */
+.activity-feed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.activity-feed-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: var(--font-size-xs);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.activity-feed-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.activity-feed-icon-box {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-light-lavender);
+  color: var(--color-primary-purple);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.activity-feed-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.activity-feed-action {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.activity-feed-time {
+  font-size: 0.7rem;
+  color: var(--color-text-secondary);
+  margin-top: 1px;
+}
+
+/* Customer Chip Link */
+.customer-badge-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.customer-id-chip {
+  font-family: monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #0369A1;
+  background-color: #E0F2FE;
+  border: 1px solid #BAE6FD;
+  padding: 2px 7px;
+  border-radius: var(--radius-xs);
+  display: inline-block;
+  letter-spacing: 0.02em;
+}
+
+.customer-name-text {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+/* Nav Link Pill */
+.nav-link-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-primary-purple);
+  text-decoration: none;
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  background-color: var(--color-light-lavender);
+  transition: all var(--transition-fast);
+}
+
+.nav-link-pill:hover {
+  background-color: #E6DCF7;
+  color: var(--color-dark-purple);
+}

@@ -621,18 +621,69 @@ export const Header: React.FC<HeaderProps> = ({
                   <button
                     type="button"
                     onClick={() => {
-                      switchUser('usr-svc-01');
+                      switchUser('usr-svc-mgr');
                       setUserMenuOpen(false);
-                      navigate('/service');
+                      navigate('/service/dashboard');
                     }}
                     className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
-                      currentUser.role === 'service'
-                        ? 'bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300'
+                      currentUser.role === 'service' && currentUser.serviceSubRole === 'manager'
+                        ? 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300'
                         : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
                     }`}
                   >
-                    <span>Service Desk</span>
-                    {currentUser.role === 'service' && <Check className="w-3 h-3" />}
+                    <span>Service Manager (T1)</span>
+                    {currentUser.role === 'service' && currentUser.serviceSubRole === 'manager' && <Check className="w-3 h-3" />}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      switchUser('usr-svc-coord');
+                      setUserMenuOpen(false);
+                      navigate('/service/dashboard');
+                    }}
+                    className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
+                      currentUser.role === 'service' && currentUser.serviceSubRole === 'coordinator'
+                        ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <span>Service Coord (T2)</span>
+                    {currentUser.role === 'service' && currentUser.serviceSubRole === 'coordinator' && <Check className="w-3 h-3" />}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      switchUser('usr-svc-01');
+                      setUserMenuOpen(false);
+                      navigate('/service/dashboard');
+                    }}
+                    className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
+                      currentUser.role === 'service' && currentUser.serviceSubRole === 'engineer'
+                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <span>Service Engineer (T3)</span>
+                    {currentUser.role === 'service' && currentUser.serviceSubRole === 'engineer' && <Check className="w-3 h-3" />}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      switchUser('usr-svc-emp');
+                      setUserMenuOpen(false);
+                      navigate('/service/dashboard');
+                    }}
+                    className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
+                      currentUser.role === 'service' && currentUser.serviceSubRole === 'employee'
+                        ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <span>Service Employee (T4)</span>
+                    {currentUser.role === 'service' && currentUser.serviceSubRole === 'employee' && <Check className="w-3 h-3" />}
                   </button>
 
                   <button

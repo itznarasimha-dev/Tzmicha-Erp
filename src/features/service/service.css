@@ -1,0 +1,29 @@
+/* ==========================================================================
+   ApexFlow ERP – Dedicated Service Department Portal Stylesheet
+   Theme: Professional Clean Light ERP (Field Operations & Technical Support)
+   ========================================================================== */
+
+@import './styles/variables.css';
+@import './styles/salesTheme.css';
+@import './styles/layout.css';
+@import './styles/components.css';
+@import './styles/pages.css';
+@import './styles/schedule.css';
+@import './styles/modules.css';
+
+/* Scoped enhancements for Service Portal */
+.service-portal-workspace {
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  font-family: var(--font-sans);
+  color: var(--text-main);
+}
+
+.service-portal-workspace a {
+  text-decoration: none;
+}
+
+.service-portal-workspace button {
+  font-family: inherit;
+}

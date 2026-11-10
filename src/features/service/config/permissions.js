@@ -1,0 +1,133 @@
+/**
+ * ApexERP Service Module - Action-Level Permissions Configuration
+ *
+ * Defines granular action permissions and their mapping to the four official roles.
+ */
+
+import { ROLES } from './roles.js';
+
+export const PERMISSIONS = {
+  // Service Request Actions
+  REQUEST_VIEW: 'request:view',
+  REQUEST_CREATE: 'request:create',
+  REQUEST_EDIT: 'request:edit',
+  REQUEST_APPROVE_CLOSE: 'request:approve_close',
+  REQUEST_ESCALATE: 'request:escalate',
+
+  // Work Assignment Actions
+  ASSIGN_ENGINEER: 'assignment:assign_engineer',
+  REASSIGN_ENGINEER: 'assignment:reassign_engineer',
+  SCHEDULE_DISPATCH: 'assignment:schedule_dispatch',
+
+  // Execution & Work Actions
+  EXECUTION_UPDATE_STATUS: 'execution:update_status',
+  EXECUTION_RECORD_DIAGNOSIS: 'execution:record_diagnosis',
+  EXECUTION_LOG_PARTS_LABOR: 'execution:log_parts_labor',
+  EXECUTION_UPLOAD_DOCS: 'execution:upload_docs',
+  EXECUTION_ACKNOWLEDGE: 'execution:acknowledge',
+  RAISE_REQUIREMENT: 'execution:raise_requirement',
+
+  // Spare Parts Actions
+  PARTS_VIEW: 'parts:view',
+  PARTS_REQUISITION: 'parts:requisition',
+  PARTS_MANAGE_INVENTORY: 'parts:manage_inventory',
+
+  // Warranty & AMC Actions
+  WARRANTY_VIEW: 'warranty:view',
+  WARRANTY_MANAGE: 'warranty:manage',
+
+  // Billing Actions
+  BILLING_VIEW: 'billing:view',
+  BILLING_CREATE_INVOICE: 'billing:create_invoice',
+
+  // Reports Actions
+  REPORTS_VIEW_OPERATIONAL: 'reports:view_operational',
+  REPORTS_VIEW_FINANCIAL: 'reports:view_financial'
+};
+
+/**
+ * Role to Permissions Mapping Matrix
+ */
+export const ROLE_PERMISSIONS = {
+  [ROLES.MANAGER]: [
+    PERMISSIONS.REQUEST_VIEW,
+    PERMISSIONS.REQUEST_CREATE,
+    PERMISSIONS.REQUEST_EDIT,
+    PERMISSIONS.REQUEST_APPROVE_CLOSE,
+    PERMISSIONS.REQUEST_ESCALATE,
+    PERMISSIONS.ASSIGN_ENGINEER,
+    PERMISSIONS.REASSIGN_ENGINEER,
+    PERMISSIONS.SCHEDULE_DISPATCH,
+    PERMISSIONS.EXECUTION_UPDATE_STATUS,
+    PERMISSIONS.EXECUTION_RECORD_DIAGNOSIS,
+    PERMISSIONS.EXECUTION_LOG_PARTS_LABOR,
+    PERMISSIONS.EXECUTION_UPLOAD_DOCS,
+    PERMISSIONS.EXECUTION_ACKNOWLEDGE,
+    PERMISSIONS.RAISE_REQUIREMENT,
+    PERMISSIONS.PARTS_VIEW,
+    PERMISSIONS.PARTS_REQUISITION,
+    PERMISSIONS.PARTS_MANAGE_INVENTORY,
+    PERMISSIONS.WARRANTY_VIEW,
+    PERMISSIONS.WARRANTY_MANAGE,
+    PERMISSIONS.BILLING_VIEW,
+    PERMISSIONS.BILLING_CREATE_INVOICE,
+    PERMISSIONS.REPORTS_VIEW_OPERATIONAL,
+    PERMISSIONS.REPORTS_VIEW_FINANCIAL
+  ],
+
+  [ROLES.COORDINATOR]: [
+    PERMISSIONS.REQUEST_VIEW,
+    PERMISSIONS.REQUEST_CREATE,
+    PERMISSIONS.REQUEST_EDIT,
+    PERMISSIONS.REQUEST_ESCALATE,
+    PERMISSIONS.ASSIGN_ENGINEER,
+    PERMISSIONS.REASSIGN_ENGINEER,
+    PERMISSIONS.SCHEDULE_DISPATCH,
+    PERMISSIONS.EXECUTION_UPDATE_STATUS,
+    PERMISSIONS.RAISE_REQUIREMENT,
+    PERMISSIONS.PARTS_VIEW,
+    PERMISSIONS.PARTS_REQUISITION,
+    PERMISSIONS.PARTS_MANAGE_INVENTORY,
+    PERMISSIONS.WARRANTY_VIEW,
+    PERMISSIONS.WARRANTY_MANAGE,
+    PERMISSIONS.BILLING_VIEW,
+    PERMISSIONS.REPORTS_VIEW_OPERATIONAL
+  ],
+
+  [ROLES.ENGINEER]: [
+    PERMISSIONS.REQUEST_VIEW,
+    PERMISSIONS.REQUEST_CREATE,
+    PERMISSIONS.EXECUTION_UPDATE_STATUS,
+    PERMISSIONS.EXECUTION_RECORD_DIAGNOSIS,
+    PERMISSIONS.EXECUTION_LOG_PARTS_LABOR,
+    PERMISSIONS.EXECUTION_UPLOAD_DOCS,
+    PERMISSIONS.RAISE_REQUIREMENT,
+    PERMISSIONS.PARTS_VIEW,
+    PERMISSIONS.PARTS_REQUISITION,
+    PERMISSIONS.REPORTS_VIEW_OPERATIONAL
+  ],
+
+  [ROLES.EMPLOYEE]: [
+    PERMISSIONS.REQUEST_VIEW,
+    PERMISSIONS.REQUEST_CREATE,
+    PERMISSIONS.EXECUTION_UPDATE_STATUS,
+    PERMISSIONS.EXECUTION_ACKNOWLEDGE,
+    PERMISSIONS.RAISE_REQUIREMENT,
+    PERMISSIONS.PARTS_VIEW,
+    PERMISSIONS.PARTS_REQUISITION,
+    PERMISSIONS.REPORTS_VIEW_OPERATIONAL
+  ]
+};
+
+/**
+ * Checks if a role has a given permission
+ *
+ * @param {string} roleId
+ * @param {string} permission
+ * @returns {boolean}
+ */
+export function checkPermission(roleId, permission) {
+  if (!roleId || !permission) return false;
+  const permissions = ROLE_PERMISSIONS[roleId] || [];
+  return permissions.includes(permission);
+}
