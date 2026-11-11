@@ -1,8 +1,11 @@
 # ApexFlow — Modern Glassmorphism Manufacturing & Regional Distribution ERP
 
-An enterprise-grade, responsive frontend for **Manufacturing, Regional Distribution, Field Sales, and Warehouse Management ERP**, designed with a modern glassmorphism aesthetic.
+An enterprise-grade, responsive platform for **Manufacturing, Regional Distribution, Field Sales, Warehouse Operations, Finance, Field Service, and HR Management**, designed with a clean, unified enterprise aesthetic.
 
-Built with **React 19, TypeScript, Vite, Tailwind CSS, Lucide React, Zustand (with LocalStorage persistence), React Router, Recharts, and Framer Motion**.
+Built with **React, TypeScript, Vite, Tailwind CSS, Lucide React, Zustand (with LocalStorage persistence), React Router, Recharts, Prisma ORM v6, and PostgreSQL / Supabase**.
+
+> 📚 **Looking for the complete developer & architecture guide?**  
+> Check out the [**Developer & Contributor Guide (DEVELOPER_GUIDE.md)**](./DEVELOPER_GUIDE.md) for full documentation on all 8 roles, database schema, Prisma workflows, strict typography standards, and local development setup.
 
 ---
 
@@ -71,16 +74,24 @@ All 4 roles connect to a single **Zustand store** (`src/store/useErpStore.ts`) p
 ## 🚀 Setup and Run Instructions
 
 ### Prerequisites
-- Node.js >= 18 (Tested on Node v22.20.0)
+- Node.js >= 18 (Tested on Node v20 / v22)
 - npm >= 9
+- PostgreSQL 14+ or Supabase account
 
 ### Installation
 ```bash
 # Navigate to project directory
 cd "c:\Users\HP\OneDrive\Desktop\ERP System"
 
-# Install dependencies (already installed)
+# 1. Install dependencies
 npm install
+
+# 2. Configure environment variables
+cp .env.example .env
+# Edit .env with your Supabase connection strings
+
+# 3. Generate Prisma client types
+npm run prisma:generate
 ```
 
 ### Running Development Server
@@ -88,6 +99,12 @@ npm install
 npm run dev
 ```
 Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+### Database Studio (Visual Table Browser)
+```bash
+npm run prisma:studio
+```
+Opens interactive UI at [http://localhost:5555](http://localhost:5555) for all 85 ERP tables.
 
 ### Building for Production
 ```bash
@@ -99,13 +116,19 @@ Creates an optimized production bundle in the `dist/` directory.
 
 ## 🧭 Interactive Persona Switcher
 
-Use the **interactive banner at the very top of the screen** to switch between roles anytime:
-- **Admin**: Rajesh Verma (`usr-admin-01`, Org-wide)
-- **Sales Rep**: Vikram Malhotra (`usr-sales-01`, North, 8% Limit)
-- **Field Marketing**: Ananya Sharma (`usr-mkt-01`, North Visits)
-- **Store Manager**: Devendra Rawat (`usr-store-01`, Noida Hub)
+Use the **interactive banner at the very top of the screen** to switch between all roles anytime:
+- **👑 Admin**: Rajesh Verma (`usr-admin-01`, Org-wide)
+- **📊 Manager**: Operational & Regional Supervision
+- **💼 Sales Rep**: Vikram Malhotra (`usr-sales-01`, North, 8% Limit)
+- **🎯 Field Marketing**: Ananya Sharma (`usr-mkt-01`, Ground Visits & Shelf Audits)
+- **💻 Digital Marketing**: Campaign Management & Lead Tracking
+- **📈 Marketing Analyst**: ROI & Funnel Analytics
+- **📦 Store Manager**: Devendra Rawat (`usr-store-01`, Noida Hub)
+- **💳 Finance**: Invoicing, AR/AP & Payment Allocation
+- **🛠️ Service**: Field Tickets & Engineer Dispatch
+- **👥 HR & Payroll**: Employee Records & Monthly Payroll
 
-You can also click **Reset Demo** in the top bar to revert all mock data back to its clean initial state anytime.
+You can also click **Reset Demo** in the top bar to revert all mock data back to its clean initial state anytime. For full architectural specifications, consult [`DEVELOPER_GUIDE.md`](./DEVELOPER_GUIDE.md).
 
 ---
 
