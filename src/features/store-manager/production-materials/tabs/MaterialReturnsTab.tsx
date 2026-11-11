@@ -1,0 +1,284 @@
+// ============================================================
+// PRODUCTION MATERIALS — TAB B: MATERIAL RETURNS
+// ============================================================
+
+import { Fragment, useState, useMemo, useCallback } from 'react';
+import { Search, X, RotateCcw, ChevronDown, ChevronUp, CheckCircle, Loader2 } from 'lucide-react';
+import { format } from 'date-fns';
+import { submitMaterialReturn } from '../services/productionMaterialsService';
+import type { MaterialReturn, MaterialReturnStatus } from '../types';
+import { ReturnStatusBadge, ConditionBadge } from '../components/StatusBadges';
+
+interface MaterialReturnsTabProps {
+  returns: MaterialReturn[];
+  isLoading: boolean;
+  initialFilter?: string;
+  onRefresh: () => void;
+}
+
+// ─── Create Return Modal ───────────────────────────────────────
+function CreateReturnModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (id: string) => void }) {
+  const [step, setStep] = useState<'form' | 'confirm' | 'success'>('form');
+  const [productionOrder, setProductionOrder] = useState('');
+  const [issueNoteId, setIssueNoteId] = useState('');
+  const [returningEmployee, setReturningEmployee] = useState('');
+  const [remarks, setRemarks] = useState('');
+  const [returnNoteId, setReturnNoteId] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit() {
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      const result = await submitMaterialReturn({
+        originalIssueNoteId: issueNoteId,
+        productionOrderId: productionOrder,
+        lines: [],
+        remarks,
+      });
+      setReturnNoteId(result.returnNoteId);
+      setStep('success');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Submission failed.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+      <div style={{ background: 'var(--clr-bg-card)', borderRadius: '16px', width: '100%', maxWidth: '600px', border: '1px solid var(--clr-border)' }}>
+        <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--clr-border)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(16,185,129,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <RotateCcw size={16} style={{ color: '#10b981' }} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontFamily: "'Chillax', sans-serif", fontWeight: 700, fontSize: '15px' }}>Create Material Return</div>
+            <div style={{ fontSize: '11px', color: 'var(--clr-text-muted)' }}>Record unused materials returned from production</div>
+          </div>
+          <button className="btn-icon" onClick={onClose}><X size={16} /></button>
+        </div>
+        <div style={{ padding: '20px' }}>
+          {step === 'form' && (
+            <div>
+              <div style={{ display: 'grid', gap: '12px', marginBottom: '16px' }}>
+                <div>
+                  <label style={{ fontSize: '11px', color: 'var(--clr-text-muted)', display: 'block', marginBottom: '4px' }}>Production Order ID <span style={{ color: '#ef4444' }}>*</span></label>
+                  <input className="form-input" placeholder="e.g. WO-2026-0115" value={productionOrder} onChange={e => setProductionOrder(e.target.value)} style={{ width: '100%' }} id="rtn-po" />
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', color: 'var(--clr-text-muted)', display: 'block', marginBottom: '4px' }}>Original Material Issue Note ID <span style={{ color: '#ef4444' }}>*</span></label>
+                  <input className="form-input" placeholder="e.g. MI-2026-0071" value={issueNoteId} onChange={e => setIssueNoteId(e.target.value)} style={{ width: '100%' }} id="rtn-issue-note" />
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', color: 'var(--clr-text-muted)', display: 'block', marginBottom: '4px' }}>Returning Employee <span style={{ color: '#ef4444' }}>*</span></label>
+                  <input className="form-input" placeholder="Name of person returning materials" value={returningEmployee} onChange={e => setReturningEmployee(e.target.value)} style={{ width: '100%' }} id="rtn-employee" />
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', color: 'var(--clr-text-muted)', display: 'block', marginBottom: '4px' }}>Remarks</label>
+                  <textarea className="form-input" rows={3} placeholder="Reason for return, condition notes, etc." value={remarks} onChange={e => setRemarks(e.target.value)} style={{ width: '100%', resize: 'vertical' }} id="rtn-remarks" />
+                </div>
+              </div>
+              <div style={{ background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px', fontSize: '11px', color: 'var(--clr-text-muted)' }}>
+                In production deployment, the original issue note will be loaded automatically and material lines with eligible return quantities will be displayed for selection.
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+                <button className="btn btn-primary" disabled={!productionOrder.trim() || !issueNoteId.trim() || !returningEmployee.trim()} onClick={() => setStep('confirm')} id="rtn-next">Review →</button>
+              </div>
+            </div>
+          )}
+          {step === 'confirm' && (
+            <div>
+              <div style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '10px', padding: '14px', marginBottom: '14px', fontSize: '12px', color: 'var(--clr-text-secondary)', lineHeight: 1.6 }}>
+                Creating return against:<br />
+                Production Order: <strong>{productionOrder}</strong><br />
+                Issue Note: <strong>{issueNoteId}</strong><br />
+                Returning Employee: <strong>{returningEmployee}</strong>
+              </div>
+              {error && <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '8px', padding: '10px 14px', marginBottom: '12px', fontSize: '12px', color: '#f87171' }}>{error}</div>}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button className="btn btn-ghost" onClick={() => setStep('form')} disabled={isSubmitting}>← Back</button>
+                <button className="btn btn-primary" onClick={handleSubmit} disabled={isSubmitting} style={{ minWidth: '130px' }} id="rtn-confirm">
+                  {isSubmitting ? <><Loader2 size={12} className="refresh-spin" /> Submitting…</> : 'Confirm Return'}
+                </button>
+              </div>
+            </div>
+          )}
+          {step === 'success' && (
+            <div style={{ textAlign: 'center', padding: '16px 0' }}>
+              <CheckCircle size={36} style={{ color: '#10b981', marginBottom: '12px' }} />
+              <div style={{ fontFamily: "'Chillax', sans-serif", fontSize: '16px', fontWeight: 700, marginBottom: '6px' }}>Return Submitted</div>
+              <div style={{ fontSize: '12px', color: 'var(--clr-text-muted)', marginBottom: '16px' }}>
+                Return Note <span style={{ fontFamily: 'monospace', color: 'var(--clr-accent-light)' }}>{returnNoteId}</span> created successfully.
+              </div>
+              <button className="btn btn-primary" onClick={() => onSuccess(returnNoteId)} id="rtn-done">Done</button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Tab ──────────────────────────────────────────────────
+export function MaterialReturnsTab({ returns, isLoading, onRefresh }: MaterialReturnsTabProps) {
+  const [search, setSearch] = useState('');
+  const [filterStatus, setFilterStatus] = useState<MaterialReturnStatus | 'ALL'>('ALL');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
+  const fmtDate = (iso: string) => { try { return format(new Date(iso), 'dd MMM yyyy'); } catch { return iso; } };
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    return returns.filter(r => {
+      const matchSearch = !q || r.returnId.toLowerCase().includes(q) || r.originalIssueNoteId.toLowerCase().includes(q) || r.productionOrderId.toLowerCase().includes(q) || r.lines.some(l => l.materialName.toLowerCase().includes(q));
+      const matchStatus = filterStatus === 'ALL' || r.returnStatus === filterStatus;
+      return matchSearch && matchStatus;
+    });
+  }, [returns, search, filterStatus]);
+
+  const handleReturnSuccess = useCallback(() => {
+    setShowCreateModal(false);
+    onRefresh();
+  }, [onRefresh]);
+
+  if (isLoading) return (
+    <div>{[...Array(3)].map((_, i) => <div key={i} className="skeleton" style={{ height: '48px', borderRadius: '8px', marginBottom: '8px' }} />)}</div>
+  );
+
+  return (
+    <div>
+      {showCreateModal && (
+        <CreateReturnModal onClose={() => setShowCreateModal(false)} onSuccess={handleReturnSuccess} />
+      )}
+
+      {/* Toolbar */}
+      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '14px', alignItems: 'center' }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: '180px' }}>
+          <Search size={12} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--clr-text-muted)', pointerEvents: 'none' }} />
+          <input className="form-input" placeholder="Search return, PO, issue note, material…" value={search} onChange={e => setSearch(e.target.value)} style={{ width: '100%', paddingLeft: '30px' }} id="rtn-search" />
+        </div>
+        <select className="form-select" value={filterStatus} onChange={e => setFilterStatus(e.target.value as MaterialReturnStatus | 'ALL')} id="rtn-filter-status">
+          <option value="ALL">All Statuses</option>
+          <option value="Submitted">Submitted</option>
+          <option value="Awaiting Warehouse Check">Awaiting Warehouse Check</option>
+          <option value="Awaiting Inspection">Awaiting Inspection</option>
+          <option value="Accepted">Accepted</option>
+          <option value="Held">Held</option>
+          <option value="Rejected">Rejected</option>
+          <option value="Posted">Posted</option>
+        </select>
+        <span style={{ fontSize: '12px', color: 'var(--clr-text-muted)' }}>{filtered.length} records</span>
+        <div style={{ marginLeft: 'auto' }}>
+          <button className="btn btn-primary" style={{ fontSize: '12px' }} onClick={() => setShowCreateModal(true)} id="rtn-create-btn">
+            <RotateCcw size={13} /> Create Return
+          </button>
+        </div>
+      </div>
+
+      {/* Table */}
+      {filtered.length === 0 ? (
+        <div className="empty-state">
+          <RotateCcw size={36} className="empty-state-icon" />
+          <p className="empty-state-title">No material returns found</p>
+          <p className="empty-state-desc">No returns match your current filters.</p>
+        </div>
+      ) : (
+        <div className="erp-table-wrapper">
+          <table className="erp-table">
+            <thead>
+              <tr>
+                <th>Return ID</th>
+                <th>Original Issue Note</th>
+                <th>Production Order</th>
+                <th>Production Area</th>
+                <th>Returning Employee</th>
+                <th>Return Date</th>
+                <th>Inspection</th>
+                <th>Return Status</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(r => {
+                const isExpanded = expandedId === r.id;
+                return (
+                  <Fragment key={r.id}>
+                    <tr key={r.id} id={`rtn-row-${r.id}`} style={{ cursor: 'pointer' }} onClick={() => setExpandedId(isExpanded ? null : r.id)}>
+                      <td><span style={{ fontFamily: 'monospace', color: 'var(--clr-accent-light)', fontSize: '11px' }}>{r.returnId}</span></td>
+                      <td><span style={{ fontFamily: 'monospace', fontSize: '11px' }}>{r.originalIssueNoteId}</span></td>
+                      <td><span style={{ fontFamily: 'monospace', fontSize: '11px' }}>{r.productionOrderId}</span></td>
+                      <td style={{ fontSize: '12px' }}>{r.productionArea}</td>
+                      <td style={{ fontSize: '12px' }}>{r.returningEmployee}</td>
+                      <td style={{ fontSize: '11px' }}>{fmtDate(r.returnDate)}</td>
+                      <td>
+                        <span style={{ fontSize: '10.5px', fontWeight: 600, padding: '2px 8px', borderRadius: '10px', background: r.inspectionStatus === 'Completed' ? 'rgba(16,185,129,0.12)' : r.inspectionStatus === 'Not Required' ? 'rgba(100,116,139,0.12)' : 'rgba(245,158,11,0.12)', color: r.inspectionStatus === 'Completed' ? '#34d399' : r.inspectionStatus === 'Not Required' ? '#94a3b8' : '#fbbf24' }}>
+                          {r.inspectionStatus}
+                        </span>
+                      </td>
+                      <td><ReturnStatusBadge status={r.returnStatus} /></td>
+                      <td onClick={e => e.stopPropagation()}>
+                        <button className="btn btn-ghost" style={{ padding: '4px 8px', fontSize: '11px' }} onClick={() => setExpandedId(isExpanded ? null : r.id)} id={`rtn-expand-${r.id}`}>
+                          {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                        </button>
+                      </td>
+                    </tr>
+
+                    {isExpanded && (
+                      <tr key={`${r.id}-exp`}>
+                        <td colSpan={9} style={{ padding: 0 }}>
+                          <div style={{ background: 'var(--clr-bg-surface)', borderTop: '1px solid var(--clr-border)', borderBottom: '1px solid var(--clr-border)', padding: '14px 20px' }}>
+                            <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--clr-text-muted)', marginBottom: '10px' }}>Return Lines</div>
+                            <table className="erp-table" style={{ fontSize: '11px' }}>
+                              <thead>
+                                <tr>
+                                  <th>Material</th>
+                                  <th>Original Batch/Serials</th>
+                                  <th>Orig. Issued</th>
+                                  <th>Prev. Returned</th>
+                                  <th>Eligible</th>
+                                  <th>Returning</th>
+                                  <th>UoM</th>
+                                  <th>Condition</th>
+                                  <th>Inspection Req.</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {r.lines.map(l => (
+                                  <tr key={l.lineId}>
+                                    <td>
+                                      <div style={{ fontWeight: 600 }}>{l.materialName}</div>
+                                      <div style={{ fontFamily: 'monospace', fontSize: '10px', color: 'var(--clr-text-muted)' }}>{l.materialCode}</div>
+                                    </td>
+                                    <td style={{ fontFamily: 'monospace', fontSize: '10.5px' }}>
+                                      {l.originalBatch ?? l.originalSerials.join(', ') ?? '—'}
+                                    </td>
+                                    <td>{l.qtyOriginallyIssued}</td>
+                                    <td>{l.qtyPreviouslyReturned}</td>
+                                    <td>{l.qtyEligibleToReturn}</td>
+                                    <td style={{ fontWeight: 700 }}>{l.qtyReturning}</td>
+                                    <td>{l.uom}</td>
+                                    <td><ConditionBadge condition={l.condition} /></td>
+                                    <td>{l.inspectionRequired ? <span style={{ color: '#f59e0b', fontWeight: 700 }}>Yes</span> : 'No'}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                            {r.remarks && <div style={{ marginTop: '10px', fontSize: '11px', color: 'var(--clr-text-muted)', fontStyle: 'italic' }}>Remarks: {r.remarks}</div>}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
