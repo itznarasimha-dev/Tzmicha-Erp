@@ -5,6 +5,8 @@ import {
   Sparkles, UserRound, Users,
 } from 'lucide-react'
 import { useStore } from '../store'
+import { describeMissingPermission, useHrAccess } from '../lib/access'
+import { runHrApiAction, hrActions } from '../api-actions'
 import type { DocFile } from '../types'
 import { ageLabel, daysAgo, downloadCSV, fmtDate, fmtMoney, fullName, initials, todayISO } from '../lib/utils'
 import { EmployeeModal } from '../components/employee-modal'
@@ -12,13 +14,15 @@ import {
   Avatar, Badge, Button, Card, DocumentPreview, DocumentRow, EmptyState, FileDrop, InfoRow,
   PageHeader, ProgressBar, StatusBadge, Tabs,
 } from '../components/ui'
+import { HrPermissionNotice } from '../components/hr-guard'
 
 type TabKey = 'overview' | 'attendance' | 'leave' | 'contracts' | 'performance' | 'requests'
 
 export default function EmployeeProfile() {
+  const access = useHrAccess()
   const { id } = useParams()
   const navigate = useNavigate()
-  const { db, update, toast, logActivity } = useStore()
+  const { db, update, toast, logActivity, dataSource, refreshFromApi } = useStore()
   const employee = db.employees.find((e) => e.id === id)
   const [tab, setTab] = useState<TabKey>('overview')
   const [editOpen, setEditOpen] = useState(false)
@@ -39,6 +43,9 @@ export default function EmployeeProfile() {
     )
   }
 
+  // Salary is confidential: visible to the owner, salary/payroll holders and admins.
+  const canSeeSalary = access.canViewSalary(employee.id)
+
   const tenureDays = Math.max(0, Math.round((new Date(todayISO()).getTime() - new Date(employee.joiningDate).getTime()) / 86400000))
   const tenure = tenureDays >= 365 ? `${(tenureDays / 365).toFixed(1)} years` : `${Math.round(tenureDays / 30)} months`
   const attendanceBase = attendance.slice(0, 30)
@@ -57,28 +64,45 @@ export default function EmployeeProfile() {
   })
 
   const addDocs = (docs: DocFile[]) => {
+    if (dataSource === 'api') {
+      toast('Document upload not available', 'warning', 'Uploading employee documents requires storage integration that is not configured in this environment. No local-only demo record was saved.')
+      return
+    }
     update((d) => ({
       ...d,
       employees: d.employees.map((e) => (e.id === employee.id ? { ...e, documents: [...docs, ...e.documents] } : e)),
     }))
-    toast(`${docs.length} document${docs.length > 1 ? 's' : ''} uploaded`, 'success', 'Stored locally in this browser session for preview.')
+    toast(`${docs.length} document${docs.length > 1 ? 's' : ''} uploaded (demo)`, 'success', 'Stored locally in this browser session for preview. Demo data is not saved to the database.')
   }
 
-  const verifyDoc = (docId: string) => {
+  const verifyDoc = async (docId: string) => {
+    if (dataSource === 'api') {
+      const res = await runHrApiAction({ dataSource, refreshFromApi, toast }, {
+        action: () => hrActions.verifyEmployeeDocument(docId, { status: 'Verified' }),
+        successMessage: 'Document verified',
+        errorTitle: 'Could not verify document',
+      })
+      if (res.ok) return
+      return
+    }
     update((d) => ({
       ...d,
       employees: d.employees.map((e) => (e.id === employee.id ? { ...e, documents: e.documents.map((doc) => (doc.id === docId ? { ...doc, status: 'Verified' } : doc)) } : e)),
     }))
     logActivity('employee', 'Employee document verified', `${fullName(employee)} · ${employee.documents.find((d) => d.id === docId)?.name}`)
-    toast('Document verified', 'success')
+    toast('Document verified (demo)', 'success', 'Demo data is not saved to the database.')
   }
 
   const removeDoc = (docId: string) => {
+    if (dataSource === 'api') {
+      toast('Document removal not available', 'warning', 'Removing employee documents is not supported by the connected ERP API in this workspace. No local-only demo record was removed.')
+      return
+    }
     update((d) => ({
       ...d,
       employees: d.employees.map((e) => (e.id === employee.id ? { ...e, documents: e.documents.filter((doc) => doc.id !== docId) } : e)),
     }))
-    toast('Document removed', 'info')
+    toast('Document removed (demo)', 'info', 'Demo data is not saved to the database.')
   }
 
   const exportProfile = () => {
@@ -87,7 +111,7 @@ export default function EmployeeProfile() {
       ['Employee ID', employee.id], ['Name', fullName(employee)], ['Email', employee.email], ['Phone', employee.phone],
       ['Department', employee.department], ['Designation', employee.designation], ['Manager', employee.manager],
       ['Employment type', employee.employmentType], ['Joining date', employee.joiningDate], ['Status', employee.status],
-      ['Location', employee.location], ['Annual salary', employee.salary], ['Date of birth', employee.dob],
+      ['Location', employee.location], ...(canSeeSalary ? [['Annual salary', employee.salary]] : []), ['Date of birth', employee.dob],
       ['Address', employee.address], ['Emergency contact', employee.emergencyContact], ['Skills', employee.skills.join('; ')],
     ])
     toast('Employee profile exported', 'success')
@@ -99,7 +123,9 @@ export default function EmployeeProfile() {
         <button onClick={() => navigate('/employees')} className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition hover:text-brand-600 dark:text-slate-400 dark:hover:text-brand-400"><ArrowLeft className="h-3.5 w-3.5" /> Back to employees</button>
         <div className="flex gap-2">
           <Button variant="secondary" size="sm" onClick={exportProfile}><Download className="h-3.5 w-3.5" /> Export profile</Button>
-          <Button size="sm" onClick={() => setEditOpen(true)}><Pencil className="h-3.5 w-3.5" /> Edit profile</Button>
+          {access.can('employee.update') && (
+            <Button size="sm" onClick={() => setEditOpen(true)}><Pencil className="h-3.5 w-3.5" /> Edit profile</Button>
+          )}
         </div>
       </div>
 
@@ -131,7 +157,7 @@ export default function EmployeeProfile() {
             </div>
             <div className="flex items-center gap-2 pb-1">
               <Badge tone="slate">{employee.employmentType}</Badge>
-              <Badge tone="brand">{employee.salary ? `${fmtMoney(employee.salary, true)} / yr` : '—'}</Badge>
+              <Badge tone="brand">{canSeeSalary ? (employee.salary ? `${fmtMoney(employee.salary, true)} / yr` : '—') : 'Restricted'}</Badge>
             </div>
           </div>
 
@@ -183,7 +209,7 @@ export default function EmployeeProfile() {
                       <InfoRow label="Employment type" value={employee.employmentType} />
                       <InfoRow label="Work location" value={employee.location} />
                       <InfoRow label="Joining date" value={fmtDate(employee.joiningDate)} />
-                      <InfoRow label="Annual salary" value={fmtMoney(employee.salary)} />
+                      <InfoRow label="Annual salary" value={canSeeSalary ? fmtMoney(employee.salary) : 'Restricted'} />
                       <InfoRow label="Bank account" value={employee.bankAccount} />
                     </dl>
                   </div>
@@ -376,7 +402,13 @@ export default function EmployeeProfile() {
               <h3 className="text-sm font-semibold">Documents</h3>
               <Badge tone={employee.documents.some((d) => d.status === 'Pending') ? 'amber' : 'green'}>{employee.documents.length} files</Badge>
             </div>
-            <FileDrop compact label="Upload document" hint="PDF, DOCX or image · 10 MB" onFiles={addDocs} />
+            {access.can('document.write') ? (
+              <FileDrop compact label="Upload document" hint="PDF, DOCX or image · 10 MB" onFiles={addDocs} />
+            ) : (
+              <p className="rounded-xl border border-dashed border-slate-200 px-3 py-3 text-center text-[11px] text-slate-400 dark:border-white/10" title={describeMissingPermission('document.write')}>
+                Document upload requires the document write permission.
+              </p>
+            )}
             <div className="mt-3 space-y-2">
               {employee.documents.slice(0, 4).map((doc) => (
                 <DocumentRow key={doc.id} doc={doc} onPreview={() => setPreview(doc)} onVerify={() => verifyDoc(doc.id)} onRemove={() => removeDoc(doc.id)} />

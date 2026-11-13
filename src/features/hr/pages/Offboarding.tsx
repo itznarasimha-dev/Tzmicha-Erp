@@ -1,10 +1,16 @@
-import { useEffect, useMemo, useState } from 'react'
 import {
-  AlertTriangle, ArrowRight, BriefcaseBusiness, CalendarDays, Check, CheckCircle2, ChevronRight,
-  ClipboardCheck, Clock3, Download, FileText, LogOut, Plus, ShieldCheck, Trash2, UserMinus, Users, Wallet,
-  XCircle,
+  useState, useEffect, useMemo,
+} from 'react'
+import {
+  AlertTriangle, BriefcaseBusiness, CalendarDays, Check, CheckCircle2, ChevronRight,
+  ClipboardCheck, Clock3, Download, FileText, LogOut, Plus, RefreshCw, ShieldCheck, Trash2,
+  UserMinus, Wallet, XCircle,
 } from 'lucide-react'
+
 import { useStore } from '../store'
+import { describeMissingPermission, useHrAccess } from '../lib/access'
+import { runHrApiAction, hrActions } from '../api-actions'
+import { useOffboarding } from '../useHrData'
 import type { Clearance, DocFile, OffboardingRecord } from '../types'
 import { addDays, downloadCSV, fmtDate, fmtMoney, sum, todayISO, uid } from '../lib/utils'
 import {
@@ -12,6 +18,7 @@ import {
   FileDrop, Input, Modal, PageHeader, Pagination, ProgressBar, SearchInput, Select, StatCard, StatusBadge,
   Tabs, Textarea,
 } from '../components/ui'
+import { HrPermissionNotice } from '../components/hr-guard'
 
 type OffTab = 'overview' | 'clearances' | 'settlement' | 'documents' | 'activity'
 
@@ -21,7 +28,8 @@ const blankForm = {
 }
 
 export default function Offboarding() {
-  const { db, update, logActivity, toast } = useStore()
+  const access = useHrAccess()
+  const { db, update, logActivity, toast, dataSource, refreshFromApi } = useStore()
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('All')
   const [department, setDepartment] = useState('All')
@@ -42,8 +50,14 @@ export default function Offboarding() {
   const [interviewDate, setInterviewDate] = useState('')
   const [interviewNotes, setInterviewNotes] = useState('')
 
+  const offboardingQuery = useOffboarding()
+
+  const useApi = dataSource === 'api'
+  const offboardingData = useApi ? offboardingQuery.data : null
+  const allOffboarding = (offboardingData ?? db.offboarding) as OffboardingRecord[]
+
   const empMap = useMemo(() => new Map(db.employees.map((e) => [e.id, e])), [db.employees])
-  const selected = db.offboarding.find((o) => o.id === selectedId) || null
+  const selected = allOffboarding.find((o) => o.id === selectedId) || null
 
   useEffect(() => {
     if (!selected) return
@@ -55,15 +69,15 @@ export default function Offboarding() {
     setTab('overview')
   }, [selectedId])
 
-  const pendingClearances = useMemo(() => db.offboarding.reduce((acc, o) => acc + o.clearances.filter((c) => c.status === 'Pending').length, 0), [db.offboarding])
-  const blockedClearances = useMemo(() => db.offboarding.reduce((acc, o) => acc + o.clearances.filter((c) => c.status === 'Blocked').length, 0), [db.offboarding])
-  const active = db.offboarding.filter((o) => o.status !== 'Completed')
+  const pendingClearances = useMemo(() => allOffboarding.reduce((acc, o) => acc + o.clearances.filter((c) => c.status === 'Pending').length, 0), [allOffboarding])
+  const blockedClearances = useMemo(() => allOffboarding.reduce((acc, o) => acc + o.clearances.filter((c) => c.status === 'Blocked').length, 0), [allOffboarding])
+  const active = allOffboarding.filter((o) => o.status !== 'Completed')
   const upcoming = active.filter((o) => o.lastWorkingDay >= todayISO() && o.lastWorkingDay <= addDays(todayISO(), 30))
   const settlementPending = sum(active.filter((o) => o.settlementStatus !== 'Paid').map((o) => o.settlementAmount))
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    const list = db.offboarding.filter((o) => {
+    const list = allOffboarding.filter((o) => {
       const e = empMap.get(o.employeeId)
       const matchSearch = !q || o.id.toLowerCase().includes(q) || o.reason.toLowerCase().includes(q) || (e && `${e.firstName} ${e.lastName}`.toLowerCase().includes(q)) || o.employeeId.toLowerCase().includes(q)
       return matchSearch && (status === 'All' || o.status === status) && (department === 'All' || e?.department === department)
@@ -71,12 +85,15 @@ export default function Offboarding() {
     return list.sort((a, b) => sort === 'name'
       ? (empMap.get(a.employeeId)?.firstName || '').localeCompare(empMap.get(b.employeeId)?.firstName || '')
       : a.lastWorkingDay.localeCompare(b.lastWorkingDay))
-  }, [db.offboarding, empMap, search, status, department, sort])
+  }, [allOffboarding, empMap, search, status, department, sort])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
-  const currentPage = Math.min(page, totalPages)
-  const from = (currentPage - 1) * pageSize
-  const rows = filtered.slice(from, from + pageSize)
+  // API mode uses the server pagination metadata; demo mode paginates locally.
+  const offboardingMeta = (offboardingData as any)?.meta
+  const totalItems = useApi ? Number(offboardingMeta?.total ?? filtered.length) : filtered.length
+  const totalPages = useApi ? Math.max(1, Number(offboardingMeta?.totalPages ?? 1)) : Math.max(1, Math.ceil(filtered.length / pageSize))
+  const currentPage = useApi ? Number(offboardingMeta?.page ?? page) : Math.min(page, totalPages)
+  const from = useApi ? (filtered.length ? (currentPage - 1) * (offboardingMeta?.pageSize ?? pageSize) : 0) : (Math.min(page, totalPages) - 1) * pageSize
+  const rows = useApi ? filtered : filtered.slice(from, from + pageSize)
 
   const setField = (key: keyof typeof blankForm, value: string) => {
     setForm((f) => ({ ...f, [key]: value }))
@@ -94,6 +111,36 @@ export default function Offboarding() {
     if (Object.keys(next).length) return
     const amount = Number(form.settlementAmount) || 0
     const managers = ['Isabella Rossi', 'Noah Bennett', 'Grace Kim', 'Aisha Bello']
+    const clearances: Clearance[] = [
+      { id: uid('cl'), department: 'Department', owner: managers[0], status: 'Pending', note: '' },
+      { id: uid('cl'), department: 'IT', owner: managers[1], status: 'Pending', note: '' },
+      { id: uid('cl'), department: 'Finance', owner: managers[2], status: 'Pending', note: '' },
+      { id: uid('cl'), department: 'HR', owner: managers[3], status: 'Pending', note: '' },
+    ]
+    if (dataSource === 'api') {
+      void runHrApiAction({ dataSource, refreshFromApi, toast }, {
+        action: () =>
+          hrActions.createOffboarding({
+            employeeId: form.employeeId,
+            resignationDate: form.resignationDate,
+            lastWorkingDay: form.lastWorkingDay,
+            reason: form.reason.trim(),
+            noticePeriodDays: Number(form.noticePeriodDays) || 30,
+            clearances,
+            settlementAmount: amount,
+          }),
+        successMessage: 'Offboarding initiated',
+        successDescription: 'Clearance owners have been assigned and the employee is marked Notice Period.',
+        errorTitle: 'Could not initiate offboarding',
+      }).then((res) => {
+        if (res.ok) {
+          setCreateOpen(false)
+          setForm(blankForm)
+          setPage(1)
+        }
+      })
+      return
+    }
     const record: OffboardingRecord = {
       id: `OFF-${2200 + db.offboarding.length + 1}`,
       employeeId: form.employeeId,
@@ -102,12 +149,7 @@ export default function Offboarding() {
       reason: form.reason.trim(),
       noticePeriodDays: Number(form.noticePeriodDays) || 30,
       status: 'In Progress',
-      clearances: [
-        { id: uid('cl'), department: 'Department', owner: managers[0], status: 'Pending', note: '' },
-        { id: uid('cl'), department: 'IT', owner: managers[1], status: 'Pending', note: '' },
-        { id: uid('cl'), department: 'Finance', owner: managers[2], status: 'Pending', note: '' },
-        { id: uid('cl'), department: 'HR', owner: managers[3], status: 'Pending', note: '' },
-      ],
+      clearances,
       settlementAmount: amount,
       settlementStatus: 'Pending',
       settlementNotes: form.settlementNotes.trim(),
@@ -128,6 +170,23 @@ export default function Offboarding() {
 
   const patchRecord = (patch: Partial<OffboardingRecord>, action: string, message: string, description?: string) => {
     if (!selected) return
+    if (dataSource === 'api') {
+      const payload: Record<string, unknown> = {}
+      if (patch.status !== undefined) payload.status = patch.status
+      if (patch.exitInterviewDate !== undefined) payload.exitInterviewDate = patch.exitInterviewDate || undefined
+      if (patch.exitInterviewNotes !== undefined) payload.exitInterviewNotes = patch.exitInterviewNotes
+      if (patch.clearances !== undefined) payload.clearances = patch.clearances
+      if (patch.settlementAmount !== undefined) payload.settlementAmount = patch.settlementAmount
+      if (patch.settlementStatus !== undefined) payload.settlementStatus = patch.settlementStatus
+      if (patch.settlementNotes !== undefined) payload.settlementNotes = patch.settlementNotes
+      void runHrApiAction({ dataSource, refreshFromApi, toast }, {
+        action: () => hrActions.updateOffboarding(selected.id, payload),
+        successMessage: message,
+        successDescription: description,
+        errorTitle: action,
+      })
+      return
+    }
     update((d) => ({
       ...d,
       offboarding: d.offboarding.map((o) => (o.id === selected.id ? { ...o, ...patch, history: [...o.history, { id: uid('oh'), date: todayISO(), action, actor: 'Aisha Bello' }] } : o)),
@@ -140,11 +199,16 @@ export default function Offboarding() {
     if (!selected) return
     const clearances = selected.clearances.map((c) => (c.id === clearance.id ? { ...c, status: statusValue, note: statusValue === 'Cleared' ? c.note || 'Cleared by ' + c.owner : statusValue === 'Blocked' ? c.note || 'Blocked pending follow-up.' : c.note } : c))
     const allCleared = clearances.every((c) => c.status === 'Cleared')
+    const statusNext = allCleared && selected.status !== 'Completed' ? 'Clearance' : selected.status
+    if (dataSource === 'api') {
+      patchRecord({ clearances, status: statusNext }, 'Clearance update failed', `Clearance ${statusValue.toLowerCase()}`, `${clearance.department} · ${clearance.owner}`)
+      return
+    }
     update((d) => ({
       ...d,
       offboarding: d.offboarding.map((o) => (o.id === selected.id ? {
         ...o, clearances,
-        status: allCleared && o.status !== 'Completed' ? 'Clearance' : o.status,
+        status: statusNext,
         history: [...o.history, { id: uid('oh'), date: todayISO(), action: `${clearance.department} clearance ${statusValue.toLowerCase()}`, actor: 'Aisha Bello' }],
       } : o)),
     }))
@@ -153,37 +217,53 @@ export default function Offboarding() {
 
   const saveSettlement = () => {
     if (!selected) return
-    patchRecord({ settlementAmount: Number(settlementAmount) || 0, settlementNotes }, 'Settlement details updated', 'Settlement updated', 'The final settlement estimate and notes were saved.')
+    patchRecord({ settlementAmount: Number(settlementAmount) || 0, settlementNotes }, 'Settlement update failed', 'Settlement updated', 'The final settlement estimate and notes were saved.')
   }
 
   const setSettlementStatus = (value: OffboardingRecord['settlementStatus']) => {
     if (!selected) return
-    patchRecord({ settlementStatus: value }, `Settlement marked ${value.toLowerCase()}`, `Settlement ${value.toLowerCase()}`, `${selected.id} settlement is now ${value}. This is demo data — no money moves.`)
+    patchRecord({ settlementStatus: value }, 'Settlement update failed', `Settlement ${value.toLowerCase()}`, dataSource === 'api' ? `${selected.id} settlement is now ${value}.` : `${selected.id} settlement is now ${value}. This is demo data — no money moves.`)
   }
 
   const saveInterview = () => {
     if (!selected) return
-    patchRecord({ exitInterviewDate: interviewDate, exitInterviewNotes: interviewNotes }, 'Exit interview details saved', 'Exit interview saved', 'The scheduled date and interview notes were updated.')
+    patchRecord({ exitInterviewDate: interviewDate, exitInterviewNotes: interviewNotes }, 'Exit interview update failed', 'Exit interview saved', 'The scheduled date and interview notes were updated.')
   }
 
   const uploadDocs = (docs: DocFile[]) => {
     if (!selected) return
+    if (dataSource === 'api') {
+      toast('Document upload is not supported by the API', 'warning', 'Offboarding documents are not persisted by the backend yet. No change was saved.')
+      return
+    }
     patchRecord({ documents: [...docs, ...selected.documents] }, `${docs.length} document${docs.length === 1 ? '' : 's'} uploaded`, 'Documents uploaded', 'Files are stored locally for preview in this demo.')
   }
 
   const verifyDoc = (doc: DocFile) => {
     if (!selected) return
+    if (dataSource === 'api') {
+      toast('Document verification is not supported by the API', 'warning', 'Offboarding documents are not persisted by the backend yet. No change was saved.')
+      return
+    }
     patchRecord({ documents: selected.documents.map((x) => (x.id === doc.id ? { ...x, status: 'Verified' } : x)) }, `${doc.name} verified`, 'Document verified', doc.name)
   }
 
   const removeDoc = (doc: DocFile) => {
     if (!selected) return
+    if (dataSource === 'api') {
+      toast('Document removal is not supported by the API', 'warning', 'Offboarding documents are not persisted by the backend yet. No change was saved.')
+      return
+    }
     patchRecord({ documents: selected.documents.filter((x) => x.id !== doc.id) }, `${doc.name} removed`, 'Document removed', doc.name)
   }
 
   const addNote = () => {
     if (!selected) return
     if (!note.trim()) { toast('Add a note first', 'warning'); return }
+    if (dataSource === 'api') {
+      toast('Free-form timeline notes are not supported by the API', 'warning', 'Offboarding history is generated from audited changes. Use the settlement notes field for persistent notes. Nothing was saved.')
+      return
+    }
     update((d) => ({
       ...d,
       offboarding: d.offboarding.map((o) => (o.id === selected.id ? { ...o, history: [...o.history, { id: uid('oh'), date: todayISO(), action: note.trim(), actor: 'Aisha Bello' }] } : o)),
@@ -197,6 +277,20 @@ export default function Offboarding() {
     if (!selected) return
     const allCleared = selected.clearances.every((c) => c.status === 'Cleared')
     if (!allCleared) { toast('Clearances incomplete', 'warning', 'All four department clearances must be cleared before completing offboarding.'); setCompleteOpen(false); return }
+    if (dataSource === 'api') {
+      void runHrApiAction({ dataSource, refreshFromApi, toast }, {
+        action: () => hrActions.updateOffboarding(selected.id, { status: 'Completed', settlementStatus: 'Paid' }),
+        successMessage: 'Offboarding completed',
+        successDescription: 'The employee record is now Terminated and the settlement is marked Paid.',
+        errorTitle: 'Could not complete offboarding',
+      }).then((res) => {
+        if (res.ok) {
+          setCompleteOpen(false)
+          setSelectedId(null)
+        }
+      })
+      return
+    }
     update((d) => ({
       ...d,
       offboarding: d.offboarding.map((o) => (o.id === selected.id ? { ...o, status: 'Completed', settlementStatus: 'Paid', history: [...o.history, { id: uid('oh'), date: todayISO(), action: 'Offboarding completed', actor: 'Amara Okafor' }] } : o)),
@@ -210,6 +304,11 @@ export default function Offboarding() {
 
   const deleteRecord = () => {
     if (!deleteTarget) return
+    if (dataSource === 'api') {
+      toast('Deleting offboarding records is not supported', 'warning', 'The API keeps an audited offboarding history. Mark the record Cancelled instead of deleting it. Nothing was removed.')
+      setDeleteTarget(null)
+      return
+    }
     update((d) => ({ ...d, offboarding: d.offboarding.filter((o) => o.id !== deleteTarget.id) }))
     logActivity('offboarding', 'Offboarding record deleted', deleteTarget.id)
     toast('Record deleted', 'success', `${deleteTarget.id} was removed from the local workspace.`)
@@ -229,15 +328,56 @@ export default function Offboarding() {
 
   return (
     <div>
-      <PageHeader
+      {useApi && offboardingQuery.loading && (
+        <div className="text-center py-12">
+          <div className="flex flex-col items-center gap-3 animate-pulse">
+            <div className="w-12 h-12 rounded-full border-4 border-brand-500 border-t-transparent" />
+            <p className="text-sm text-slate-500 dark:text-slate-400">Loading offboarding data…</p>
+          </div>
+        </div>
+      )}
+      {useApi && offboardingQuery.error && (
+        <div className="text-center py-12">
+          <div className="rounded-xl bg-rose-50 border border-rose-200 px-6 py-8 max-w-md mx-auto dark:bg-rose-500/10 dark:border-rose-500/20">
+            <AlertTriangle className="h-6 w-6 text-rose-500 mx-auto mb-3" />
+            <h3 className="text-lg font-semibold text-rose-900 dark:text-rose-300">Unable to load offboarding data</h3>
+            <p className="mt-2 text-sm text-rose-700 dark:text-rose-400">{offboardingQuery.error}</p>
+            <button
+              onClick={() => offboardingQuery.refetch()}
+              className="mt-4 px-4 py-2 text-sm font-semibold text-rose-600 hover:text-rose-700 dark:text-rose-300"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
+      {!useApi || (!offboardingQuery.loading && !offboardingQuery.error) && (
+        <>
+        <PageHeader
         title="Offboarding"
         subtitle="Run a dignified, compliant exit — coordinate department clearances, capture exit feedback and settle final pay."
         crumbs={['People Ops', 'Offboarding']}
-        actions={<><Button variant="secondary" onClick={exportOffboarding} disabled={!filtered.length}><Download className="h-4 w-4" /> Export</Button><Button onClick={() => { setForm(blankForm); setErrors({}); setCreateOpen(true) }}><Plus className="h-4 w-4" /> Start offboarding</Button></>}
+        actions={
+          <>
+            {useApi && (
+              <Button variant="secondary" onClick={() => void offboardingQuery.refetch()} disabled={offboardingQuery.loading}>
+                <RefreshCw className={`h-4 w-4 ${offboardingQuery.loading ? 'animate-spin' : ''}`} /> Refresh
+              </Button>
+            )}
+            <Button variant="secondary" onClick={exportOffboarding} disabled={!filtered.length}><Download className="h-4 w-4" /> Export</Button>
+            {access.can('offboarding.write') && (
+              <Button onClick={() => { setForm(blankForm); setErrors({}); setCreateOpen(true) }}><Plus className="h-4 w-4" /> Start offboarding</Button>
+            )}
+          </>
+        }
       />
 
+      {!access.can('offboarding.write') && (
+        <HrPermissionNotice className="mb-4" message={`${describeMissingPermission('offboarding.write')} You can review offboarding records but cannot change clearances, settlement or status.`} />
+      )}
+
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <StatCard index={0} label="Active exits" value={active.length} icon={UserMinus} tone="brand" hint={`${db.offboarding.length} total records`} />
+        <StatCard index={0} label="Active exits" value={active.length} icon={UserMinus} tone="brand" hint={`${allOffboarding.length} total records`} />
         <StatCard index={1} label="Clearances pending" value={pendingClearances} icon={ClipboardCheck} tone="amber" hint={`${blockedClearances} blocked`} />
         <StatCard index={2} label="Exits next 30 days" value={upcoming.length} icon={CalendarDays} tone="violet" hint="Last working day" />
         <StatCard index={3} label="Settlement pending" value={fmtMoney(settlementPending, true)} icon={Wallet} tone="blue" hint="Not yet paid" />
@@ -301,9 +441,21 @@ export default function Offboarding() {
               })}
             </tbody>
           </table>
-          {!rows.length && <EmptyState icon={LogOut} title="No offboarding records" description={db.offboarding.length ? 'No records match the current filters.' : 'Start an offboarding to coordinate clearances and final settlement.'} action={db.offboarding.length ? <Button variant="secondary" onClick={resetFilters}>Clear filters</Button> : <Button onClick={() => { setForm(blankForm); setCreateOpen(true) }}><Plus className="h-4 w-4" /> Start offboarding</Button>} />}
+          {!rows.length && <EmptyState icon={LogOut} title="No offboarding records" description={allOffboarding.length ? 'No records match the current filters.' : 'Start an offboarding to coordinate clearances and final settlement.'} action={allOffboarding.length ? <Button variant="secondary" onClick={resetFilters}>Clear filters</Button> : <Button onClick={() => { setForm(blankForm); setCreateOpen(true) }}><Plus className="h-4 w-4" /> Start offboarding</Button>} />}
         </div>
-        {filtered.length > 0 && <Pagination page={currentPage} totalPages={totalPages} total={filtered.length} from={from} to={Math.min(from + pageSize, filtered.length)} onPage={setPage} pageSize={pageSize} onPageSize={(n) => { setPageSize(n); setPage(1) }} label="records" />}
+        {totalItems > 0 && (
+          <Pagination
+            page={currentPage}
+            totalPages={totalPages}
+            total={totalItems}
+            from={rows.length ? from + 1 : 0}
+            to={rows.length ? from + rows.length : 0}
+            onPage={setPage}
+            pageSize={offboardingMeta?.pageSize ?? pageSize}
+            onPageSize={(n) => { setPageSize(n); setPage(1) }}
+            label="records"
+          />
+        )}
       </Card>
 
       <Drawer
@@ -314,9 +466,11 @@ export default function Offboarding() {
         width="lg"
         footer={selected ? (
           <>
-            <Button variant="ghost" className="mr-auto text-rose-600 dark:text-rose-400" onClick={() => setDeleteTarget(selected)}><Trash2 className="h-4 w-4" /> Delete</Button>
+            {access.can('offboarding.write') && (
+              <Button variant="ghost" className="mr-auto text-rose-600 dark:text-rose-400" onClick={() => setDeleteTarget(selected)}><Trash2 className="h-4 w-4" /> Delete</Button>
+            )}
             <Button variant="secondary" onClick={() => setSelectedId(null)}>Close</Button>
-            {selected.status !== 'Completed' && <Button onClick={() => setCompleteOpen(true)} disabled={!selected.clearances.every((c) => c.status === 'Cleared')}><CheckCircle2 className="h-4 w-4" /> Complete offboarding</Button>}
+            {access.can('offboarding.write') && selected.status !== 'Completed' && <Button onClick={() => setCompleteOpen(true)} disabled={!selected.clearances.every((c) => c.status === 'Cleared')}><CheckCircle2 className="h-4 w-4" /> Complete offboarding</Button>}
           </>
         ) : null}
       >
@@ -485,6 +639,8 @@ export default function Offboarding() {
       <ConfirmDialog open={!!completeOpen} onClose={() => setCompleteOpen(false)} onConfirm={completeOffboarding} title="Complete this offboarding?" description="The record is marked Completed, the settlement is marked Paid and the employee status becomes Terminated. This is demo data only." confirmLabel="Complete offboarding" />
       <ConfirmDialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={deleteRecord} title="Delete offboarding record?" description={deleteTarget ? `${deleteTarget.id} and its clearance history will be removed from this local demo.` : ''} confirmLabel="Delete record" tone="danger" />
       <DocumentPreview doc={preview} onClose={() => setPreview(null)} />
-    </div>
+    </>
+  )}
+  </div>
   )
 }

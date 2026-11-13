@@ -7,6 +7,7 @@ import {
   Send, ShieldCheck, Trash2, Users, XCircle,
 } from 'lucide-react'
 import { useStore } from '../store'
+import { describeMissingPermission, useHrAccess } from '../lib/access'
 import { runHrApiAction, hrActions } from '../api-actions'
 import type { Contract, ContractSignature, DocFile } from '../types'
 import { addDays, downloadCSV, fmtDate, fmtDateTime, fmtMoney, sum, todayISO, uid } from '../lib/utils'
@@ -14,8 +15,9 @@ import { contractDaysRemaining, effectiveContractStatus } from '../lib/hr'
 import { ContractModal } from '../components/contract-modal'
 import {
   Avatar, Badge, Button, Card, ConfirmDialog, DocumentPreview, DocumentRow, EmptyState, Field,
-  FileDrop, InfoRow, PageHeader, ProgressBar, SectionCard, StatusBadge, Tabs, Textarea,
+  FileDrop, InfoRow, PageHeader, ProgressBar, SectionCard, Skeleton, StatusBadge, Tabs, Textarea,
 } from '../components/ui'
+import { HrPermissionNotice } from '../components/hr-guard'
 
 type Tab = 'overview' | 'documents' | 'schedule' | 'activity'
 
@@ -33,9 +35,10 @@ const flowDescription: Record<string, string> = {
 }
 
 export default function ContractDetail() {
+  const access = useHrAccess()
   const { id } = useParams()
   const navigate = useNavigate()
-  const { db, update, logActivity, toast, dataSource, refreshFromApi } = useStore()
+  const { db, update, logActivity, toast, dataSource, refreshFromApi, syncStatus } = useStore()
   const contract = db.contracts.find((c) => c.id === id)
   const [tab, setTab] = useState<Tab>('overview')
   const [editOpen, setEditOpen] = useState(false)
@@ -50,6 +53,24 @@ export default function ContractDetail() {
     () => (contract?.employeeId ? db.employees.find((e) => e.id === contract.employeeId) : undefined),
     [contract, db.employees],
   )
+
+  /** Payments recorded against this contract (ERP API data when connected). */
+  const relatedPayments = useMemo(
+    () => db.payments.filter((p) => p.contractId === contract?.id),
+    [db.payments, contract?.id],
+  )
+
+  // In API mode the contract register hydrates asynchronously; avoid the
+  // "not found" flash while the detail is still being fetched.
+  if (!contract && dataSource === 'api' && syncStatus === 'loading') {
+    return (
+      <div className="space-y-4" aria-busy="true">
+        <Skeleton className="h-[120px]" />
+        <Skeleton className="h-[320px]" />
+        <p className="text-center text-xs text-slate-400">Loading contract details…</p>
+      </div>
+    )
+  }
 
   if (!contract) {
     return (
@@ -496,6 +517,32 @@ export default function ContractDetail() {
                 </div>
                 <p className="mt-4 flex items-center gap-1.5 text-[11px] text-slate-400"><ShieldCheck className="h-3.5 w-3.5" /> Demo schedule — marking an item paid does not move any real money.</p>
               </SectionCard>
+
+              <SectionCard title="Related payments" subtitle="ERP payments recorded against this agreement">
+                {relatedPayments.length === 0 ? (
+                  <p className="py-6 text-center text-[11px] text-slate-400">No payments are linked to this contract yet.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[560px]">
+                      <thead><tr className="border-b border-slate-100 dark:border-white/[0.06]"><th className="table-head pl-0">Payment</th><th className="table-head">Date</th><th className="table-head text-right">Amount</th><th className="table-head">Approval</th><th className="table-head">Payment status</th><th className="table-head text-right pr-0">Action</th></tr></thead>
+                      <tbody>
+                        {relatedPayments.map((p) => (
+                          <tr key={p.id} className="table-row">
+                            <td className="table-cell pl-0"><p className="text-[12.5px] font-medium">{p.id}</p><p className="text-[10px] text-slate-400">{p.category}</p></td>
+                            <td className="table-cell">{fmtDate(p.date)}</td>
+                            <td className="table-cell text-right tabular font-semibold">{fmtMoney(p.amount)}</td>
+                            <td className="table-cell"><StatusBadge status={p.approvalStatus} /></td>
+                            <td className="table-cell"><StatusBadge status={p.paymentStatus} /></td>
+                            <td className="table-cell pr-0 text-right">
+                              <Button size="sm" variant="ghost" onClick={() => navigate('/payments')}>Open <ChevronRight className="h-3 w-3" /></Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </SectionCard>
             </motion.div>
           )}
 
@@ -542,10 +589,18 @@ export default function ContractDetail() {
             <h3 className="text-sm font-semibold">Actions</h3>
             <p className="mt-0.5 text-xs text-slate-400">Workflow actions update only this demo register.</p>
             <div className="mt-4 space-y-2">
-              {!locked && nextAction && <Button className="w-full justify-start" onClick={nextAction.onClick}><nextAction.icon className="h-4 w-4" /> {nextAction.label}</Button>}
-              {!locked && ['Active', 'Expiring Soon', 'Expired'].includes(status) && <Button variant="secondary" className="w-full justify-start" onClick={() => setRenewOpen(true)}><RefreshCw className="h-4 w-4" /> Renew for 12 months</Button>}
-              {!locked && status !== 'Draft' && <Button variant="secondary" className="w-full justify-start text-rose-600 hover:text-rose-700 dark:text-rose-400" onClick={() => setTerminateOpen(true)}><XCircle className="h-4 w-4" /> Terminate contract</Button>}
-              <Button variant="secondary" className="w-full justify-start" onClick={() => setEditOpen(true)}><Pencil className="h-4 w-4" /> Edit details</Button>
+              {access.can('contract.write') ? (
+                <>
+                  {!locked && nextAction && <Button className="w-full justify-start" onClick={nextAction.onClick}><nextAction.icon className="h-4 w-4" /> {nextAction.label}</Button>}
+                  {!locked && ['Active', 'Expiring Soon', 'Expired'].includes(status) && <Button variant="secondary" className="w-full justify-start" onClick={() => setRenewOpen(true)}><RefreshCw className="h-4 w-4" /> Renew for 12 months</Button>}
+                  {!locked && status !== 'Draft' && <Button variant="secondary" className="w-full justify-start text-rose-600 hover:text-rose-700 dark:text-rose-400" onClick={() => setTerminateOpen(true)}><XCircle className="h-4 w-4" /> Terminate contract</Button>}
+                  <Button variant="secondary" className="w-full justify-start" onClick={() => setEditOpen(true)}><Pencil className="h-4 w-4" /> Edit details</Button>
+                </>
+              ) : (
+                <p className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] text-slate-500 dark:bg-white/[0.03] dark:text-slate-400" title={describeMissingPermission('contract.write')}>
+                  {describeMissingPermission('contract.write')}
+                </p>
+              )}
               <Button variant="secondary" className="w-full justify-start" onClick={exportContract}><Download className="h-4 w-4" /> Export summary</Button>
               <Button variant="ghost" className="w-full justify-start text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-500/10" onClick={() => setDeleteOpen(true)}><Trash2 className="h-4 w-4" /> Delete contract</Button>
             </div>

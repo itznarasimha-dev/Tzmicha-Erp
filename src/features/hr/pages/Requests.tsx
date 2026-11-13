@@ -1,9 +1,14 @@
-import { useMemo, useState } from 'react'
 import {
-  ArrowRight, CheckCircle2, ChevronRight, Clock3, Download, Inbox, MessageSquareText, Plus,
-  RotateCcw, Send, ShieldCheck, Trash2, UserCheck, Users, XCircle,
+  useState, useMemo,
+} from 'react'
+import {
+  AlertTriangle, ArrowRight, CheckCircle2, ChevronRight, Clock3, Download, Inbox,
+  MessageSquareText, Plus, RefreshCw, RotateCcw, Send, ShieldCheck, Trash2, Users, XCircle,
 } from 'lucide-react'
+
 import { useStore } from '../store'
+import { describeMissingPermission, useHrAccess } from '../lib/access'
+import { useEmployeeRequests } from '../useHrData'
 import { runHrApiAction, hrActions } from '../api-actions'
 import type { EmployeeRequest, Priority, RequestStatus } from '../types'
 import { downloadCSV, fmtDate, fmtDateTime, relativeTime, todayISO, uid } from '../lib/utils'
@@ -11,6 +16,7 @@ import {
   Avatar, Badge, Button, Card, ConfirmDialog, Drawer, EmptyState, Field, Input, Modal, PageHeader,
   Pagination, SearchInput, Select, StatCard, StatusBadge, Tabs, Textarea,
 } from '../components/ui'
+import { HrPermissionNotice } from '../components/hr-guard'
 
 const STATUSES: RequestStatus[] = ['Open', 'In Progress', 'Resolved', 'Rejected']
 const PRIORITIES: Priority[] = ['Low', 'Medium', 'High', 'Urgent']
@@ -22,6 +28,7 @@ const blankForm = {
 }
 
 export default function Requests() {
+  const access = useHrAccess()
   const { db, update, logActivity, toast, dataSource, refreshFromApi } = useStore()
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('All')
@@ -39,24 +46,38 @@ export default function Requests() {
   const [deleteTarget, setDeleteTarget] = useState<EmployeeRequest | null>(null)
   const [confirmAction, setConfirmAction] = useState<{ request: EmployeeRequest; action: 'start' | 'resolve' | 'reject' | 'reopen' } | null>(null)
 
+  const requestsQuery = useEmployeeRequests({
+    employeeId: undefined,
+    status: status === 'All' ? undefined : status as any,
+    priority: priority === 'All' ? undefined : priority as any,
+    page,
+    pageSize,
+  })
+
+  const useApi = dataSource === 'api'
+  const requestsData = useApi ? requestsQuery.data : null
+  const allRequests = (requestsData?.data ?? db.requests) as EmployeeRequest[]
+
   const empMap = useMemo(() => new Map(db.employees.map((e) => [e.id, e])), [db.employees])
-  const selected = db.requests.find((r) => r.id === selectedId) || null
-  const assignees = useMemo(() => Array.from(new Set(db.requests.map((r) => r.assignedTo))).sort(), [db.requests])
+  const selected = allRequests.find((r) => r.id === selectedId) || null
+  // The verified caller name (API mode) or the demo workspace owner.
+  const currentUserName = access.identity?.name || 'Aisha Bello'
+  const assignees = useMemo(() => Array.from(new Set(allRequests.map((r) => r.assignedTo))).sort(), [allRequests])
 
   const counts = useMemo(() => ({
-    open: db.requests.filter((r) => r.status === 'Open').length,
-    progress: db.requests.filter((r) => r.status === 'In Progress').length,
-    resolved: db.requests.filter((r) => r.status === 'Resolved').length,
-    urgent: db.requests.filter((r) => ['Urgent', 'High'].includes(r.priority) && !['Resolved', 'Rejected'].includes(r.status)).length,
-    responses: db.requests.reduce((acc, r) => acc + r.responses.length, 0),
-  }), [db.requests])
+    open: allRequests.filter((r) => r.status === 'Open').length,
+    progress: allRequests.filter((r) => r.status === 'In Progress').length,
+    resolved: allRequests.filter((r) => r.status === 'Resolved').length,
+    urgent: allRequests.filter((r) => ['Urgent', 'High'].includes(r.priority) && !['Resolved', 'Rejected'].includes(r.status)).length,
+    responses: allRequests.reduce((acc, r) => acc + r.responses.length, 0),
+  }), [allRequests])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return db.requests.filter((r) => {
+    return allRequests.filter((r) => {
       const e = empMap.get(r.employeeId)
       const matchSearch = !q || r.subject.toLowerCase().includes(q) || r.id.toLowerCase().includes(q) || r.description.toLowerCase().includes(q) || (e && `${e.firstName} ${e.lastName}`.toLowerCase().includes(q))
-      const matchView = view === 'all' || (view === 'queue' && r.assignedTo === 'Aisha Bello' && !['Resolved', 'Rejected'].includes(r.status))
+      const matchView = view === 'all' || (view === 'queue' && r.assignedTo === currentUserName && !['Resolved', 'Rejected'].includes(r.status))
       return matchSearch && matchView && (status === 'All' || r.status === status) && (priority === 'All' || r.priority === priority) && (type === 'All' || r.type === type) && (assignee === 'All' || r.assignedTo === assignee)
     }).sort((a, b) => {
       const rank = (s: string) => s === 'Urgent' ? 0 : s === 'High' ? 1 : s === 'Medium' ? 2 : 3
@@ -64,12 +85,15 @@ export default function Requests() {
       if (b.status === 'Open' && a.status !== 'Open') return 1
       return rank(a.priority) - rank(b.priority) || b.createdAt.localeCompare(a.createdAt)
     })
-  }, [db.requests, empMap, search, status, priority, type, assignee, view])
+  }, [allRequests, empMap, search, status, priority, type, assignee, view, currentUserName])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
-  const currentPage = Math.min(page, totalPages)
-  const from = (currentPage - 1) * pageSize
-  const rows = filtered.slice(from, from + pageSize)
+  // API mode uses the server pagination metadata; demo mode paginates locally.
+  const requestMeta = (requestsData as any)?.meta
+  const totalItems = useApi ? Number(requestMeta?.total ?? filtered.length) : filtered.length
+  const totalPages = useApi ? Math.max(1, Number(requestMeta?.totalPages ?? 1)) : Math.max(1, Math.ceil(filtered.length / pageSize))
+  const currentPage = useApi ? Number(requestMeta?.page ?? page) : Math.min(page, totalPages)
+  const from = useApi ? (filtered.length ? (currentPage - 1) * (requestMeta?.pageSize ?? pageSize) : 0) : (Math.min(page, totalPages) - 1) * pageSize
+  const rows = useApi ? filtered : filtered.slice(from, from + pageSize)
 
   const setField = (key: keyof typeof blankForm, value: string) => {
     setForm((f) => ({ ...f, [key]: value }))
@@ -100,6 +124,7 @@ export default function Requests() {
       setCreateOpen(false)
       setForm(blankForm)
       setPage(1)
+      requestsQuery.refetch()
       return
     }
 
@@ -158,6 +183,7 @@ export default function Requests() {
       })
       setConfirmAction(null)
       if (status === 'Resolved' || status === 'Rejected') setSelectedId(null)
+      requestsQuery.refetch()
       return
     }
 
@@ -184,6 +210,7 @@ export default function Requests() {
         errorTitle: 'Could not send response',
       })
       setResponse('')
+      requestsQuery.refetch()
       return
     }
 
@@ -210,6 +237,7 @@ export default function Requests() {
         successDescription: `${selected.id} is now owned by ${value}.`,
         errorTitle: 'Could not reassign request',
       })
+      requestsQuery.refetch()
       return
     }
 
@@ -241,12 +269,53 @@ export default function Requests() {
 
   return (
     <div>
-      <PageHeader
+      {useApi && requestsQuery.loading && (
+        <div className="text-center py-12">
+          <div className="flex flex-col items-center gap-3 animate-pulse">
+            <div className="w-12 h-12 rounded-full border-4 border-brand-500 border-t-transparent" />
+            <p className="text-sm text-slate-500 dark:text-slate-400">Loading request data…</p>
+          </div>
+        </div>
+      )}
+      {useApi && requestsQuery.error && (
+        <div className="text-center py-12">
+          <div className="rounded-xl bg-rose-50 border border-rose-200 px-6 py-8 max-w-md mx-auto dark:bg-rose-500/10 dark:border-rose-500/20">
+            <AlertTriangle className="h-6 w-6 text-rose-500 mx-auto mb-3" />
+            <h3 className="text-lg font-semibold text-rose-900 dark:text-rose-300">Unable to load request data</h3>
+            <p className="mt-2 text-sm text-rose-700 dark:text-rose-400">{requestsQuery.error}</p>
+            <button
+              onClick={() => requestsQuery.refetch()}
+              className="mt-4 px-4 py-2 text-sm font-semibold text-rose-600 hover:text-rose-700 dark:text-rose-300"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
+      {!useApi || (!requestsQuery.loading && !requestsQuery.error) && (
+        <>
+        <PageHeader
         title="Employee Requests"
         subtitle="A single queue for HR letters, document requests, profile updates and policy questions — with clear ownership and response history."
         crumbs={['People Ops', 'Employee Requests']}
-        actions={<><Button variant="secondary" onClick={exportRequests} disabled={!filtered.length}><Download className="h-4 w-4" /> Export</Button><Button onClick={() => { setForm(blankForm); setErrors({}); setCreateOpen(true) }}><Plus className="h-4 w-4" /> New request</Button></>}
+        actions={
+          <>
+            {useApi && (
+              <Button variant="secondary" onClick={() => void requestsQuery.refetch()} disabled={requestsQuery.loading}>
+                <RefreshCw className={`h-4 w-4 ${requestsQuery.loading ? 'animate-spin' : ''}`} /> Refresh
+              </Button>
+            )}
+            <Button variant="secondary" onClick={exportRequests} disabled={!filtered.length}><Download className="h-4 w-4" /> Export</Button>
+            {access.can('request.write') && (
+              <Button onClick={() => { setForm(blankForm); setErrors({}); setCreateOpen(true) }}><Plus className="h-4 w-4" /> New request</Button>
+            )}
+          </>
+        }
       />
+
+      {!access.can('request.write') && (
+        <HrPermissionNotice className="mb-4" message={`${describeMissingPermission('request.write')} You can raise and follow your own requests but cannot manage the queue.`} />
+      )}
 
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <StatCard index={0} label="Open requests" value={counts.open} icon={Inbox} tone="brand" hint="Awaiting first response" onClick={() => { setStatus('Open'); setPage(1) }} />
@@ -256,7 +325,7 @@ export default function Requests() {
       </div>
 
       <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Tabs items={[{ id: 'all', label: 'All requests', count: db.requests.length }, { id: 'queue', label: 'My queue', count: db.requests.filter((r) => r.assignedTo === 'Aisha Bello' && !['Resolved', 'Rejected'].includes(r.status)).length }]} value={view} onChange={(v) => { setView(v); setPage(1) }} className="border-0" />
+        <Tabs items={[{ id: 'all', label: 'All requests', count: allRequests.length }, { id: 'queue', label: 'My queue', count: allRequests.filter((r) => r.assignedTo === currentUserName && !['Resolved', 'Rejected'].includes(r.status)).length }]} value={view} onChange={(v) => { setView(v); setPage(1) }} className="border-0" />
         <div className="flex flex-wrap gap-2">
           <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1) }} placeholder="Search requests or employees…" className="w-full sm:w-64" />
           <Select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1) }} className="w-auto"><option value="All">All statuses</option>{STATUSES.map((s) => <option key={s}>{s}</option>)}</Select>
@@ -299,7 +368,19 @@ export default function Requests() {
             </table>
             {!rows.length && <EmptyState icon={MessageSquareText} title="No requests here" description={view === 'queue' ? 'Your personal queue is clear. Switch to all requests to see the wider team queue.' : 'No requests match the current filters. Try clearing a filter.'} action={<Button variant="secondary" onClick={resetFilters}>Clear filters</Button>} />}
           </div>
-          {filtered.length > 0 && <Pagination page={currentPage} totalPages={totalPages} total={filtered.length} from={from} to={Math.min(from + pageSize, filtered.length)} onPage={setPage} pageSize={pageSize} onPageSize={(n) => { setPageSize(n); setPage(1) }} label="requests" />}
+          {totalItems > 0 && (
+            <Pagination
+              page={currentPage}
+              totalPages={totalPages}
+              total={totalItems}
+              from={rows.length ? from + 1 : 0}
+              to={rows.length ? from + rows.length : 0}
+              onPage={setPage}
+              pageSize={requestMeta?.pageSize ?? pageSize}
+              onPageSize={(n) => { setPageSize(n); setPage(1) }}
+              label="requests"
+            />
+          )}
         </Card>
 
         <div className="space-y-4">
@@ -337,10 +418,17 @@ export default function Requests() {
         width="lg"
         footer={selected ? (
           <>
-            <Button variant="ghost" className="mr-auto text-rose-600 dark:text-rose-400" onClick={() => setDeleteTarget(selected)}><Trash2 className="h-4 w-4" /> Delete</Button>
-            {selected.status === 'Open' && <Button onClick={() => setConfirmAction({ request: selected, action: 'start' })}><ArrowRight className="h-4 w-4" /> Start working</Button>}
-            {selected.status === 'In Progress' && <><Button variant="danger" onClick={() => setConfirmAction({ request: selected, action: 'reject' })}>Reject</Button><Button onClick={() => setConfirmAction({ request: selected, action: 'resolve' })}><CheckCircle2 className="h-4 w-4" /> Resolve</Button></>}
-            {['Resolved', 'Rejected'].includes(selected.status) && <Button variant="secondary" onClick={() => setConfirmAction({ request: selected, action: 'reopen' })}><RotateCcw className="h-4 w-4" /> Reopen</Button>}
+            {access.can('request.write') && (
+              <Button variant="ghost" className="mr-auto text-rose-600 dark:text-rose-400" onClick={() => setDeleteTarget(selected)}><Trash2 className="h-4 w-4" /> Delete</Button>
+            )}
+            {access.can('request.write') && selected.status === 'Open' && <Button onClick={() => setConfirmAction({ request: selected, action: 'start' })}><ArrowRight className="h-4 w-4" /> Start working</Button>}
+            {access.can('request.write') && selected.status === 'In Progress' && <><Button variant="danger" onClick={() => setConfirmAction({ request: selected, action: 'reject' })}>Reject</Button><Button onClick={() => setConfirmAction({ request: selected, action: 'resolve' })}><CheckCircle2 className="h-4 w-4" /> Resolve</Button></>}
+            {access.can('request.write') && ['Resolved', 'Rejected'].includes(selected.status) && <Button variant="secondary" onClick={() => setConfirmAction({ request: selected, action: 'reopen' })}><RotateCcw className="h-4 w-4" /> Reopen</Button>}
+            {!access.can('request.write') && (
+              <span className="text-[11px] text-slate-400" title={describeMissingPermission('request.write')}>
+                {describeMissingPermission('request.write')}
+              </span>
+            )}
           </>
         ) : null}
       >
@@ -359,7 +447,7 @@ export default function Requests() {
                 <div className="min-w-0 flex-1"><p className="text-[13px] font-semibold text-slate-800 dark:text-slate-100">{e ? `${e.firstName} ${e.lastName}` : selected.employeeId}</p><p className="text-[10px] text-slate-400">{e?.designation} · {e?.department} · {e?.email}</p></div>
                 <div className="w-full sm:w-44">
                   <label className="mb-1 block text-[9px] font-bold uppercase tracking-wider text-slate-400">Assigned to</label>
-                  <Select value={selected.assignedTo} onChange={(ev) => reassign(ev.target.value)} className="h-8 py-1 text-xs">{assignees.map((a) => <option key={a}>{a}</option>)}</Select>
+                  <Select value={selected.assignedTo} disabled={!access.can('request.write')} onChange={(ev) => reassign(ev.target.value)} title={access.can('request.write') ? undefined : describeMissingPermission('request.write')} className="h-8 py-1 text-xs">{assignees.map((a) => <option key={a}>{a}</option>)}</Select>
                 </div>
               </div>
 
@@ -452,6 +540,8 @@ export default function Requests() {
         confirmLabel="Delete request"
         tone="danger"
       />
-    </div>
+    </>
+  )}
+  </div>
   )
 }

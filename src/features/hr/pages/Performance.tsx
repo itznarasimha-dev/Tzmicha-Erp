@@ -1,10 +1,15 @@
-import { useMemo, useState } from 'react'
-import { motion } from 'framer-motion'
 import {
-  AlertTriangle, ArrowRight, Award, BarChart3, CalendarDays, Check, CheckCircle2, ChevronRight,
-  Download, Flag, Gauge, Minus, Pencil, Plus, Star, Target, TrendingUp, Trash2, UserRound,
+  useState, useMemo,
+} from 'react'
+import {
+  AlertTriangle, ArrowRight, BarChart3, Check, CheckCircle2, ChevronRight, Download, Flag, Gauge,
+  Minus, Pencil, Plus, RefreshCw, Star, Target, Trash2, UserRound,
 } from 'lucide-react'
+
 import { useStore } from '../store'
+import { describeMissingPermission, useHrAccess } from '../lib/access'
+import { useReviews } from '../useHrData'
+import { runHrApiAction, hrActions } from '../api-actions'
 import type { Goal, PerformanceReview, ReviewStatus } from '../types'
 import { downloadCSV, fmtDate, fmtMoney, todayISO, uid } from '../lib/utils'
 import { BarDistribution, Donut, Legend } from '../components/charts'
@@ -13,6 +18,7 @@ import {
   Modal, PageHeader, Pagination, ProgressBar, SearchInput, SectionCard, Select, StatCard, StatusBadge, Tabs,
   Textarea,
 } from '../components/ui'
+import { HrPermissionNotice } from '../components/hr-guard'
 
 const FLOW: ReviewStatus[] = ['Not Started', 'Self Assessment', 'Manager Review', 'HR Review', 'Completed']
 type SortKey = 'due' | 'name' | 'rating' | 'progress'
@@ -31,7 +37,8 @@ const defaultGoals = (): Goal[] => [
 ]
 
 export default function Performance() {
-  const { db, update, logActivity, toast } = useStore()
+  const access = useHrAccess()
+  const { db, update, logActivity, toast, dataSource, refreshFromApi } = useStore()
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('All')
   const [department, setDepartment] = useState('All')
@@ -47,27 +54,39 @@ export default function Performance() {
   const [form, setForm] = useState(blankReview)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
+  const reviewsQuery = useReviews({
+    employeeId: undefined,
+    period: undefined,
+    status: status === 'All' ? undefined : status as any,
+    page,
+    pageSize,
+  })
+
+  const useApi = dataSource === 'api'
+  const reviewsData = useApi ? reviewsQuery.data : null
+  const allReviews = (reviewsData ?? db.reviews) as PerformanceReview[]
+
   const empMap = useMemo(() => new Map(db.employees.map((e) => [e.id, e])), [db.employees])
-  const selected = db.reviews.find((r) => r.id === selectedId) || null
+  const selected = allReviews.find((r) => r.id === selectedId) || null
 
   const counts = useMemo(() => {
-    const completed = db.reviews.filter((r) => r.status === 'Completed').length
-    const totalGoals = db.reviews.reduce((acc, r) => acc + r.goals.length, 0)
-    const atRisk = db.reviews.reduce((acc, r) => acc + r.goals.filter((g) => g.status === 'At Risk').length, 0)
-    const ratings = db.reviews.map((r) => r.managerRating).filter((r) => r > 0)
-    const overdue = db.reviews.filter((r) => r.status !== 'Completed' && r.dueDate < todayISO()).length
-    const upcoming = db.reviews.filter((r) => r.status !== 'Completed' && r.dueDate >= todayISO() && r.dueDate <= todayISO().slice(0, 8) + '99').length
+    const completed = allReviews.filter((r) => r.status === 'Completed').length
+    const totalGoals = allReviews.reduce((acc, r) => acc + r.goals.length, 0)
+    const atRisk = allReviews.reduce((acc, r) => acc + r.goals.filter((g) => g.status === 'At Risk').length, 0)
+    const ratings = allReviews.map((r) => r.managerRating).filter((r) => r > 0)
+    const overdue = allReviews.filter((r) => r.status !== 'Completed' && r.dueDate < todayISO()).length
+    const upcoming = allReviews.filter((r) => r.status !== 'Completed' && r.dueDate >= todayISO() && r.dueDate <= todayISO().slice(0, 8) + '99').length
     return {
-      completion: db.reviews.length ? Math.round((completed / db.reviews.length) * 100) : 0,
+      completion: allReviews.length ? Math.round((completed / allReviews.length) * 100) : 0,
       completed, totalGoals, atRisk, overdue, upcoming,
       avgRating: ratings.length ? (ratings.reduce((a, b) => a + b, 0) / ratings.length) : 0,
-      active: db.reviews.length - completed,
+      active: allReviews.length - completed,
     }
-  }, [db.reviews])
+  }, [allReviews])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    const list = db.reviews.filter((r) => {
+    const list = allReviews.filter((r) => {
       const e = empMap.get(r.employeeId)
       const matchSearch = !q || !e || `${e.firstName} ${e.lastName}`.toLowerCase().includes(q) || e.id.toLowerCase().includes(q) || r.id.toLowerCase().includes(q)
       return matchSearch && (status === 'All' || r.status === status) && (department === 'All' || e?.department === department)
@@ -81,22 +100,25 @@ export default function Performance() {
       }
       return a.dueDate.localeCompare(b.dueDate)
     })
-  }, [db.reviews, empMap, search, status, department, sort])
+  }, [allReviews, empMap, search, status, department, sort])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
-  const currentPage = Math.min(page, totalPages)
-  const from = (currentPage - 1) * pageSize
-  const rows = filtered.slice(from, from + pageSize)
+  // API mode uses the server pagination metadata; demo mode paginates locally.
+  const reviewMeta = (reviewsData as any)?.meta
+  const totalItems = useApi ? Number(reviewMeta?.total ?? filtered.length) : filtered.length
+  const totalPages = useApi ? Math.max(1, Number(reviewMeta?.totalPages ?? 1)) : Math.max(1, Math.ceil(filtered.length / pageSize))
+  const currentPage = useApi ? Number(reviewMeta?.page ?? page) : Math.min(page, totalPages)
+  const from = useApi ? (filtered.length ? (currentPage - 1) * (reviewMeta?.pageSize ?? pageSize) : 0) : (Math.min(page, totalPages) - 1) * pageSize
+  const rows = useApi ? filtered : filtered.slice(from, from + pageSize)
 
-  const statusCounts = FLOW.map((s) => ({ name: s, value: db.reviews.filter((r) => r.status === s).length, color: s === 'Completed' ? '#22c55e' : s === 'HR Review' ? '#8b5cf6' : s === 'Manager Review' ? '#6366f1' : s === 'Self Assessment' ? '#f59e0b' : '#94a3b8' }))
+  const statusCounts = FLOW.map((s) => ({ name: s, value: allReviews.filter((r) => r.status === s).length, color: s === 'Completed' ? '#22c55e' : s === 'HR Review' ? '#8b5cf6' : s === 'Manager Review' ? '#6366f1' : s === 'Self Assessment' ? '#f59e0b' : '#94a3b8' }))
   const deptData = useMemo(() => {
     const map = new Map<string, number>()
-    db.reviews.forEach((r) => {
+    allReviews.forEach((r) => {
       const d = empMap.get(r.employeeId)?.department || 'Other'
       map.set(d, (map.get(d) || 0) + 1)
     })
     return [...map.entries()].map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 7)
-  }, [db.reviews, empMap])
+  }, [allReviews, empMap])
 
   const avgProgress = (r: PerformanceReview) => r.goals.length ? Math.round(r.goals.reduce((a, g) => a + g.progress, 0) / r.goals.length) : 0
 
@@ -105,12 +127,39 @@ export default function Performance() {
     return i >= 0 && i < FLOW.length - 1 ? FLOW[i + 1] : null
   }
 
+  /**
+   * The backend lets an employee move only their own review to the
+   * "Self Assessment" stage; every other transition needs
+   * `hr.performance.write`.
+   */
+  const canAdvanceReview = (r: PerformanceReview): boolean => {
+    if (access.can('performance.write')) return true
+    const next = nextStatus(r.status)
+    if (!next) return false
+    if (next !== 'Self Assessment') return false
+    return access.isSelf(r.employeeId)
+  }
+
   const advance = () => {
     if (!confirmAdvance) return
     const next = nextStatus(confirmAdvance.status)
     if (!next) return
-    update((d) => ({ ...d, reviews: d.reviews.map((r) => (r.id === confirmAdvance.id ? { ...r, status: next, ...(next === 'Completed' ? { completedAt: todayISO(), hrRating: r.hrRating || 4 } : {}) } : r)) }))
     const e = empMap.get(confirmAdvance.employeeId)
+    if (dataSource === 'api') {
+      void runHrApiAction({ dataSource, refreshFromApi, toast }, {
+        action: () => hrActions.updateReview(confirmAdvance.id, {
+          status: next,
+          ...(next === 'Completed' ? { completedAt: todayISO(), hrRating: confirmAdvance.hrRating || 4 } : {}),
+        } as Record<string, unknown>),
+        successMessage: next === 'Completed' ? 'Review completed' : `Moved to ${next}`,
+        successDescription: `${e ? `${e.firstName} ${e.lastName}` : 'Employee'}'s review is now ${next}.`,
+        errorTitle: 'Could not advance review',
+      }).then((res) => {
+        if (res.ok) setConfirmAdvance(null)
+      })
+      return
+    }
+    update((d) => ({ ...d, reviews: d.reviews.map((r) => (r.id === confirmAdvance.id ? { ...r, status: next, ...(next === 'Completed' ? { completedAt: todayISO(), hrRating: r.hrRating || 4 } : {}) } : r)) }))
     logActivity('performance', `Review moved to ${next}`, `${e ? `${e.firstName} ${e.lastName}` : confirmAdvance.employeeId} · ${confirmAdvance.cycle}`)
     toast(next === 'Completed' ? 'Review completed' : `Moved to ${next}`, 'success', `${e ? `${e.firstName} ${e.lastName}` : 'Employee'}'s review is now ${next}.`)
     setConfirmAdvance(null)
@@ -118,21 +167,33 @@ export default function Performance() {
 
   const remind = (r: PerformanceReview) => {
     const e = empMap.get(r.employeeId)
+    if (dataSource === 'api') {
+      toast('Reminders are not sent by the backend yet', 'warning', `${e ? `${e.firstName} ${e.lastName}` : 'Employee'} was not emailed. No change was saved.`)
+      return
+    }
     logActivity('performance', 'Review reminder sent', `${e ? `${e.firstName} ${e.lastName}` : r.employeeId} · ${r.cycle}`)
     toast('Reminder sent', 'info', `${e ? `${e.firstName} ${e.lastName}` : 'Employee'} has been reminded to complete their review.`)
   }
 
   const adjustGoal = (reviewId: string, goalId: string, delta: number) => {
+    const review = allReviews.find((r) => r.id === reviewId)
+    if (!review) return
+    const goals: Goal[] = review.goals.map((g) => {
+      if (g.id !== goalId) return g
+      const progress = Math.max(0, Math.min(100, g.progress + delta))
+      return { ...g, progress, status: (progress >= 100 ? 'Completed' : g.status === 'Completed' ? 'On Track' : g.status) as Goal['status'] }
+    })
+    if (dataSource === 'api') {
+      void runHrApiAction({ dataSource, refreshFromApi, toast }, {
+        action: () => hrActions.updateReview(reviewId, { goals }),
+        successMessage: 'Goal progress updated',
+        errorTitle: 'Could not update goal',
+      })
+      return
+    }
     update((d) => ({
       ...d,
-      reviews: d.reviews.map((r) => r.id === reviewId ? {
-        ...r,
-        goals: r.goals.map((g) => {
-          if (g.id !== goalId) return g
-          const progress = Math.max(0, Math.min(100, g.progress + delta))
-          return { ...g, progress, status: progress >= 100 ? 'Completed' : g.status === 'Completed' ? 'On Track' : g.status }
-        }),
-      } : r),
+      reviews: d.reviews.map((r) => r.id === reviewId ? { ...r, goals: goals as Goal[] } : r),
     }))
   }
 
@@ -166,6 +227,54 @@ export default function Performance() {
     const managerRating = Number(form.managerRating)
     const hrRating = Number(form.hrRating)
 
+    if (dataSource === 'api') {
+      if (editing) {
+        void runHrApiAction({ dataSource, refreshFromApi, toast }, {
+          action: () => hrActions.updateReview(editing.id, {
+            selfRating,
+            managerRating,
+            hrRating,
+            strengths: form.strengths,
+            improvements: form.improvements,
+            comments: form.comments,
+          }),
+          successMessage: 'Review updated',
+          successDescription: 'Ratings and feedback have been saved.',
+          errorTitle: 'Could not update review',
+        }).then((res) => {
+          if (res.ok) {
+            setModal(null)
+            setEditing(null)
+          }
+        })
+        return
+      }
+      const already = allReviews.some((r) => r.employeeId === form.employeeId && r.cycle === form.cycle)
+      if (already) {
+        toast('Review already exists', 'warning', 'This employee is already in the selected review cycle.')
+        return
+      }
+      const period = form.cycle.split(' ').slice(0, 2).join(' ') || form.cycle.slice(0, 20)
+      void runHrApiAction({ dataSource, refreshFromApi, toast }, {
+        action: () => hrActions.createReview({
+          employeeId: form.employeeId,
+          period,
+          cycle: form.cycle.trim(),
+          dueDate: form.dueDate,
+          goals: defaultGoals(),
+        }),
+        successMessage: 'Review created',
+        successDescription: 'The employee has been added to the review cycle.',
+        errorTitle: 'Could not create review',
+      }).then((res) => {
+        if (res.ok) {
+          setModal(null)
+          setEditing(null)
+        }
+      })
+      return
+    }
+
     if (editing) {
       update((d) => ({ ...d, reviews: d.reviews.map((r) => (r.id === editing.id ? { ...r, ...form, selfRating, managerRating, hrRating, goals: r.goals } : r)) }))
       logActivity('performance', 'Review updated', `${empMap.get(editing.employeeId)?.firstName || ''} ${empMap.get(editing.employeeId)?.lastName || ''} · ${editing.cycle}`)
@@ -193,6 +302,11 @@ export default function Performance() {
 
   const removeReview = () => {
     if (!deleteTarget) return
+    if (dataSource === 'api') {
+      toast('Deleting reviews is not supported', 'warning', 'The API keeps an audited review history. No record was deleted.')
+      setDeleteTarget(null)
+      return
+    }
     update((d) => ({ ...d, reviews: d.reviews.filter((r) => r.id !== deleteTarget.id) }))
     logActivity('performance', 'Review deleted', `${deleteTarget.id} · ${deleteTarget.cycle}`)
     toast('Review removed', 'success', 'The review record was deleted from this demo workspace.')
@@ -208,7 +322,7 @@ export default function Performance() {
     toast('Performance report exported', 'success', `${filtered.length} reviews written to CSV.`)
   }
 
-  const allGoals = useMemo(() => db.reviews.flatMap((r) => r.goals.map((g) => ({ ...g, owner: empMap.get(r.employeeId), reviewId: r.id, reviewStatus: r.status }))), [db.reviews, empMap])
+  const allGoals = useMemo(() => allReviews.flatMap((r) => r.goals.map((g) => ({ ...g, owner: empMap.get(r.employeeId), reviewId: r.id, reviewStatus: r.status }))), [allReviews, empMap])
   const goalRows = allGoals.filter((g) => {
     const q = search.trim().toLowerCase()
     return (!q || (g.title.toLowerCase().includes(q) || (g.owner && `${g.owner.firstName} ${g.owner.lastName}`.toLowerCase().includes(q)))) && (status === 'All' || g.status === status)
@@ -216,15 +330,56 @@ export default function Performance() {
 
   return (
     <div>
-      <PageHeader
+      {useApi && reviewsQuery.loading && (
+        <div className="text-center py-12">
+          <div className="flex flex-col items-center gap-3 animate-pulse">
+            <div className="w-12 h-12 rounded-full border-4 border-brand-500 border-t-transparent" />
+            <p className="text-sm text-slate-500 dark:text-slate-400">Loading performance data…</p>
+          </div>
+        </div>
+      )}
+      {useApi && reviewsQuery.error && (
+        <div className="text-center py-12">
+          <div className="rounded-xl bg-rose-50 border border-rose-200 px-6 py-8 max-w-md mx-auto dark:bg-rose-500/10 dark:border-rose-500/20">
+            <AlertTriangle className="h-6 w-6 text-rose-500 mx-auto mb-3" />
+            <h3 className="text-lg font-semibold text-rose-900 dark:text-rose-300">Unable to load performance data</h3>
+            <p className="mt-2 text-sm text-rose-700 dark:text-rose-400">{reviewsQuery.error}</p>
+            <button
+              onClick={() => reviewsQuery.refetch()}
+              className="mt-4 px-4 py-2 text-sm font-semibold text-rose-600 hover:text-rose-700 dark:text-rose-300"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
+      {!useApi || (!reviewsQuery.loading && !reviewsQuery.error) && (
+        <>
+        <PageHeader
         title="Performance"
         subtitle="Run a transparent review cycle, track weighted goals and surface the conversations that need attention."
         crumbs={['Talent', 'Performance']}
-        actions={<><Button variant="secondary" onClick={exportReviews}><Download className="h-4 w-4" /> Export</Button><Button onClick={openCreate}><Plus className="h-4 w-4" /> New review</Button></>}
+        actions={
+          <>
+            {useApi && (
+              <Button variant="secondary" onClick={() => void reviewsQuery.refetch()} disabled={reviewsQuery.loading}>
+                <RefreshCw className={`h-4 w-4 ${reviewsQuery.loading ? 'animate-spin' : ''}`} /> Refresh
+              </Button>
+            )}
+            <Button variant="secondary" onClick={exportReviews}><Download className="h-4 w-4" /> Export</Button>
+            {access.can('performance.write') && (
+              <Button onClick={openCreate}><Plus className="h-4 w-4" /> New review</Button>
+            )}
+          </>
+        }
       />
 
+      {!access.can('performance.write') && (
+        <HrPermissionNotice className="mb-4" message={`${describeMissingPermission('performance.write')} You can review your own performance record but cannot create or advance reviews for others.`} />
+      )}
+
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <StatCard index={0} label="Cycle completion" value={`${counts.completion}%`} icon={Gauge} tone="brand" hint={`${counts.completed} of ${db.reviews.length} completed`} />
+        <StatCard index={0} label="Cycle completion" value={`${counts.completion}%`} icon={Gauge} tone="brand" hint={`${counts.completed} of ${allReviews.length} completed`} />
         <StatCard index={1} label="Avg. manager rating" value={counts.avgRating.toFixed(1)} icon={Star} tone="amber" hint="Out of 5.0 across reviews" />
         <StatCard index={2} label="Active reviews" value={counts.active} icon={UserRound} tone="violet" hint={`${counts.overdue} overdue`} />
         <StatCard index={3} label="Goals at risk" value={counts.atRisk} icon={AlertTriangle} tone="red" hint={`${counts.totalGoals} goals tracked`} />
@@ -232,7 +387,7 @@ export default function Performance() {
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <Card className="p-5">
-          <div className="mb-1 flex items-center justify-between"><h3 className="text-sm font-semibold">Review pipeline</h3><Badge tone="brand" dot>{db.reviews.length} reviews</Badge></div>
+          <div className="mb-1 flex items-center justify-between"><h3 className="text-sm font-semibold">Review pipeline</h3><Badge tone="brand" dot>{allReviews.length} reviews</Badge></div>
           <p className="text-xs text-slate-400">Distribution across the current cycle</p>
           <Donut data={statusCounts.filter((s) => s.value > 0)} height={190} centerLabel="Complete" centerValue={`${counts.completion}%`} />
           <Legend items={statusCounts.map((s) => ({ name: s.name, value: s.value, color: s.color }))} className="mt-3" />
@@ -244,7 +399,7 @@ export default function Performance() {
       </div>
 
       <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Tabs items={[{ id: 'reviews', label: 'Review cycle', count: db.reviews.length }, { id: 'goals', label: 'Goal tracker', count: allGoals.length }]} value={view} onChange={(v) => { setView(v); setPage(1) }} className="border-0" />
+        <Tabs items={[{ id: 'reviews', label: 'Review cycle', count: allReviews.length }, { id: 'goals', label: 'Goal tracker', count: allGoals.length }]} value={view} onChange={(v) => { setView(v); setPage(1) }} className="border-0" />
         <div className="flex flex-wrap gap-2">
           <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1) }} placeholder={view === 'reviews' ? 'Search employees or reviews…' : 'Search goals or owners…'} className="w-full sm:w-64" />
           <Select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1) }} className="w-auto"><option value="All">{view === 'reviews' ? 'All statuses' : 'All goal states'}</option>{view === 'reviews' ? FLOW.map((s) => <option key={s}>{s}</option>) : <><option>On Track</option><option>At Risk</option><option>Completed</option></>}</Select>
@@ -292,7 +447,19 @@ export default function Performance() {
             </table>
             {!rows.length && <EmptyState icon={Target} title="No reviews match your filters" description="Adjust the status or department filters to see more of the review cycle." action={<Button variant="secondary" onClick={() => { setSearch(''); setStatus('All'); setDepartment('All') }}>Clear filters</Button>} />}
           </div>
-          {filtered.length > 0 && <Pagination page={currentPage} totalPages={totalPages} total={filtered.length} from={from} to={Math.min(from + pageSize, filtered.length)} onPage={setPage} pageSize={pageSize} onPageSize={(n) => { setPageSize(n); setPage(1) }} label="reviews" />}
+          {totalItems > 0 && (
+            <Pagination
+              page={currentPage}
+              totalPages={totalPages}
+              total={totalItems}
+              from={rows.length ? from + 1 : 0}
+              to={rows.length ? from + rows.length : 0}
+              onPage={setPage}
+              pageSize={reviewMeta?.pageSize ?? pageSize}
+              onPageSize={(n) => { setPageSize(n); setPage(1) }}
+              label="reviews"
+            />
+          )}
         </Card>
       ) : (
         <Card className="mt-3">
@@ -326,9 +493,20 @@ export default function Performance() {
         width="lg"
         footer={selected ? (
           <>
-            <Button variant="ghost" className="mr-auto text-rose-600 dark:text-rose-400" onClick={() => setDeleteTarget(selected)}><Trash2 className="h-4 w-4" /> Delete</Button>
-            <Button variant="secondary" onClick={() => openEdit(selected)}><Pencil className="h-4 w-4" /> Edit</Button>
-            {nextStatus(selected.status) && <Button onClick={() => setConfirmAdvance(selected)}>{nextStatus(selected.status)} <ArrowRight className="h-4 w-4" /></Button>}
+            {access.can('performance.write') && (
+              <Button variant="ghost" className="mr-auto text-rose-600 dark:text-rose-400" onClick={() => setDeleteTarget(selected)}><Trash2 className="h-4 w-4" /> Delete</Button>
+            )}
+            {access.can('performance.write') && (
+              <Button variant="secondary" onClick={() => openEdit(selected)}><Pencil className="h-4 w-4" /> Edit</Button>
+            )}
+            {canAdvanceReview(selected) && (
+              <Button onClick={() => setConfirmAdvance(selected)}>{nextStatus(selected.status)} <ArrowRight className="h-4 w-4" /></Button>
+            )}
+            {!access.can('performance.write') && !canAdvanceReview(selected) && (
+              <span className="text-[11px] text-slate-400" title={describeMissingPermission('performance.write')}>
+                {describeMissingPermission('performance.write')}
+              </span>
+            )}
           </>
         ) : null}
       >
@@ -452,6 +630,8 @@ export default function Performance() {
         confirmLabel="Delete review"
         tone="danger"
       />
-    </div>
+    </>
+  )}
+  </div>
   )
 }

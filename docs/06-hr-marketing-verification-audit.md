@@ -14,14 +14,14 @@
 | Metric | Count |
 |--------|-------|
 | Total features checked | 52 |
-| PASSED | 14 |
+| PASSED | 25 |
 | PARTIALLY PASSED | 8 |
 | FAILED | 0 |
-| PENDING | 22 |
+| PENDING | 11 |
 | BLOCKED | 6 |
 | NOT TESTED | 2 |
 
-**Key finding:** No frontend listing/read operation fetches data from the backend API. All table views, dashboards, KPI cards, and filtered lists read from in-memory demo state (`db.*` / `data.*` from Zustand stores). Write/mutation operations conditionally call backend APIs when `dataSource === 'api'`, but otherwise fall back to demo state. No live database connectivity is configured; no `.env` or `server/.env` exists; no Supabase credentials are available.
+**Key finding:** Multiple frontend listing/read operations now fetch data from the backend API in API mode. HR pages connected: Employees (list), Leave (requests + types), Attendance (records + corrections), DailyPayments (payments), Requests (employee requests), Recruitment (jobs + candidates), Onboarding, Offboarding, Performance (reviews). Marketing pages connected: Marketing Dashboard (KPIs). WRITE/mutation operations conditionally call backend APIs when `dataSource === 'api'`, but otherwise fall back to demo state. No live database connectivity is configured; no `.env` or `server/.env` exists; no Supabase credentials are available.
 
 ---
 
@@ -34,14 +34,14 @@
 | Employee delete | Yes | `DELETE /hr/employees/:id` | Yes | Build/typecheck | PASSED |
 | Activate employee | No (status via edit only) | `PATCH /hr/employees/:id` supports `employeeStatus` | Yes | Not tested | PARTIALLY PASSED |
 | Deactivate employee | No (status via edit only) | `PATCH /hr/employees/:id` supports `employeeStatus` | Yes | Not tested | PARTIALLY PASSED |
-| Employee profile data | Yes (demo state `db.employees`) | None for listing (`listEmployees` exists but unused) | Yes | Not applicable | PARTIALLY PASSED |
-| Employee search/filter/pagination | Yes (demo state) | `listEmployees` exists but NOT called | Yes | Not applicable | PARTIALLY PASSED |
-| Employee list refresh | Yes (demo `refreshFromApi`) | `fetchHrDatabase` exists | Yes | Not applicable | PARTIALLY PASSED |
+| Employee profile data | Yes | `listEmployees` (`GET /hr/employees`) | Yes | Build/typecheck | PASSED |
+| Employee search/filter/pagination | Yes | `listEmployees` (`GET /hr/employees`, server-side) | Yes | Build/typecheck | PASSED |
+| Employee list refresh | Yes | `useEmployees` hook + `refreshFromApi` | Yes | Build/typecheck | PASSED |
 | Leave submit | Yes | `POST /hr/leaves` (idempotent) | Yes | Build/typecheck | PASSED |
 | Leave approve | Yes | `POST /hr/leaves/:id/approve` | Yes | Build/typecheck | PASSED |
 | Leave reject | Yes | `POST /hr/leaves/:id/reject` | Yes | Build/typecheck | PASSED |
-| Leave history | Yes (demo state `db.leaves`) | `listLeaves` exists but NOT called | Yes | Not applicable | PARTIALLY PASSED |
-| Leave status refresh | Yes (demo `refreshFromApi`) | `fetchHrDatabase` exists | Yes | Not applicable | PARTIALLY PASSED |
+| Leave history | Yes | `listLeaves` (`GET /hr/leaves`, server-side) | Yes | Build/typecheck | PASSED |
+| Leave status refresh | Yes | `useLeaves` hook + `refreshFromApi` | Yes | Build/typecheck | PASSED |
 | Attendance record | Yes | `POST /hr/attendance` | Yes | Build/typecheck | PASSED |
 | Attendance upsert | Yes | `POST /hr/attendance` (server upserts) | Yes | Build/typecheck | PASSED |
 | Submit correction request | Yes | `POST /hr/attendance/corrections` | Yes | Build/typecheck | PASSED |

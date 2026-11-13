@@ -1,13 +1,16 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle, ArrowRight, Banknote, CalendarDays, Check, CheckCircle2, ChevronRight, Clock3,
-  CreditCard, Download, FileText, Plus, Receipt, ShieldCheck, Send, ThumbsDown, ThumbsUp,
+  CreditCard, Download, FileText, Plus, Receipt, RefreshCw, ShieldCheck, Send, ThumbsDown, ThumbsUp,
   Users, Wallet, XCircle,
 } from 'lucide-react'
 import { useStore } from '../store'
+import { usePayments } from '../useHrData'
+import { describeMissingPermission, useHrAccess } from '../lib/access'
 import { runHrApiAction, hrActions } from '../api-actions'
 import type { DailyPayment } from '../types'
 import { downloadCSV, fmtDate, fmtDateTime, fmtMoney, sum, todayISO, uid } from '../lib/utils'
+import { HrPermissionNotice } from '../components/hr-guard'
 import {
   Avatar, Badge, Button, Card, ConfirmDialog, Drawer, EmptyState, Field, Input, Modal, PageHeader,
   Pagination, SearchInput, Select, StatCard, StatusBadge, Textarea,
@@ -22,6 +25,7 @@ const blankForm = {
 
 export default function DailyPayments() {
   const { db, update, logActivity, toast, dataSource, refreshFromApi } = useStore()
+  const access = useHrAccess()
   const [search, setSearch] = useState('')
   const [approval, setApproval] = useState('All')
   const [payment, setPayment] = useState('All')
@@ -38,13 +42,55 @@ export default function DailyPayments() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
 
-  const selected = db.payments.find((p) => p.id === selectedId) || null
+  const paymentsQuery = usePayments({
+    approvalStatus: approval === 'All' ? undefined : approval,
+    paymentStatus: payment === 'All' ? undefined : payment as any,
+    partyType: partyType === 'All' ? undefined : partyType as any,
+    page,
+    pageSize,
+  })
+  const useApi = dataSource === 'api'
+  const paymentsData = useApi ? paymentsQuery.data : null
+  const allPayments = (paymentsData?.data ?? db.payments) as DailyPayment[]
+  const paymentsMeta = (paymentsData as any)?.meta
+
+  const selected = allPayments.find((p) => p.id === selectedId) || null
   const empMap = useMemo(() => new Map(db.employees.map((e) => [e.id, e])), [db.employees])
+
+  // The list endpoint does not include the audit trail; the history endpoint
+  // does. It is loaded on demand for the payment the user opens.
+  const [historyByPayment, setHistoryByPayment] = useState<Record<string, DailyPayment['history']>>({})
+  const [historyLoading, setHistoryLoading] = useState(false)
+
+  useEffect(() => {
+    if (!useApi || !selectedId) return
+    if (historyByPayment[selectedId]) return
+    let cancelled = false
+    setHistoryLoading(true)
+    hrActions
+      .getPaymentHistory(selectedId)
+      .then((res) => {
+        if (cancelled) return
+        const entries = (res.history ?? []).map((h) => ({
+          id: String(h.id ?? ''),
+          date: String(h.date ?? ''),
+          action: String(h.action ?? ''),
+          actor: String(h.actor ?? ''),
+        })) as DailyPayment['history']
+        setHistoryByPayment((prev) => ({ ...prev, [selectedId]: entries }))
+      })
+      .catch((error) => {
+        if (cancelled) return
+        toast('Could not load payment history', 'error', error instanceof Error ? error.message : 'The ERP API request failed.')
+      })
+      .finally(() => { if (!cancelled) setHistoryLoading(false) })
+    return () => { cancelled = true }
+  }, [useApi, selectedId, historyByPayment, toast])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     const today = todayISO()
-    const list = db.payments.filter((p) => {
+    const list = allPayments.filter((p) => {
       const matchSearch = !q || p.payee.toLowerCase().includes(q) || p.id.toLowerCase().includes(q) || p.description.toLowerCase().includes(q) || p.category.toLowerCase().includes(q)
       const payee = p.employeeId ? empMap.get(p.employeeId) : undefined
       const matchEmployee = !q || (payee && `${payee.firstName} ${payee.lastName}`.toLowerCase().includes(q))
@@ -60,17 +106,18 @@ export default function DailyPayments() {
       if (sort === 'due') return a.dueDate.localeCompare(b.dueDate)
       return b.date.localeCompare(a.date) || b.id.localeCompare(a.id)
     })
-  }, [db.payments, empMap, search, approval, payment, partyType, category, period, sort])
+  }, [allPayments, empMap, search, approval, payment, partyType, category, period, sort])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
-  const currentPage = Math.min(page, totalPages)
-  const from = (currentPage - 1) * pageSize
-  const rows = filtered.slice(from, from + pageSize)
+  const totalItems = useApi ? Number(paymentsMeta?.total ?? filtered.length) : filtered.length
+  const totalPages = useApi ? Math.max(1, Number(paymentsMeta?.totalPages ?? 1)) : Math.max(1, Math.ceil(filtered.length / pageSize))
+  const currentPage = useApi ? Number(paymentsMeta?.page ?? page) : Math.min(page, totalPages)
+  const from = useApi ? (filtered.length ? (currentPage - 1) * (paymentsMeta?.pageSize ?? pageSize) : 0) : (Math.min(page, totalPages) - 1) * pageSize
+  const rows = useApi ? filtered : filtered.slice(from, from + pageSize)
   const today = todayISO()
   const month = today.slice(0, 7)
 
   const totals = useMemo(() => {
-    const all = db.payments
+    const all = allPayments
     return {
       recordedToday: sum(all.filter((p) => p.date === today).map((p) => p.amount)),
       todayCount: all.filter((p) => p.date === today).length,
@@ -82,13 +129,13 @@ export default function DailyPayments() {
       overdue: sum(all.filter((p) => p.paymentStatus === 'Overdue').map((p) => p.amount)),
       overdueCount: all.filter((p) => p.paymentStatus === 'Overdue').length,
     }
-  }, [db.payments, today, month])
+  }, [allPayments, today, month])
 
   const stageCounts = {
-    recorded: db.payments.length,
-    approval: db.payments.filter((p) => p.approvalStatus === 'Pending').length,
-    approved: db.payments.filter((p) => p.approvalStatus === 'Approved' && !['Paid', 'Failed'].includes(p.paymentStatus)).length,
-    paid: db.payments.filter((p) => p.paymentStatus === 'Paid').length,
+    recorded: allPayments.length,
+    approval: allPayments.filter((p) => p.approvalStatus === 'Pending').length,
+    approved: allPayments.filter((p) => p.approvalStatus === 'Approved' && !['Paid', 'Failed'].includes(p.paymentStatus)).length,
+    paid: allPayments.filter((p) => p.paymentStatus === 'Paid').length,
   }
 
   const resetFilters = () => {
@@ -138,6 +185,7 @@ export default function DailyPayments() {
         setRecordOpen(false)
         setForm(blankForm)
         setPage(1)
+        paymentsQuery.refetch()
       }
       return
     }
@@ -203,6 +251,7 @@ export default function DailyPayments() {
       }
       setConfirm(null)
       if (action === 'pay') setSelectedId(null)
+      paymentsQuery.refetch()
       return
     }
 
@@ -255,17 +304,53 @@ export default function DailyPayments() {
 
   return (
     <div>
-      <PageHeader
+      {useApi && paymentsQuery.loading && (
+        <div className="text-center py-12">
+          <div className="flex flex-col items-center gap-3 animate-pulse">
+            <div className="w-12 h-12 rounded-full border-4 border-brand-500 border-t-transparent" />
+            <p className="text-sm text-slate-500 dark:text-slate-400">Loading payment data…</p>
+          </div>
+        </div>
+      )}
+      {useApi && paymentsQuery.error && (
+        <div className="text-center py-12">
+          <div className="rounded-xl bg-rose-50 border border-rose-200 px-6 py-8 max-w-md mx-auto dark:bg-rose-500/10 dark:border-rose-500/20">
+            <AlertTriangle className="h-6 w-6 text-rose-500 mx-auto mb-3" />
+            <h3 className="text-lg font-semibold text-rose-900 dark:text-rose-300">Unable to load payment data</h3>
+            <p className="mt-2 text-sm text-rose-700 dark:text-rose-400">{paymentsQuery.error}</p>
+            <button
+              onClick={() => paymentsQuery.refetch()}
+              className="mt-4 px-4 py-2 text-sm font-semibold text-rose-600 hover:text-rose-700 dark:text-rose-300"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
+      {!useApi || (!paymentsQuery.loading && !paymentsQuery.error) && (
+        <>
+        <PageHeader
         title="Daily Payments"
         subtitle="Record one-off reimbursements, contractor fees and vendor invoices, then route them through Finance approval and simulated payment."
         crumbs={['Finance & Legal', 'Daily Payments']}
         actions={
           <>
+            {useApi && (
+              <Button variant="secondary" onClick={() => void paymentsQuery.refetch()} disabled={paymentsQuery.loading}>
+                <RefreshCw className={`h-4 w-4 ${paymentsQuery.loading ? 'animate-spin' : ''}`} /> Refresh
+              </Button>
+            )}
             <Button variant="secondary" onClick={exportPayments} disabled={!filtered.length}><Download className="h-4 w-4" /> Export</Button>
-            <Button onClick={() => setRecordOpen(true)}><Plus className="h-4 w-4" /> Record payment</Button>
+            {access.can('payment.create') && (
+              <Button onClick={() => setRecordOpen(true)}><Plus className="h-4 w-4" /> Record payment</Button>
+            )}
           </>
         }
       />
+
+      {!access.can('payment.create') && (
+        <HrPermissionNotice className="mb-4" message={`${describeMissingPermission('payment.create')} You can review existing payments but cannot record new ones.`} />
+      )}
 
       <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-slate-200/80 bg-white px-4 py-3 shadow-soft dark:border-white/[0.06] dark:bg-ink-900">
         <span className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-200"><CalendarDays className="h-4 w-4 text-brand-500" /> {fmtDate(today)}</span>
@@ -375,7 +460,19 @@ export default function DailyPayments() {
             />
           )}
         </div>
-        {filtered.length > 0 && <Pagination page={currentPage} totalPages={totalPages} total={filtered.length} from={from} to={Math.min(from + pageSize, filtered.length)} onPage={setPage} pageSize={pageSize} onPageSize={(n) => { setPageSize(n); setPage(1) }} label="payments" />}
+        {totalItems > 0 && (
+          <Pagination
+            page={currentPage}
+            totalPages={totalPages}
+            total={totalItems}
+            from={rows.length ? from + 1 : 0}
+            to={rows.length ? from + rows.length : 0}
+            onPage={setPage}
+            pageSize={paymentsMeta?.pageSize ?? pageSize}
+            onPageSize={(n) => { setPageSize(n); setPage(1) }}
+            label="payments"
+          />
+        )}
       </Card>
 
       <Drawer
@@ -387,8 +484,20 @@ export default function DailyPayments() {
         footer={selected ? (
           <>
             <Button variant="secondary" onClick={() => setSelectedId(null)}>Close</Button>
-            {selected.approvalStatus === 'Pending' && <><Button variant="danger" onClick={() => setConfirm({ payment: selected, action: 'reject' })}>Reject</Button><Button onClick={() => setConfirm({ payment: selected, action: 'approve' })}><Check className="h-4 w-4" /> Approve</Button></>}
-            {selected.approvalStatus === 'Approved' && !['Paid', 'Failed'].includes(selected.paymentStatus) && <Button onClick={() => setConfirm({ payment: selected, action: 'pay' })}><Send className="h-4 w-4" /> Mark as paid</Button>}
+            {selected.approvalStatus === 'Pending' && access.can('payment.approve') && (
+              <>
+                <Button variant="danger" onClick={() => setConfirm({ payment: selected, action: 'reject' })}>Reject</Button>
+                <Button onClick={() => setConfirm({ payment: selected, action: 'approve' })}><Check className="h-4 w-4" /> Approve</Button>
+              </>
+            )}
+            {selected.approvalStatus === 'Pending' && !access.can('payment.approve') && (
+              <span className="text-[11px] text-slate-400" title={describeMissingPermission('payment.approve')}>
+                {describeMissingPermission('payment.approve')}
+              </span>
+            )}
+            {selected.approvalStatus === 'Approved' && !['Paid', 'Failed'].includes(selected.paymentStatus) && access.can('payment.approve') && (
+              <Button onClick={() => setConfirm({ payment: selected, action: 'pay' })}><Send className="h-4 w-4" /> Mark as paid</Button>
+            )}
           </>
         ) : null}
       >
@@ -450,7 +559,11 @@ export default function DailyPayments() {
             <div>
               <h4 className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400"><Clock3 className="h-3.5 w-3.5" /> Payment history</h4>
               <div className="space-y-3">
-                {[...selected.history].reverse().map((h, i) => (
+                {historyLoading && <p className="text-[11px] text-slate-400">Loading payment history…</p>}
+                {!historyLoading && (selected.history.length === 0 || (historyByPayment[selected.id]?.length ?? 0) === 0) && (
+                  <p className="text-[11px] text-slate-400">No audit trail has been recorded for this payment yet.</p>
+                )}
+                {[...(historyByPayment[selected.id] ?? selected.history)].reverse().map((h, i) => (
                   <div key={h.id} className="flex gap-3">
                     <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${i === 0 ? 'bg-brand-500' : 'bg-slate-300 dark:bg-white/20'}`} />
                     <div><p className="text-[12px] font-medium text-slate-700 dark:text-slate-200">{h.action}</p><p className="text-[10px] text-slate-400">{h.actor} · {fmtDate(h.date)}</p></div>
@@ -517,6 +630,8 @@ export default function DailyPayments() {
         confirmLabel={confirm?.action === 'approve' ? 'Approve payment' : confirm?.action === 'reject' ? 'Reject payment' : 'Mark as paid'}
         tone={confirm?.action === 'reject' ? 'danger' : 'primary'}
       />
-    </div>
+    </>
+  )}
+  </div>
   )
 }

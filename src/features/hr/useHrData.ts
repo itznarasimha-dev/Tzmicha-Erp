@@ -161,17 +161,19 @@ export function usePayslips(query: {
 
 /** Contracts with filters and pagination. */
 export function useContracts(query: {
+  q?: string
   status?: string
   partyType?: string
   employeeId?: string
   from?: string
   to?: string
+  sort?: string
   page?: number
   pageSize?: number
 } = {}) {
   return useHrQuery(
     () => api.listContracts(query as any),
-    [query.status, query.partyType, query.employeeId, query.from, query.to, query.page, query.pageSize]
+    [query.q, query.status, query.partyType, query.employeeId, query.from, query.to, query.sort, query.page, query.pageSize]
   )
 }
 
@@ -194,6 +196,7 @@ export function usePayments(query: {
 
 /** HR expenses with filters and pagination. */
 export function useHrExpenses(query: {
+  q?: string
   status?: string
   employeeId?: string
   category?: string
@@ -204,13 +207,29 @@ export function useHrExpenses(query: {
 } = {}) {
   return useHrQuery(
     () => api.listHrExpenses(query as any),
-    [query.status, query.employeeId, query.category, query.from, query.to, query.page, query.pageSize]
+    [query.q, query.status, query.employeeId, query.category, query.from, query.to, query.page, query.pageSize]
   )
 }
 
 /** Leave types. */
 export function useLeaveTypes() {
   return useHrQuery(() => api.listLeaveTypes())
+}
+
+/**
+ * Leave balances. The backend scopes these to the signed-in employee unless
+ * the caller holds `hr.leave.read`.
+ */
+export function useLeaveBalances(query: { employeeId?: string; year?: number } = {}) {
+  return useHrQuery(
+    () => api.listLeaveBalances(query),
+    [query.employeeId, query.year]
+  )
+}
+
+/** Holidays configured for the organisation. */
+export function useHolidays() {
+  return useHrQuery(() => api.listHolidays())
 }
 
 /** Departments. */

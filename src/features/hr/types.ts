@@ -173,6 +173,8 @@ export interface OnboardingRecord {
 
 export interface PayrollEntry {
   id: string
+  /** Payroll run that owns this payslip (API mode). */
+  payrollRunId?: string
   employeeId: string
   period: string
   basic: number

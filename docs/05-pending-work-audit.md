@@ -129,13 +129,22 @@
 - Updated `src/features/hr/pages/Employees.tsx` — uses `useEmployees` hook for API-backed employee listing with loading/error/retry states
 - Updated `src/features/hr/pages/Dashboard.tsx` — store hydration provides API-backed data in API mode; `syncStatus`/`syncError` loading/error handling added
 - Updated `src/features/marketing/pages/MarketingDashboard.tsx` — uses `useMarketingDashboard` hook for API-backed KPI cards with loading/error states
+- Updated `src/features/hr/pages/Leave.tsx` — uses `useLeaves`/`useLeaveTypes` hooks for API-backed listing
+- Updated `src/features/hr/pages/Attendance.tsx` — uses `useAttendance`/`useCorrections` hooks for API-backed listing
+- Updated `src/features/hr/pages/DailyPayments.tsx` — uses `usePayments` hook for API-backed listing
+- Updated `src/features/hr/pages/Requests.tsx` — uses `useEmployeeRequests` hook for API-backed listing
+- Updated `src/features/hr/pages/Recruitment.tsx` — uses `useJobs`/`useCandidates` hooks for API-backed listing
+- Updated `src/features/hr/pages/Onboarding.tsx` — uses `useOnboarding` hook for API-backed listing
+- Updated `src/features/hr/pages/Offboarding.tsx` — uses `useOffboarding` hook for API-backed listing
+- Updated `src/features/hr/pages/Performance.tsx` — uses `useReviews` hook for API-backed listing
 - Verified: `npx tsc -p tsconfig.app.json --noEmit --pretty false` — **PASS**
 - Verified: `npx vite build` — **PASS**
 
 ### Remaining execution order
-1. Connect remaining HR listing pages to `useHrData` hooks (Leave, Attendance, Payroll, Contracts, DailyPayments, Requests, Performance, Recruitment, Reports) for per-endpoint loading/error states
-2. Connect remaining Marketing listing pages to `useMarketingData` hooks (LeadsPage, DigitalMarketingPage, PlansBudgetsPage, ExpensesPaymentsPage, FieldMarketingPage, TradeRetailPage, ReportsAnalyticsPage) for per-endpoint loading/error states
+1. Resolve type mismatches for `Contracts.tsx` (`Contract`/`ApiContract`) and `Payroll.tsx` (`PayrollEntry`/`ApiPayrollRun`) to enable hook integration
+2. Connect remaining Marketing listing pages to `useMarketingData` hooks (LeadsPage, DigitalMarketingPage, PlansBudgetsPage, ExpensesPaymentsPage, FieldMarketingPage, TradeRetailPage, ReportsAnalyticsPage)
 3. Create HR Expenses UI page (backend `hrExpensesRouter` exists at `/hr/expenses`; no dedicated page under `features/hr/pages` — do not invent a page, document instead)
-4. Document missing UI pages for Marketing Offers/Discounts/Targets/Performance/Rewards/Field/Dealers/Surveys/Activity records (APIs exist, no UI pages)
-5. Re-run `npx tsc -p tsconfig.app.json --noEmit --pretty false` and `npx vite build` after all edits; fix regressions
-6. Update `docs/04-final-implementation-report.md` and `docs/06-hr-marketing-verification-audit.md`
+4. Add `useContract(id)` hook for ContractDetail page (no single-contract READ hook exists)
+5. Document missing UI pages for Marketing Offers/Discounts/Targets/Performance/Rewards/Field/Dealers/Surveys/Activity records (APIs exist, no UI pages)
+6. Re-run `npx tsc -p tsconfig.app.json --noEmit --pretty false` and `npx vite build` after all edits; fix regressions
+7. Update `docs/04-final-implementation-report.md` and `docs/06-hr-marketing-verification-audit.md`

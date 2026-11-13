@@ -10,6 +10,7 @@ import {
   setAccessToken,
   setUnauthorizedHandler,
 } from '@/lib/api/client'
+import { fetchCurrentUser, type ApiMe } from '@/lib/api/auth'
 
 const STORAGE_KEY = 'titan-hr-db-v1'
 const THEME_KEY = 'titan-hr-theme'
@@ -37,6 +38,8 @@ export interface Toast {
 
 export type HrDataSource = 'demo' | 'api'
 export type HrSyncStatus = 'idle' | 'loading' | 'ready' | 'error'
+/** Lifecycle of the verified caller identity fetched from `GET /me`. */
+export type HrIdentityStatus = 'idle' | 'loading' | 'ready' | 'error' | 'anonymous'
 
 interface StoreContextValue {
   db: Database
@@ -51,7 +54,20 @@ interface StoreContextValue {
   dataSource: HrDataSource
   syncStatus: HrSyncStatus
   syncError: string | null
-  /** Re-fetch every HR collection from the API. */
+  /** Verified caller identity (API mode) for frontend permission-aware UI. Backend remains authoritative. */
+  identity: ApiMe | null
+  /** Lifecycle of the identity lookup (`idle` in demo mode). */
+  identityStatus: HrIdentityStatus
+  /** Reason the identity lookup failed (expired session, network, ...). */
+  identityError: string | null
+  /**
+   * Collections the API refused for the signed-in role. The portal stays in
+   * API mode and surfaces these instead of showing demo records.
+   */
+  collectionErrors: Record<string, string>
+  /** Re-read the verified identity from `GET /me`. */
+  refreshIdentity: () => Promise<void>
+  /** Re-fetch every HR collection and identity from the API. */
   refreshFromApi: () => Promise<void>
 }
 
@@ -63,6 +79,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [dataSource, setDataSource] = useState<HrDataSource>('demo')
   const [syncStatus, setSyncStatus] = useState<HrSyncStatus>('idle')
   const [syncError, setSyncError] = useState<string | null>(null)
+  const [identity, setIdentity] = useState<ApiMe | null>(null)
+  const [identityStatus, setIdentityStatus] = useState<HrIdentityStatus>('idle')
+  const [identityError, setIdentityError] = useState<string | null>(null)
+  const [collectionErrors, setCollectionErrors] = useState<Record<string, string>>({})
   const hydrationStarted = useRef(false)
 
   // Demo data is persisted locally. API-backed records live in the database and
@@ -78,6 +98,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const hydrateFromApi = useCallback(async () => {
     if (!isApiConfigured() || !hasApiToken()) {
+      setIdentity(null)
+      setIdentityStatus('anonymous')
+      setIdentityError(null)
       setDataSource('demo')
       setSyncStatus('idle')
       setSyncError(null)
@@ -85,12 +108,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
     setSyncStatus('loading')
     setSyncError(null)
+    setIdentityStatus('loading')
+    setIdentityError(null)
     try {
-      const next = await fetchHrDatabase()
-      setDb(next)
+      const { database, errors } = await fetchHrDatabase()
+      setDb(database)
+      setCollectionErrors(errors)
       setDataSource('api')
       setSyncStatus('ready')
     } catch (error) {
+      setIdentity(null)
+      setIdentityStatus('error')
       setDataSource('demo')
       setSyncStatus('error')
       setSyncError(
@@ -100,6 +128,51 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             ? error.message
             : 'Could not load HR data from the API.',
       )
+      return
+    }
+    // Identity is resolved after the data hydration so the first paint is not
+    // blocked by an extra round-trip; a failure here never blanks the data.
+    try {
+      const me = await fetchCurrentUser()
+      setIdentity(me)
+      setIdentityStatus('ready')
+      setIdentityError(null)
+    } catch (error) {
+      setIdentity(null)
+      setIdentityStatus('error')
+      setIdentityError(
+        error instanceof ApiError && error.status === 401
+          ? 'Your session has expired. Sign in again to access HR data.'
+          : error instanceof Error
+            ? error.message
+            : 'Could not verify your ERP identity.',
+      )
+    }
+  }, [])
+
+  const refreshIdentity = useCallback(async () => {
+    if (!isApiConfigured() || !hasApiToken()) {
+      setIdentity(null)
+      setIdentityStatus('anonymous')
+      setIdentityError(null)
+      return
+    }
+    setIdentityStatus('loading')
+    setIdentityError(null)
+    try {
+      const me = await fetchCurrentUser()
+      setIdentity(me)
+      setIdentityStatus('ready')
+    } catch (error) {
+      setIdentity(null)
+      setIdentityStatus('error')
+      setIdentityError(
+        error instanceof ApiError && error.status === 401
+          ? 'Your session has expired. Sign in again to access HR data.'
+          : error instanceof Error
+            ? error.message
+            : 'Could not verify your ERP identity.',
+      )
     }
   }, [])
 
@@ -107,6 +180,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setUnauthorizedHandler(() => {
       // A rejected token must not leave the portal showing authenticated data.
       setAccessToken(null)
+      setIdentity(null)
+      setIdentityStatus('anonymous')
+      setIdentityError(null)
       setDataSource('demo')
       setSyncStatus('idle')
     })
@@ -151,6 +227,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const resetDemo = useCallback(() => {
     const fresh = createDemoDatabase()
     setDb(fresh)
+    setIdentity(null)
+    setIdentityStatus('anonymous')
+    setIdentityError(null)
+    setCollectionErrors({})
     setDataSource('demo')
     setSyncStatus('idle')
     setSyncError(null)
@@ -165,7 +245,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const refreshFromApi = useCallback(async () => {
     await hydrateFromApi()
     setSyncStatus((status) => {
-      if (status === 'ready') toast('HR data refreshed', 'success', 'All modules were reloaded from the API.')
+      if (status === 'ready') toast('HR data refreshed', 'success', 'All modules and identity were reloaded from the API.')
       return status
     })
   }, [hydrateFromApi, toast])
@@ -183,6 +263,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       dataSource,
       syncStatus,
       syncError,
+      identity,
+      identityStatus,
+      identityError,
+      collectionErrors,
+      refreshIdentity,
       refreshFromApi,
     }),
     [
@@ -196,6 +281,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       dataSource,
       syncStatus,
       syncError,
+      identity,
+      identityStatus,
+      identityError,
+      collectionErrors,
+      refreshIdentity,
       refreshFromApi,
     ],
   )

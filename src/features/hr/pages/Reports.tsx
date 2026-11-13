@@ -2,16 +2,19 @@ import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   ArrowUpRight, BarChart3, BriefcaseBusiness, Building2, CalendarCheck, CalendarDays, Download,
-  FileBarChart, FileSignature, FileText, Gauge, Printer, Target, TrendingDown, TrendingUp,
+  FileBarChart, FileSignature, FileText, Gauge, Printer, RefreshCw, Target, TrendingDown, TrendingUp,
   UserCheck, UserMinus, Users, Wallet,
 } from 'lucide-react'
 import { useStore } from '../store'
+import { useHrAnalytics, useHrDashboard } from '../useHrData'
+import { describeMissingPermission, useHrAccess } from '../lib/access'
 import {
   addDays, downloadCSV, fmtDate, fmtMoney, monthLabel, sum, todayISO,
 } from '../lib/utils'
 import { AreaTrend, BarDistribution, Donut, Funnel, Legend, LineTrend } from '../components/charts'
+import { HrPermissionNotice } from '../components/hr-guard'
 import {
-  Badge, Button, Card, PageHeader, ProgressBar, SectionCard, Select, StatCard, StatusBadge,
+  Badge, Button, Card, EmptyState, PageHeader, ProgressBar, SectionCard, Select, StatCard, StatusBadge,
 } from '../components/ui'
 
 const RANGES = [
@@ -19,7 +22,7 @@ const RANGES = [
   { value: '90', label: 'Last 90 days' },
   { value: '180', label: 'Last 6 months' },
   { value: '365', label: 'Last 12 months' },
-  { value: 'all', label: 'All demo data' },
+  { value: 'all', label: 'All records' },
 ]
 
 function monthKey(date: Date) {
@@ -27,9 +30,22 @@ function monthKey(date: Date) {
 }
 
 export default function Reports() {
-  const { db, toast } = useStore()
+  const { db, toast, dataSource } = useStore()
+  const access = useHrAccess()
   const [range, setRange] = useState('90')
   const [tab, setTab] = useState<'workforce' | 'finance' | 'talent'>('workforce')
+  const useApi = dataSource === 'api'
+
+  // Real analytics endpoints. `hr.analytics.read` gates them server-side;
+  // `GET /hr/dashboard` also accepts `hr.employee.read`.
+  const dashboardQuery = useHrDashboard()
+  const analyticsQuery = useHrAnalytics()
+
+  const apiDashboard = dashboardQuery.data as any
+  const apiAnalytics = analyticsQuery.data as any
+
+  const apiLoading = useApi && (dashboardQuery.loading || analyticsQuery.loading)
+  const apiError = useApi ? (dashboardQuery.error || analyticsQuery.error) : null
 
   const empMap = useMemo(() => new Map(db.employees.map((e) => [e.id, e])), [db.employees])
   const activeEmployees = db.employees.filter((e) => e.status !== 'Terminated')
@@ -52,8 +68,32 @@ export default function Reports() {
   const pipeline = db.candidates.filter((c) => !['Rejected', 'Hired'].includes(c.stage)).length
   const pendingLeave = db.leaves.filter((l) => l.status === 'Pending').length
   const pendingPayments = db.payments.filter((p) => p.approvalStatus === 'Pending').length
+  const presentTodayCount = useMemo(() => {
+    const today = todayISO()
+    const records = db.attendance.filter((a) => a.date === today)
+    return records.filter((a) => ['Present', 'Late', 'Remote', 'Half Day'].includes(a.status)).length
+  }, [db.attendance])
+
+  /**
+   * Headcount by department. In API mode this comes from the real
+   * `GET /hr/dashboard` payload; in demo mode it is derived from the store.
+   */
+  const apiHeadcount = useMemo(() => {
+    const rows = (apiDashboard?.headcountByDepartment ?? []) as Array<{ department: string; headcount: number; active: number; probation: number }>
+    return rows.map((r) => ({ name: r.department, value: r.headcount, color: '' }))
+  }, [apiDashboard])
 
   const headcountTrend = useMemo(() => {
+    // `GET /hr/analytics` returns the last 12 months of joiners.
+    if (useApi) {
+      const joiners = (apiAnalytics?.monthlyJoiners ?? []) as Array<{ month: string; joiners: number }>
+      if (joiners.length === 0) return []
+      return joiners.map((j) => ({
+        label: new Date(`${j.month}-01T12:00:00`).toLocaleDateString('en-US', { month: 'short' }),
+        headcount: j.joiners,
+        hires: j.joiners,
+      }))
+    }
     const now = new Date()
     const months = Array.from({ length: 6 }).map((_, i) => {
       const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1)
@@ -62,7 +102,7 @@ export default function Reports() {
       return { label: d.toLocaleDateString('en-US', { month: 'short' }), headcount: count, hires: db.employees.filter((e) => e.joiningDate.slice(0, 7) === monthKey(d)).length }
     })
     return months
-  }, [db.employees])
+  }, [db.employees, useApi, apiAnalytics])
 
   const attendanceTrend = useMemo(() => {
     const days = Math.min(range === 'all' ? 30 : Number(range), 30)
@@ -123,6 +163,20 @@ export default function Reports() {
     toast('Report exported', 'success', `${count} rows written to ${name}.`)
   }
 
+  /**
+   * KPI values. In API mode they come from the real dashboard summary
+   * (`GET /hr/dashboard`); in demo mode from the local store.
+   */
+  const apiSummary = apiDashboard?.summary as Record<string, number> | null | undefined
+  const kpiHeadcount = useApi ? Number(apiSummary?.totalEmployees ?? activeEmployees.length) : activeEmployees.length
+  const kpiPresentToday = useApi ? Number(apiSummary?.presentToday ?? 0) : 0
+  const kpiPendingLeaves = useApi ? Number(apiSummary?.pendingLeaves ?? pendingLeave) : pendingLeave
+  const kpiPendingPayments = useApi ? Number(apiSummary?.pendingPayments ?? pendingPayments) : pendingPayments
+  const kpiPendingExpenses = useApi ? Number(apiSummary?.pendingExpenses ?? 0) : 0
+  const kpiPayrollMonth = useApi ? Number(apiSummary?.payrollThisMonth ?? 0) : monthlyPayroll
+  const kpiActiveContracts = useApi ? Number(apiSummary?.activeContracts ?? 0) : 0
+  const kpiOpenRequests = useApi ? Number(apiSummary?.openRequests ?? 0) : 0
+
   const reportCards = [
     { name: 'Headcount report', description: 'Employees by department, status and employment type', icon: Users, tone: 'text-brand-600 bg-brand-50 dark:bg-brand-500/10 dark:text-brand-400', run: () => download('titan-hr-headcount-report.csv', [['Employee ID', 'Name', 'Department', 'Designation', 'Type', 'Status', 'Joining date', 'Location'], ...db.employees.map((e) => [e.id, `${e.firstName} ${e.lastName}`, e.department, e.designation, e.employmentType, e.status, e.joiningDate, e.location])], db.employees.length) },
     { name: 'Attendance register', description: 'Daily attendance with hours, source and corrections', icon: CalendarCheck, tone: 'text-teal-600 bg-teal-50 dark:bg-teal-500/10 dark:text-teal-400', run: () => download('titan-hr-attendance-register.csv', [['Date', 'Employee ID', 'Employee', 'Status', 'Check in', 'Check out', 'Hours', 'Source'], ...rangeAttendance.map((a) => { const e = empMap.get(a.employeeId); return [a.date, a.employeeId, e ? `${e.firstName} ${e.lastName}` : '', a.status, a.checkIn || '', a.checkOut || '', a.hours, a.source] })], rangeAttendance.length) },
@@ -138,24 +192,41 @@ export default function Reports() {
     <div>
       <PageHeader
         title="Reports & Analytics"
-        subtitle="Turn the demo workspace into decisions — workforce health, cost, attendance and hiring performance in one view."
+        subtitle="Turn the workforce data into decisions — workforce health, cost, attendance and hiring performance in one view."
         crumbs={['Insights', 'Reports & Analytics']}
         actions={
           <>
             <Select value={range} onChange={(e) => setRange(e.target.value)} className="h-10 w-auto text-xs">{RANGES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}</Select>
+            {useApi && (
+              <Button variant="secondary" onClick={() => { void dashboardQuery.refetch(); void analyticsQuery.refetch() }} disabled={apiLoading}>
+                <RefreshCw className={`h-4 w-4 ${apiLoading ? 'animate-spin' : ''}`} /> Refresh
+              </Button>
+            )}
             <Button variant="secondary" onClick={() => window.print()}><Printer className="h-4 w-4" /> Print</Button>
-            <Button onClick={() => download('titan-hr-executive-summary.csv', [['TITAN HR — EXECUTIVE SUMMARY'], ['Generated', todayISO()], ['Range', RANGES.find((r) => r.value === range)?.label || ''], [], ['Headcount', activeEmployees.length], ['Attendance rate', `${attendanceRate}%`], ['Monthly payroll', monthlyPayroll], ['Attrition', `${attrition}%`], ['Open roles', openRoles], ['Candidates in pipeline', pipeline], ['Pending leave approvals', pendingLeave], ['Pending payment approvals', pendingPayments]], 8)}><Download className="h-4 w-4" /> Executive summary</Button>
+            <Button onClick={() => download('titan-hr-executive-summary.csv', [['TITAN HR — EXECUTIVE SUMMARY'], ['Generated', todayISO()], ['Range', RANGES.find((r) => r.value === range)?.label || ''], [], ['Headcount', kpiHeadcount], ['Attendance rate', `${attendanceRate}%`], ['Monthly payroll', useApi ? kpiPayrollMonth : monthlyPayroll], ['Attrition', `${attrition}%`], ['Open roles', openRoles], ['Candidates in pipeline', pipeline], ['Pending leave approvals', kpiPendingLeaves], ['Pending payment approvals', kpiPendingPayments]], 8)}><Download className="h-4 w-4" /> Executive summary</Button>
           </>
         }
       />
 
+      {!access.can('analytics.read') && (
+        <HrPermissionNotice className="mb-4" message={`${describeMissingPermission('analytics.read')} The figures below are derived from the records your role is allowed to read.`} />
+      )}
+
+      {useApi && apiError && (
+        <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300">
+          <p className="font-semibold">Unable to load HR analytics</p>
+          <p className="mt-0.5 text-[12px]">{apiError}</p>
+          <button onClick={() => { void dashboardQuery.refetch(); void analyticsQuery.refetch() }} className="mt-2 text-[12px] font-semibold text-rose-600 hover:underline dark:text-rose-300">Retry</button>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-6">
-        <StatCard index={0} label="Headcount" value={activeEmployees.length} icon={Users} tone="brand" hint={`${db.employees.length} total records`} />
-        <StatCard index={1} label="Attendance" value={`${attendanceRate}%`} icon={CalendarCheck} tone="teal" hint={range === 'all' ? 'All records' : `Last ${range} days`} />
-        <StatCard index={2} label="Monthly payroll" value={fmtMoney(monthlyPayroll, true)} icon={Wallet} tone="green" hint={latestPeriod ? monthLabel(latestPeriod) : 'No cycle'} />
-        <StatCard index={3} label="Attrition" value={`${attrition}%`} icon={UserMinus} tone="red" hint={`${completedExits} completed exits`} />
+        <StatCard index={0} label="Headcount" value={kpiHeadcount} icon={Users} tone="brand" hint={useApi ? 'live ERP directory' : `${db.employees.length} total records`} />
+        <StatCard index={1} label="Present today" value={useApi ? kpiPresentToday : presentTodayCount} icon={CalendarCheck} tone="teal" hint={range === 'all' ? 'All records' : `Last ${range} days`} />
+        <StatCard index={2} label="Monthly payroll" value={fmtMoney(useApi ? kpiPayrollMonth : monthlyPayroll, true)} icon={Wallet} tone="green" hint={latestPeriod ? monthLabel(latestPeriod) : 'No cycle'} />
+        <StatCard index={3} label="Pending approvals" value={kpiPendingLeaves + kpiPendingPayments + kpiPendingExpenses} icon={UserMinus} tone="red" hint={`${kpiPendingLeaves} leave · ${kpiPendingPayments} payments`} />
         <StatCard index={4} label="Open roles" value={openRoles} icon={BriefcaseBusiness} tone="violet" hint={`${db.jobs.filter((j) => j.status === 'Open').length} open job posts`} />
-        <StatCard index={5} label="Pipeline" value={pipeline} icon={UserCheck} tone="amber" hint={`${hires} hires this demo`} />
+        <StatCard index={5} label="Pipeline" value={pipeline} icon={UserCheck} tone="amber" hint={useApi ? `${hires} hires recorded` : `${hires} hires this demo`} />
       </div>
 
       <div className="mt-5 flex flex-wrap items-center gap-2">
@@ -168,14 +239,18 @@ export default function Reports() {
             <t.icon className="h-4 w-4" /> {t.label}
           </button>
         ))}
-        <Badge tone="slate" className="ml-auto">Live demo data · {fmtDate(todayISO())}</Badge>
+        <Badge tone="slate" className="ml-auto">{useApi ? 'Live ERP analytics' : 'Live demo data'} · {fmtDate(todayISO())}</Badge>
       </div>
 
       {tab === 'workforce' && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-4 space-y-4">
           <div className="grid gap-4 lg:grid-cols-2">
-            <SectionCard title="Headcount growth" subtitle="Cumulative headcount and new hires over the last six months">
-              <AreaTrend data={headcountTrend} series={[{ key: 'headcount', name: 'Headcount', color: '#6366f1' }, { key: 'hires', name: 'New hires', color: '#14b8a6' }]} height={240} />
+            <SectionCard title="Headcount growth" subtitle={useApi ? 'Monthly joiners from the ERP analytics endpoint' : 'Cumulative headcount and new hires over the last six months'}>
+              {headcountTrend.length > 0 ? (
+                <AreaTrend data={headcountTrend} series={[{ key: 'headcount', name: 'Headcount', color: '#6366f1' }, { key: 'hires', name: 'New hires', color: '#14b8a6' }]} height={240} />
+              ) : (
+                <EmptyState icon={BarChart3} title="No trend data" description="The ERP analytics endpoint returned no joiner history for your scope." />
+              )}
             </SectionCard>
             <SectionCard title="Attendance rate" subtitle={`Daily attendance percentage · ${range === 'all' ? 'last 30 days' : `last ${range} days`}`} action={<Badge tone={attendanceRate >= 92 ? 'green' : 'amber'}>{attendanceRate}% average</Badge>}>
               <LineTrend data={attendanceTrend} series={[{ key: 'attendance', name: 'Attendance %', color: '#14b8a6' }]} height={240} />
@@ -184,7 +259,13 @@ export default function Reports() {
 
           <div className="grid gap-4 lg:grid-cols-3">
             <SectionCard title="Headcount by department" subtitle="Active employees" className="lg:col-span-2">
-              <BarDistribution data={deptReport.map((d) => ({ name: d.name, value: d.headcount }))} layout="vertical" height={280} color="#6366f1" />
+              {useApi && apiHeadcount.length > 0 ? (
+                <BarDistribution data={apiHeadcount.map((d) => ({ name: d.name, value: d.value }))} layout="vertical" height={280} color="#6366f1" />
+              ) : deptReport.length > 0 ? (
+                <BarDistribution data={deptReport.map((d) => ({ name: d.name, value: d.headcount }))} layout="vertical" height={280} color="#6366f1" />
+              ) : (
+                <EmptyState icon={Users} title="No headcount data" description="The ERP API returned no headcount rows for your scope." />
+              )}
             </SectionCard>
             <SectionCard title="Leave composition" subtitle="Approved and pending days by type">
               {leaveByType.length ? <><Donut data={leaveByType} height={190} centerLabel="Days" centerValue={sum(leaveByType.map((l) => l.value))} /><Legend items={leaveByType.map((l) => ({ name: l.name, value: `${l.value}d`, color: l.color }))} className="mt-3" /></> : <p className="py-10 text-center text-xs text-slate-400">No leave data in this range.</p>}
@@ -322,8 +403,15 @@ export default function Reports() {
 
       <Card className="mt-4 flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-violet-600 text-white"><TrendingUp className="h-5 w-5" /></div>
-        <div className="flex-1"><h3 className="text-sm font-semibold">Demo analytics note</h3><p className="mt-0.5 text-xs leading-relaxed text-slate-500 dark:text-slate-400">Every number on this page is derived from local demo data — seeded employees, attendance, payroll, contracts and candidate records. Date-sensitive values refresh relative to today. No analytics service or backend is connected.</p></div>
-        <Badge tone="brand" dot>Frontend only</Badge>
+        <div className="flex-1">
+          <h3 className="text-sm font-semibold">{useApi ? 'Data source' : 'Demo analytics note'}</h3>
+          <p className="mt-0.5 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+            {useApi
+              ? 'Headcount, attendance, payroll and leave figures come from the ERP analytics endpoints (GET /hr/dashboard and GET /hr/analytics) and are limited to the records your role may read. Exports contain exactly the rows shown on this page.'
+              : 'Every number on this page is derived from local demo data - seeded employees, attendance, payroll, contracts and candidate records. Date-sensitive values refresh relative to today. No analytics service or backend is connected.'}
+          </p>
+        </div>
+        <Badge tone="brand" dot>{useApi ? 'ERP API' : 'Frontend only'}</Badge>
       </Card>
     </div>
   )

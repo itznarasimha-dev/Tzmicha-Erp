@@ -5,12 +5,14 @@ import {
   Pencil, Plus, Settings2, Users, X,
 } from 'lucide-react'
 import { useStore } from '../store'
-import { useLeaves, useLeaveTypes } from '../useHrData'
+import { useHolidays, useLeaveBalances, useLeaves, useLeaveTypes } from '../useHrData'
+import { describeMissingPermission, useHrAccess } from '../lib/access'
 import type { LeaveRequest, LeaveType, Priority } from '../types'
 import {
   addDays, diffDays, downloadCSV, fmtDate, fmtDateShort, fullName, sum, todayISO, toISO,
 } from '../lib/utils'
 import { runHrApiAction, hrActions } from '../api-actions'
+import { HrPermissionNotice } from '../components/hr-guard'
 import {
   Avatar, Badge, Button, Card, Drawer, EmptyState, Field, IconButton, Input, Modal, PageHeader,
   Pagination, ProgressBar, SearchInput, Select, StatCard, StatusBadge, Tabs, Textarea, Toggle,
@@ -23,6 +25,7 @@ const priorityTone = (p: Priority) => (p === 'Urgent' || p === 'High' ? 'red' : 
 
 export default function Leave() {
   const { db, update, logActivity, toast, dataSource, refreshFromApi } = useStore()
+  const access = useHrAccess()
   const navigate = useNavigate()
   const [submitting, setSubmitting] = useState(false)
   const [deciding, setDeciding] = useState(false)
@@ -35,6 +38,7 @@ export default function Leave() {
   const [pageSize, setPageSize] = useState(8)
   const [detail, setDetail] = useState<LeaveRequest | null>(null)
   const [decision, setDecision] = useState<{ request: LeaveRequest; action: Decision } | null>(null)
+  const [cancelling, setCancelling] = useState<LeaveRequest | null>(null)
   const [remarks, setRemarks] = useState('')
   const [newOpen, setNewOpen] = useState(false)
   const [policyOpen, setPolicyOpen] = useState<LeaveType | null>(null)
@@ -54,13 +58,17 @@ export default function Leave() {
     pageSize,
   })
   const leaveTypesQuery = useLeaveTypes()
+  const balancesQuery = useLeaveBalances({ year: new Date().getFullYear() })
+  const holidaysQuery = useHolidays()
 
   const useApi = dataSource === 'api'
   const leavesData = useApi ? leavesQuery.data : null
   const leaveTypesData = useApi ? leaveTypesQuery.data : null
+  const balancesData = useApi ? (balancesQuery.data as any as Array<{ employeeId: string; leaveType: string; year: number; allocated: number; used: number; pending: number; available: number }> | null) : null
+  const holidaysData = useApi ? (holidaysQuery.data as any as Array<{ id: string; name: string; date: string; type: string }> | null) : null
 
   const empMap = useMemo(() => new Map(db.employees.map((e) => [e.id, e])), [db.employees])
-  const allLeaves = leavesData?.data ?? db.leaves
+  const allLeaves = (useApi ? (leavesData?.data ?? []) : db.leaves) as LeaveRequest[]
   const pending = allLeaves.filter((l) => l.status === 'Pending').length
   const approved = allLeaves.filter((l) => l.status === 'Approved')
   const onLeaveToday = db.attendance.filter((a) => a.date === todayISO() && a.status === 'On Leave').length
@@ -78,10 +86,12 @@ export default function Leave() {
       .sort((a, b) => b.appliedOn.localeCompare(a.appliedOn))
   }, [allLeaves, empMap, search, status, type, department])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
-  const currentPage = Math.min(page, totalPages)
-  const from = (currentPage - 1) * pageSize
-  const rows = filtered.slice(from, from + pageSize)
+  const meta = (leavesData as any)?.meta
+  const totalItems = useApi ? Number(meta?.total ?? filtered.length) : filtered.length
+  const totalPages = useApi ? Math.max(1, Number(meta?.totalPages ?? 1)) : Math.max(1, Math.ceil(filtered.length / pageSize))
+  const currentPage = useApi ? Number(meta?.page ?? page) : Math.min(page, totalPages)
+  const from = useApi ? (filtered.length ? (currentPage - 1) * (meta?.pageSize ?? pageSize) : 0) : (Math.min(page, totalPages) - 1) * pageSize
+  const rows = useApi && !search && type === 'All' && department === 'All' ? filtered : filtered.slice((useApi ? 0 : from), (useApi ? filtered.length : from + pageSize))
 
   const typeUsage = (leaveTypesData ?? db.settings.leaveTypes).map((t) => ({
     ...t,
@@ -195,6 +205,33 @@ export default function Leave() {
     setDetail(null)
   }
 
+  /**
+   * Cancel a pending leave request. The backend allows the owner of the
+   * request (or a holder of `hr.leave.approve`) to cancel it.
+   */
+  const cancelLeave = async () => {
+    if (!cancelling || cancelling.status !== 'Pending') return
+    const target = cancelling
+    setCancelling(null)
+    if (dataSource === 'api') {
+      const res = await runHrApiAction({ dataSource, refreshFromApi, toast }, {
+        action: () => hrActions.cancelLeave(target.id),
+        successMessage: 'Leave request cancelled',
+        successDescription: `${empMap.get(target.employeeId) ? fullName(empMap.get(target.employeeId)!) : 'Employee'} · ${target.leaveType}`,
+        errorTitle: 'Could not cancel leave request',
+      })
+      if (res.ok) { setDetail(null); void leavesQuery.refetch() }
+      return
+    }
+    update((d) => ({
+      ...d,
+      leaves: d.leaves.map((l) => (l.id === target.id ? { ...l, status: 'Cancelled' as const, remarks: 'Cancelled by the requester.' } : l)),
+    }))
+    logActivity('leave', 'Leave request cancelled', `${empMap.get(target.employeeId) ? fullName(empMap.get(target.employeeId)!) : target.employeeId} - ${target.leaveType}`)
+    toast('Leave request cancelled (demo)', 'info', 'Cancelled in demo data only.')
+    setDetail(null)
+  }
+
   const savePolicy = () => {
     if (!policyOpen) return
     update((d) => ({
@@ -236,6 +273,18 @@ export default function Leave() {
     setCalMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
   }
 
+  /** Holidays shown on the leave calendar (API data when connected). */
+  const holidayList = useMemo(() => {
+    if (useApi) return holidaysData ?? []
+    return (db.settings.holidays ?? []) as Array<{ id: string; name: string; date: string; type: string }>
+  }, [useApi, holidaysData, db.settings.holidays])
+
+  const holidayByDate = useMemo(() => {
+    const map: Record<string, string> = {}
+    holidayList.forEach((h) => { map[h.date] = h.name })
+    return map
+  }, [holidayList])
+
   return (
     <div>
       {useApi && apiLoading && (
@@ -267,8 +316,20 @@ export default function Leave() {
         title="Leave Management"
         subtitle="Review requests, track balances and keep an eye on upcoming absences across the organization."
         crumbs={['People', 'Leave Management']}
-        actions={<><Button variant="secondary" onClick={exportLeaves}><Download className="h-4 w-4" /> Export</Button><Button onClick={openNew}><Plus className="h-4 w-4" /> New request</Button></>}
+        actions={
+          <>
+            {useApi && <Button variant="secondary" onClick={() => { void leavesQuery.refetch(); void leaveTypesQuery.refetch() }} disabled={leavesQuery.loading || leaveTypesQuery.loading}>Refresh</Button>}
+            <Button variant="secondary" onClick={exportLeaves}><Download className="h-4 w-4" /> Export</Button>
+            {access.can('leave.apply') && (
+              <Button onClick={openNew}><Plus className="h-4 w-4" /> New request</Button>
+            )}
+          </>
+        }
       />
+
+      {!access.can('leave.approve') && (
+        <HrPermissionNotice className="mb-4" message={`${describeMissingPermission('leave.approve')} You can submit and track leave requests but cannot decide them.`} />
+      )}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard index={0} label="Pending requests" value={pending} icon={CalendarDays} tone="amber" hint="awaiting review" />
@@ -318,10 +379,17 @@ export default function Leave() {
                         <td className="table-cell"><p className="max-w-[170px] truncate text-[11.5px]" title={l.reason}>{l.reason}</p></td>
                         <td className="table-cell"><StatusBadge status={l.status} /></td>
                         <td className="table-cell" onClick={(e) => e.stopPropagation()}>
-                          {l.status === 'Pending' ? (
+                          {l.status === 'Pending' && access.can('leave.approve') ? (
                             <div className="flex justify-end gap-1">
                               <button onClick={() => openDecision(l, 'Approved')} className="flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400"><Check className="h-3 w-3" /> Approve</button>
                               <button onClick={() => openDecision(l, 'Rejected')} className="flex items-center gap-1 rounded-lg bg-rose-50 px-2.5 py-1.5 text-[11px] font-semibold text-rose-700 hover:bg-rose-100 dark:bg-rose-500/10 dark:text-rose-400"><X className="h-3 w-3" /> Reject</button>
+                            </div>
+                          ) : l.status === 'Pending' ? (
+                            <div className="flex items-center justify-end gap-1">
+                              <span className="text-[11px] text-slate-400" title={describeMissingPermission('leave.approve')}>Awaiting an authorised approver</span>
+                              {(access.isSelf(l.employeeId) || access.can('leave.cancel')) && (
+                                <button onClick={() => setCancelling(l)} className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-200 dark:bg-white/[0.07] dark:text-slate-300">Cancel</button>
+                              )}
                             </div>
                           ) : <div className="text-right"><StatusBadge status={l.status} /><p className="mt-1 text-[10px] text-slate-400">{l.reviewer}</p></div>}
                         </td>
@@ -330,14 +398,38 @@ export default function Leave() {
                   })}
                 </tbody>
               </table>
-              {filtered.length === 0 && <EmptyState icon={CalendarDays} title="No leave requests" description="No requests match the current filters." action={<Button onClick={openNew}><Plus className="h-4 w-4" /> Create request</Button>} />}
+              {filtered.length === 0 && <EmptyState icon={CalendarDays} title="No leave requests" description="No requests match the current filters." action={access.can('leave.apply') ? <Button onClick={openNew}><Plus className="h-4 w-4" /> Create request</Button> : undefined} />}
             </div>
-            {filtered.length > 0 && <Pagination page={currentPage} totalPages={totalPages} total={filtered.length} from={from} to={Math.min(from + pageSize, filtered.length)} onPage={setPage} pageSize={pageSize} onPageSize={setPageSize} label="requests" />}
+            {totalItems > 0 && <Pagination page={currentPage} totalPages={totalPages} total={totalItems} from={filtered.length ? from + 1 : 0} to={filtered.length ? (from + rows.length) : 0} onPage={setPage} pageSize={meta?.pageSize ?? pageSize} onPageSize={setPageSize} label="requests" />}
           </>
         )}
 
         {tab === 'balances' && (
           <div className="p-4 sm:p-5">
+            {useApi && balancesData && (
+              <div className="mb-4 overflow-x-auto rounded-xl border border-slate-100 dark:border-white/[0.06]">
+                <table className="w-full min-w-[720px]">
+                  <thead className="bg-slate-50 dark:bg-white/[0.03]">
+                    <tr><th className="table-head">Employee</th><th className="table-head">Leave type</th><th className="table-head text-right">Allocated</th><th className="table-head text-right">Used</th><th className="table-head text-right">Pending</th><th className="table-head text-right">Available</th></tr>
+                  </thead>
+                  <tbody>
+                    {balancesData.map((b) => (
+                      <tr key={`${b.employeeId}-${b.leaveType}-${b.year}`} className="table-row">
+                        <td className="table-cell">{empMap.get(b.employeeId) ? fullName(empMap.get(b.employeeId)!) : b.employeeId}</td>
+                        <td className="table-cell">{b.leaveType}</td>
+                        <td className="table-cell text-right tabular">{b.allocated}</td>
+                        <td className="table-cell text-right tabular">{b.used}</td>
+                        <td className="table-cell text-right tabular">{b.pending}</td>
+                        <td className="table-cell text-right tabular font-semibold">{b.available}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {balancesData.length === 0 && (
+                  <p className="px-4 py-8 text-center text-[11px] text-slate-400">No leave balances were returned for your scope.</p>
+                )}
+              </div>
+            )}
             <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-3">
               {typeUsage.map((t) => (
                 <div key={t.id} className="rounded-xl border border-slate-100 p-3.5 dark:border-white/[0.06]">
@@ -391,8 +483,18 @@ export default function Leave() {
               <div className="flex items-center gap-3 text-[10px] text-slate-500 dark:text-slate-400">
                 <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Approved</span>
                 <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full border border-dashed border-amber-500 bg-amber-100" /> Pending</span>
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-rose-400" /> Holiday</span>
               </div>
             </div>
+            {holidayList.length > 0 && (
+              <div className="mb-4 flex flex-wrap gap-1.5">
+                {holidayList.map((h) => (
+                  <Badge key={h.id} tone={h.type === 'Public' ? 'red' : h.type === 'Company' ? 'violet' : 'slate'}>
+                    {h.name} · {fmtDateShort(h.date)}
+                  </Badge>
+                ))}
+              </div>
+            )}
             <div className="grid grid-cols-7 gap-1.5">
               {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => <div key={d} className="pb-1 text-center text-[10px] font-bold uppercase tracking-wider text-slate-400">{d}</div>)}
               {calendar.map((cell, i) => {
@@ -402,6 +504,11 @@ export default function Leave() {
                   <div key={cell.iso} className={`min-h-[104px] rounded-xl border p-1.5 ${isToday ? 'border-brand-300 bg-brand-50/40 dark:border-brand-500/40 dark:bg-brand-500/[0.06]' : 'border-slate-100 bg-white dark:border-white/[0.06] dark:bg-white/[0.02]'}`}>
                     <span className={`flex h-5 w-5 items-center justify-center rounded-md text-[10px] font-semibold ${isToday ? 'bg-brand-600 text-white' : 'text-slate-500 dark:text-slate-400'}`}>{cell.day}</span>
                     <div className="mt-1 space-y-1">
+                      {holidayByDate[cell.iso] && (
+                        <p className="block w-full truncate rounded bg-rose-50 px-1 py-0.5 text-left text-[9px] font-medium text-rose-700 dark:bg-rose-500/10 dark:text-rose-400">
+                          {holidayByDate[cell.iso]}
+                        </p>
+                      )}
                       {cell.leaves.slice(0, 3).map((l) => {
                         const emp = empMap.get(l.employeeId)
                         return (
@@ -438,7 +545,7 @@ export default function Leave() {
           <div className="p-4 sm:p-5">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-brand-50/60 p-3.5 dark:bg-brand-500/[0.06]">
               <p className="text-xs text-slate-600 dark:text-slate-300">These policies power leave balances and approval rules across the workspace. Edit thresholds directly or manage them in HR Settings.</p>
-              <Button variant="secondary" size="sm" onClick={() => navigate('/settings')}><Settings2 className="h-3.5 w-3.5" /> HR Settings</Button>
+              <Button variant="secondary" size="sm" onClick={() => navigate('/settings')} disabled={!access.can('settings.write')} title={access.can('settings.write') ? undefined : describeMissingPermission('settings.write')}><Settings2 className="h-3.5 w-3.5" /> HR Settings</Button>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {typeUsage.map((t) => (
@@ -448,7 +555,11 @@ export default function Leave() {
                       <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{t.name}</p>
                       <p className="mt-0.5 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">{t.description}</p>
                     </div>
-                    <button onClick={() => setPolicyOpen(t)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-brand-600 dark:hover:bg-white/10"><Pencil className="h-3.5 w-3.5" /></button>
+                    {access.can('settings.write') ? (
+                      <button onClick={() => setPolicyOpen(t)} title="Edit leave policy" className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-brand-600 dark:hover:bg-white/10"><Pencil className="h-3.5 w-3.5" /></button>
+                    ) : (
+                      <span className="text-[10px] text-slate-400" title={describeMissingPermission('settings.write')}>Read only</span>
+                    )}
                   </div>
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     <Badge tone="brand">{t.allocation} days / year</Badge>
@@ -472,7 +583,11 @@ export default function Leave() {
         onClose={() => setDetail(null)}
         title="Leave request"
         description={detail ? `${detail.id} · submitted ${fmtDate(detail.appliedOn)}` : ''}
-        footer={detail && detail.status === 'Pending' ? <><Button variant="secondary" onClick={() => openDecision(detail, 'Rejected')}><X className="h-4 w-4" /> Reject</Button><Button onClick={() => openDecision(detail, 'Approved')}><Check className="h-4 w-4" /> Approve</Button></> : <Button variant="secondary" onClick={() => setDetail(null)}>Close</Button>}
+        footer={detail && detail.status === 'Pending' && access.can('leave.approve')
+          ? <><Button variant="secondary" onClick={() => openDecision(detail, 'Rejected')}><X className="h-4 w-4" /> Reject</Button><Button onClick={() => openDecision(detail, 'Approved')}><Check className="h-4 w-4" /> Approve</Button></>
+          : detail && detail.status === 'Pending' && (access.isSelf(detail.employeeId) || access.can('leave.cancel'))
+            ? <><Button variant="secondary" onClick={() => setCancelling(detail)}>Cancel request</Button><Button variant="secondary" onClick={() => setDetail(null)}>Close</Button></>
+            : <Button variant="secondary" onClick={() => setDetail(null)}>Close</Button>}
       >
         {detail && (() => {
           const emp = empMap.get(detail.employeeId)
@@ -562,6 +677,19 @@ export default function Leave() {
           <Textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder={decision?.action === 'Approved' ? 'Approved — coverage and handover confirmed.' : 'Explain the reason for rejecting this leave request…'} />
         </Field>
         <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-[11px] text-slate-500 dark:bg-white/[0.03] dark:text-slate-400">The employee will see this remark in their request history.</p>
+      </Modal>
+
+      <Modal
+        open={!!cancelling}
+        onClose={() => setCancelling(null)}
+        title="Cancel leave request?"
+        description={cancelling ? `${cancelling.leaveType} · ${cancelling.days} day(s) · ${fmtDate(cancelling.from)}` : ''}
+        footer={<><Button variant="secondary" onClick={() => setCancelling(null)}>Keep request</Button><Button variant="danger" onClick={cancelLeave}>Cancel request</Button></>}
+      >
+        <p className="text-sm text-slate-600 dark:text-slate-300">
+          The pending request will be marked as cancelled and any open approval is withdrawn. Approved leave is not
+          cancelled from here — contact HR to adjust an approved absence.
+        </p>
       </Modal>
 
       <Modal

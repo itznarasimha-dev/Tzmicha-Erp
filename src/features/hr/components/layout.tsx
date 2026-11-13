@@ -4,59 +4,61 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   BarChart3, Bell, BriefcaseBusiness, CalendarCheck, CalendarDays, ChevronDown, ChevronLeft,
   Command, FileSignature, HelpCircle, LayoutDashboard, LogOut, Menu, MessageSquareText, Moon,
-  PanelLeftClose, PanelLeftOpen, RotateCcw, Search, Settings2, Sparkles, Sun, Target, User,
+  PanelLeftClose, PanelLeftOpen, Receipt, RotateCcw, Search, Settings2, Sparkles, Sun, Target, User,
   UserMinus, UserPlus, Users, Wallet, X, CheckCheck,
 } from 'lucide-react'
 import { useStore, useTheme } from '../store'
+import { useHrAccess } from '../lib/access'
 import type { Employee } from '../types'
 import { cn, fullName, relativeTime } from '../lib/utils'
 import { Avatar, Badge, Button, ConfirmDialog, IconButton, Kbd } from './ui'
 
-type NavItem = { label: string; to: string; icon: React.ComponentType<{ className?: string }>; badge?: number }
+type NavItem = { label: string; to: string; icon: React.ComponentType<{ className?: string }>; badge?: number; accessId: string }
 
 const navSections: { title: string; items: NavItem[] }[] = [
   {
     title: 'Workspace',
     items: [
-      { label: 'My Dashboard', to: '/', icon: LayoutDashboard },
-      { label: 'Employees', to: '/employees', icon: Users },
-      { label: 'Attendance', to: '/attendance', icon: CalendarCheck },
-      { label: 'Leave Management', to: '/leave', icon: CalendarDays },
+      { label: 'My Dashboard', to: '/', icon: LayoutDashboard, accessId: 'dashboard' },
+      { label: 'Employees', to: '/employees', icon: Users, accessId: 'employees' },
+      { label: 'Attendance', to: '/attendance', icon: CalendarCheck, accessId: 'attendance' },
+      { label: 'Leave Management', to: '/leave', icon: CalendarDays, accessId: 'leave' },
     ],
   },
   {
     title: 'Talent',
     items: [
-      { label: 'Recruitment', to: '/recruitment', icon: BriefcaseBusiness },
-      { label: 'Onboarding', to: '/onboarding', icon: UserPlus },
-      { label: 'Performance', to: '/performance', icon: Target },
+      { label: 'Recruitment', to: '/recruitment', icon: BriefcaseBusiness, accessId: 'recruitment' },
+      { label: 'Onboarding', to: '/onboarding', icon: UserPlus, accessId: 'onboarding' },
+      { label: 'Performance', to: '/performance', icon: Target, accessId: 'performance' },
     ],
   },
   {
     title: 'Finance & Legal',
     items: [
-      { label: 'Payroll', to: '/payroll', icon: Wallet },
-      { label: 'Contracts', to: '/contracts', icon: FileSignature },
-      { label: 'Daily Payments', to: '/payments', icon: Wallet },
+      { label: 'Payroll', to: '/payroll', icon: Wallet, accessId: 'payroll' },
+      { label: 'Contracts', to: '/contracts', icon: FileSignature, accessId: 'contracts' },
+      { label: 'Daily Payments', to: '/payments', icon: Wallet, accessId: 'payments' },
+      { label: 'HR Expenses', to: '/expenses', icon: Receipt, accessId: 'expenses' },
     ],
   },
   {
     title: 'People Ops',
     items: [
-      { label: 'Employee Requests', to: '/requests', icon: MessageSquareText },
-      { label: 'Offboarding', to: '/offboarding', icon: UserMinus },
+      { label: 'Employee Requests', to: '/requests', icon: MessageSquareText, accessId: 'requests' },
+      { label: 'Offboarding', to: '/offboarding', icon: UserMinus, accessId: 'offboarding' },
     ],
   },
   {
     title: 'Insights',
     items: [
-      { label: 'Reports & Analytics', to: '/reports', icon: BarChart3 },
-      { label: 'HR Settings', to: '/settings', icon: Settings2 },
+      { label: 'Reports & Analytics', to: '/reports', icon: BarChart3, accessId: 'reports' },
+      { label: 'HR Settings', to: '/settings', icon: Settings2, accessId: 'settings' },
     ],
   },
 ]
 
-const allPages = navSections.flatMap((s) => s.items).concat([{ label: 'Employee Profile', to: '/employees', icon: Users }])
+const allPages = navSections.flatMap((s) => s.items).concat([{ label: 'Employee Profile', to: '/employees', icon: Users, accessId: 'employees' }])
 
 function useClickOutside<T extends HTMLElement>(onOutside: () => void) {
   const ref = useRef<T>(null)
@@ -75,6 +77,7 @@ export function AppLayout() {
   const { theme, toggleTheme } = useTheme()
   const location = useLocation()
   const navigate = useNavigate()
+  const access = useHrAccess()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('titan-hr-sidebar') === 'collapsed')
   const [search, setSearch] = useState('')
@@ -97,6 +100,21 @@ export function AppLayout() {
     '/payments': pendingPayments,
     '/requests': openRequests,
   }
+
+  // The same permission model used by the primary HR portal layout decides
+  // which modules this sidebar may show.
+  const visibleSections = useMemo(
+    () =>
+      navSections
+        .map((section) => ({ ...section, items: section.items.filter((item) => access.canAccess(item.accessId)) }))
+        .filter((section) => section.items.length > 0),
+    [access],
+  )
+
+  const accessiblePages = useMemo(
+    () => allPages.filter((page) => access.canAccess(page.accessId)),
+    [access],
+  )
 
   useEffect(() => {
     localStorage.setItem('titan-hr-sidebar', collapsed ? 'collapsed' : 'expanded')
@@ -128,15 +146,15 @@ export function AppLayout() {
 
   const results = useMemo(() => {
     const q = search.trim().toLowerCase()
-    const pages = allPages.filter((p) => p.label.toLowerCase().includes(q)).filter((p, i, arr) => arr.findIndex((x) => x.to === p.to) === i).slice(0, 4)
-    if (!q) return { pages: allPages.slice(0, 5), employees: [] as Employee[] }
+    const pages = accessiblePages.filter((p) => p.label.toLowerCase().includes(q)).filter((p, i, arr) => arr.findIndex((x) => x.to === p.to) === i).slice(0, 4)
+    if (!q) return { pages: accessiblePages.slice(0, 5), employees: [] as Employee[] }
     return {
       pages,
       employees: db.employees
         .filter((e) => fullName(e).toLowerCase().includes(q) || e.id.toLowerCase().includes(q) || e.department.toLowerCase().includes(q) || e.designation.toLowerCase().includes(q))
         .slice(0, 5),
     }
-  }, [search, db.employees])
+  }, [search, db.employees, accessiblePages])
 
   const go = (to: string) => {
     navigate(to)
@@ -177,7 +195,7 @@ export function AppLayout() {
       </div>
 
       <nav className="no-scrollbar mt-4 flex-1 overflow-y-auto px-3 pb-4">
-        {navSections.map((section) => (
+        {visibleSections.map((section) => (
           <div key={section.title} className="mb-4">
             {!collapsed && <p className="mb-1.5 px-3 text-[9.5px] font-bold uppercase tracking-[0.16em] text-slate-600">{section.title}</p>}
             <div className="space-y-0.5">

@@ -1,11 +1,14 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   AlertTriangle, ArrowUpDown, CalendarClock, CheckCircle2, ChevronRight, Download, FileSignature,
-  FileText, Pencil, Plus, Search, ShieldCheck, Trash2, TrendingUp, Users,
+  FileText, Pencil, Plus, RefreshCw, Search, ShieldCheck, Trash2, TrendingUp, Users,
 } from 'lucide-react'
 import { useStore } from '../store'
+import { describeMissingPermission, useHrAccess } from '../lib/access'
+import { useContracts } from '../useHrData'
+import { mapContract } from '../api-sync'
 import type { Contract, ContractStatus } from '../types'
 import { downloadCSV, fmtDate, fmtMoney, sum, todayISO } from '../lib/utils'
 import { contractDaysRemaining, effectiveContractStatus } from '../lib/hr'
@@ -19,8 +22,10 @@ const STATUSES: ContractStatus[] = ['Draft', 'Pending Review', 'Pending Signatur
 type SortKey = 'recent' | 'expiry' | 'value' | 'name'
 
 export default function Contracts() {
-  const { db, update, logActivity, toast } = useStore()
+  const access = useHrAccess()
+  const { db, update, logActivity, toast, dataSource, refreshFromApi, syncStatus, syncError } = useStore()
   const navigate = useNavigate()
+  const isApi = dataSource === 'api'
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('All')
   const [partyType, setPartyType] = useState('All')
@@ -32,26 +37,49 @@ export default function Contracts() {
   const [editing, setEditing] = useState<Contract | null>(null)
   const [deleting, setDeleting] = useState<Contract | null>(null)
 
-  const enriched = useMemo(
-    () => db.contracts.map((c) => ({ ...c, effectiveStatus: effectiveContractStatus(c), daysRemaining: contractDaysRemaining(c) })),
-    [db.contracts],
+  useEffect(() => {
+    setPage(1)
+  }, [search, status, partyType, department, sort, pageSize])
+
+  const apiSort = sort === 'expiry' ? 'endDate:asc' : sort === 'recent' ? 'createdAt:desc' : undefined
+  const contractsQuery = useContracts(
+    isApi
+      ? {
+          q: search.trim() || undefined,
+          status: status === 'All' ? undefined : status,
+          partyType: partyType === 'All' ? undefined : partyType,
+          sort: apiSort as any,
+          page,
+          pageSize,
+        }
+      : {},
   )
 
+  const baseContracts = useMemo<Contract[]>(() => {
+    if (!isApi) return db.contracts
+    const data = (contractsQuery.data as any)?.data ?? []
+    return data.map((row: any) => mapContract(row) as Contract)
+  }, [isApi, db.contracts, contractsQuery.data])
+
+  const enriched = useMemo(() => baseContracts.map((c: any) => ({ ...c, effectiveStatus: effectiveContractStatus(c), daysRemaining: contractDaysRemaining(c) })), [baseContracts]) as any[]
+
+  const statsSource: Contract[] = isApi ? db.contracts : enriched.map(({ effectiveStatus: _effectiveStatus, daysRemaining: _daysRemaining, ...c }) => c as Contract)
+  const statsEnriched = useMemo(() => statsSource.map((c: any) => ({ ...c, effectiveStatus: effectiveContractStatus(c), daysRemaining: contractDaysRemaining(c) })), [statsSource]) as any[]
   const counts = useMemo(() => ({
-    total: enriched.length,
-    active: enriched.filter((c) => c.effectiveStatus === 'Active').length,
-    expiring: enriched.filter((c) => c.effectiveStatus === 'Expiring Soon').length,
-    expired: enriched.filter((c) => c.effectiveStatus === 'Expired').length,
-    signatures: enriched.filter((c) => c.effectiveStatus === 'Pending Signature' || c.signatures.some((s) => s.status === 'Pending')).length,
-    review: enriched.filter((c) => c.effectiveStatus === 'Pending Review' || c.effectiveStatus === 'Draft').length,
-    value: sum(enriched.filter((c) => !['Terminated', 'Expired'].includes(c.effectiveStatus)).map((c) => c.value)),
-  }), [enriched])
+    total: statsEnriched.length,
+    active: statsEnriched.filter((c) => c.effectiveStatus === 'Active').length,
+    expiring: statsEnriched.filter((c) => c.effectiveStatus === 'Expiring Soon').length,
+    expired: statsEnriched.filter((c) => c.effectiveStatus === 'Expired').length,
+    signatures: statsEnriched.filter((c) => c.effectiveStatus === 'Pending Signature' || c.signatures.some((s: any) => s.status === 'Pending')).length,
+    review: statsEnriched.filter((c) => c.effectiveStatus === 'Pending Review' || c.effectiveStatus === 'Draft').length,
+    value: sum(statsEnriched.filter((c) => !['Terminated', 'Expired'].includes(c.effectiveStatus)).map((c) => c.value)),
+  }), [statsEnriched])
 
   const alerts = useMemo(
-    () => enriched
+    () => statsEnriched
       .filter((c) => ['Expiring Soon', 'Expired'].includes(c.effectiveStatus))
       .sort((a, b) => a.daysRemaining - b.daysRemaining),
-    [enriched],
+    [statsEnriched],
   )
 
   const filtered = useMemo(() => {
@@ -68,28 +96,45 @@ export default function Contracts() {
     })
   }, [enriched, search, status, partyType, department, sort])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
-  const currentPage = Math.min(page, totalPages)
-  const from = (currentPage - 1) * pageSize
-  const rows = filtered.slice(from, from + pageSize)
+  const meta = (contractsQuery.data as any)?.meta
+  const totalItems = isApi ? Number(meta?.total ?? filtered.length) : filtered.length
+  const totalPages = isApi ? Math.max(1, Number(meta?.totalPages ?? 1)) : Math.max(1, Math.ceil(filtered.length / pageSize))
+  const currentPage = isApi ? Number(meta?.page ?? page) : Math.min(page, totalPages)
+  const from = isApi ? (filtered.length ? (currentPage - 1) * (meta?.pageSize ?? pageSize) : 0) : (Math.min(page, totalPages) - 1) * pageSize
+  const rows = isApi ? filtered : filtered.slice(from, from + pageSize)
+  const displayTo = isApi ? from + rows.length : Math.min(from + pageSize, filtered.length)
 
   const resetFilters = () => {
     setSearch(''); setStatus('All'); setPartyType('All'); setDepartment('All'); setPage(1)
   }
 
   const exportContracts = () => {
+    const exportRows = isApi ? filtered : filtered
     downloadCSV('titan-hr-contracts.csv', [
       ['Contract ID', 'Title', 'Party', 'Party type', 'Department', 'Contract type', 'Start date', 'End date', 'Days remaining', 'Value (USD)', 'Frequency', 'Status', 'Pending signatures'],
-      ...filtered.map((c) => [c.id, c.title, c.partyName, c.partyType, c.department, c.contractType, c.startDate, c.endDate, c.daysRemaining, c.value, c.paymentFrequency, c.effectiveStatus, c.signatures.filter((s) => s.status === 'Pending').length]),
+      ...exportRows.map((c) => [c.id, c.title, c.partyName, c.partyType, c.department, c.contractType, c.startDate, c.endDate, c.daysRemaining, c.value, c.paymentFrequency, c.effectiveStatus, c.signatures.filter((s: any) => s.status === 'Pending').length]),
     ])
-    toast('Contract register exported', 'success', `${filtered.length} contracts written to CSV.`)
+    toast('Contract register exported', 'success', `${exportRows.length} contracts written to CSV.`)
+  }
+
+  const refreshContracts = async () => {
+    if (isApi) {
+      await Promise.all([refreshFromApi(), contractsQuery.refetch()])
+    } else {
+      await refreshFromApi()
+    }
   }
 
   const removeContract = () => {
     if (!deleting) return
+    if (isApi) {
+      toast('Delete not available', 'warning', 'Contract deletion is not supported by the connected ERP API. Use status changes or termination from the contract detail page where supported.')
+      setDeleting(null)
+      return
+    }
     update((d) => ({ ...d, contracts: d.contracts.filter((c) => c.id !== deleting.id) }))
     logActivity('contract', 'Contract deleted', `${deleting.title} · ${deleting.id}`)
-    toast('Contract removed', 'success', `${deleting.id} has been deleted from the local register.`)
+    toast('Contract removed (demo)', 'success', `${deleting.id} has been deleted from the local register. Demo data is not saved to the database.`)
     setDeleting(null)
   }
 
@@ -101,11 +146,21 @@ export default function Contracts() {
         crumbs={['Finance & Legal', 'Contracts']}
         actions={
           <>
+            {isApi && <Button variant="secondary" onClick={() => void refreshContracts()} disabled={syncStatus === 'loading' || contractsQuery.loading}><RefreshCw className={`h-4 w-4 ${syncStatus === 'loading' || contractsQuery.loading ? 'animate-spin' : ''}`} /> Refresh</Button>}
             <Button variant="secondary" onClick={exportContracts} disabled={!filtered.length}><Download className="h-4 w-4" /> Export</Button>
-            <Button onClick={() => { setEditing(null); setModalOpen(true) }}><Plus className="h-4 w-4" /> New contract</Button>
+            {access.can('contract.write') && (
+              <Button onClick={() => { setEditing(null); setModalOpen(true) }}><Plus className="h-4 w-4" /> New contract</Button>
+            )}
           </>
         }
       />
+
+      {(syncError || (isApi && contractsQuery.error)) && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300">
+          <span>{contractsQuery.error || syncError}</span>
+          <Button size="sm" variant="secondary" onClick={() => void refreshContracts()}>Retry</Button>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-6">
         <StatCard index={0} label="Total contracts" value={counts.total} icon={FileSignature} tone="brand" hint={`${fmtMoney(counts.value, true)} active value`} onClick={resetFilters} />
@@ -171,7 +226,7 @@ export default function Contracts() {
             </thead>
             <tbody>
               {rows.map((c) => {
-                const pendingSig = c.signatures.filter((s) => s.status === 'Pending').length
+                const pendingSig = c.signatures.filter((s: any) => s.status === 'Pending').length
                 return (
                   <tr key={c.id} className="table-row cursor-pointer" onClick={() => navigate(`/contracts/${c.id}`)}>
                     <td className="table-cell">
@@ -199,8 +254,10 @@ export default function Contracts() {
                     <td className="table-cell"><StatusBadge status={c.effectiveStatus} /></td>
                     <td className="table-cell text-right">
                       <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                        <IconButton aria-label={`Edit ${c.title}`} onClick={() => { setEditing(c); setModalOpen(true) }}><Pencil className="h-3.5 w-3.5" /></IconButton>
-                        <IconButton aria-label={`Delete ${c.title}`} onClick={() => setDeleting(c)} className="hover:text-rose-600 dark:hover:text-rose-400"><Trash2 className="h-3.5 w-3.5" /></IconButton>
+                        {access.can('contract.write') && (
+                          <IconButton aria-label={`Edit ${c.title}`} onClick={() => { setEditing(c); setModalOpen(true) }}><Pencil className="h-3.5 w-3.5" /></IconButton>
+                        )}
+                        <IconButton aria-label={`Delete ${c.title}`} onClick={() => setDeleting(c)} className="hover:text-rose-600 dark:hover:text-rose-400" title="Delete contract is not supported by the ERP API"><Trash2 className="h-3.5 w-3.5" /></IconButton>
                         <IconButton aria-label={`Open ${c.title}`} onClick={() => navigate(`/contracts/${c.id}`)}><ChevronRight className="h-4 w-4" /></IconButton>
                       </div>
                     </td>
@@ -214,13 +271,26 @@ export default function Contracts() {
               icon={FileSignature}
               title={db.contracts.length ? 'No contracts match your filters' : 'No contracts yet'}
               description={db.contracts.length ? 'Try a different search term, status or party type. Your demo register is intact.' : 'Create your first agreement to start tracking signatures, renewals and payments.'}
-              action={db.contracts.length ? <Button variant="secondary" onClick={resetFilters}>Clear filters</Button> : <Button onClick={() => { setEditing(null); setModalOpen(true) }}><Plus className="h-4 w-4" /> New contract</Button>}
+              action={db.contracts.length ? <Button variant="secondary" onClick={resetFilters}>Clear filters</Button> : access.can('contract.write') ? <Button onClick={() => { setEditing(null); setModalOpen(true) }}><Plus className="h-4 w-4" /> New contract</Button> : undefined}
             />
           )}
         </div>
 
-        {filtered.length > 0 && (
-          <Pagination page={currentPage} totalPages={totalPages} total={filtered.length} from={from} to={Math.min(from + pageSize, filtered.length)} onPage={setPage} pageSize={pageSize} onPageSize={(n) => { setPageSize(n); setPage(1) }} label="contracts" />
+        {totalItems > 0 && (
+          <Pagination
+            page={currentPage}
+            totalPages={totalPages}
+            total={totalItems}
+            from={rows.length ? from + 1 : 0}
+            to={rows.length ? displayTo : 0}
+            onPage={setPage}
+            pageSize={meta?.pageSize ?? pageSize}
+            onPageSize={(n) => { setPageSize(n); setPage(1) }}
+            label="contracts"
+          />
+        )}
+        {(syncStatus === 'loading' || (isApi && contractsQuery.loading)) && (
+          <div className="border-t border-slate-100 px-4 py-3 text-xs text-slate-500 dark:border-white/[0.05] dark:text-slate-400">Loading latest contracts from the ERP API…</div>
         )}
       </Card>
 
@@ -272,7 +342,7 @@ export default function Contracts() {
         </Card>
       </div>
 
-      <ContractModal open={modalOpen} onClose={() => { setModalOpen(false); setEditing(null) }} contract={editing} />
+      <ContractModal open={modalOpen} onClose={() => { setModalOpen(false); setEditing(null); if (isApi) void contractsQuery.refetch() }} contract={editing} />
       <ConfirmDialog
         open={!!deleting}
         onClose={() => setDeleting(null)}

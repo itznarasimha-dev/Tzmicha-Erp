@@ -723,10 +723,14 @@ contractsRouter.post(
 contractsRouter.get('/payments/:id/history', requirePermission('hr.payment.read'), async (req, res) => {
   const auth = req.auth!
   const id = uuidSchema.parse(req.params.id)
-  const rows = await withRls(
+
+  const payload = await withRls(
     auth,
-    (client) =>
-      many(
+    async (client) => {
+      const payment = await one(client, `select ${PAYMENT_SELECT} where p.id = $1`, [id])
+      if (!payment) throw AppError.notFound('Payment not found')
+
+      const rows = await many(
         client,
         `select h.*, u.name as actor_name
            from erp.hr_payment_history h
@@ -734,17 +738,21 @@ contractsRouter.get('/payments/:id/history', requirePermission('hr.payment.read'
           where h.payment_id = $1
           order by h.created_at desc`,
         [id],
-      ),
+      )
+
+      return {
+        payment: mapPayment(payment),
+        history: rows.map((row) => ({
+          id: row.id,
+          date: row.created_at,
+          action: row.action,
+          actor: row.actor_name ?? '',
+          note: row.note ?? '',
+        })),
+      }
+    },
     { readOnly: true },
   )
-  sendData(
-    res,
-    rows.map((row) => ({
-      id: row.id,
-      date: row.created_at,
-      action: row.action,
-      actor: row.actor_name ?? '',
-      note: row.note ?? '',
-    })),
-  )
+
+  sendData(res, payload)
 })

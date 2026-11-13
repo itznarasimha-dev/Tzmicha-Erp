@@ -22,6 +22,7 @@ import type {
   DocFile,
   Employee,
   EmployeeRequest,
+  Interview,
   JobOpening,
   LeaveRequest,
   LeaveType,
@@ -38,6 +39,24 @@ const EMPTY: [] = []
 
 function asArray<T>(value: unknown): T[] {
   return Array.isArray(value) ? (value as T[]) : []
+}
+
+async function mapWithLimit<T, R>(
+  items: T[],
+  limit: number,
+  mapper: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = []
+  let index = 0
+  const workers = Array.from({ length: Math.min(limit, Math.max(items.length, 1)) }, async () => {
+    for (;;) {
+      const current = index++
+      if (current >= items.length) return
+      results[current] = await mapper(items[current])
+    }
+  })
+  await Promise.all(workers)
+  return results
 }
 
 function text(value: unknown, fallback = ''): string {
@@ -163,6 +182,20 @@ function mapJob(row: api.ApiJobOpening): JobOpening {
 }
 
 function mapCandidate(row: api.ApiCandidate): Candidate {
+  const interviews = asArray<Record<string, unknown>>(row.interviews)
+  const latest = interviews[0]
+  const interview = latest
+    ? {
+        id: text(latest.id),
+        round: text(latest.round),
+        date: text(latest.date),
+        time: text(latest.time),
+        interviewer: text(latest.interviewer ?? latest.interviewerName),
+        mode: (text(latest.mode, 'Video') as Interview['mode']) || 'Video',
+        feedback: latest.feedback ? text(latest.feedback) : undefined,
+        rating: typeof latest.rating === 'number' ? latest.rating : undefined,
+      }
+    : undefined
   return {
     id: row.id,
     name: row.name,
@@ -181,6 +214,7 @@ function mapCandidate(row: api.ApiCandidate): Candidate {
     offerStatus: row.offerStatus,
     rejectionReason: row.rejectionReason,
     notes: row.notes,
+    interview,
     convertedEmployeeId: row.convertedEmployeeId ?? undefined,
   }
 }
@@ -209,9 +243,10 @@ function mapOnboarding(row: api.ApiOnboarding): OnboardingRecord {
   }
 }
 
-function mapPayslip(row: api.ApiPayslip): PayrollEntry {
+export function mapPayslip(row: api.ApiPayslip): PayrollEntry {
   return {
     id: row.id,
+    payrollRunId: row.payrollRunId,
     employeeId: row.employeeId,
     period: row.period,
     basic: row.basic,
@@ -227,7 +262,27 @@ function mapPayslip(row: api.ApiPayslip): PayrollEntry {
   }
 }
 
-function mapContract(row: api.ApiContract): Contract {
+/** Payroll runs mapped for the payroll workspace (page level queries). */
+export function mapPayrollRun(row: api.ApiPayrollRun) {
+  return {
+    id: row.id,
+    period: row.period,
+    status: row.status,
+    totalGross: row.totalGross,
+    totalDeductions: row.totalDeductions,
+    totalNet: row.totalNet,
+    notes: row.notes,
+    preparedBy: row.preparedBy,
+    reviewedBy: row.reviewedBy,
+    approvedBy: row.approvedBy,
+    approvedAt: row.approvedAt,
+    paidAt: row.paidAt,
+    payslipCount: row.payslipCount,
+    createdAt: row.createdAt,
+  }
+}
+
+export function mapContract(row: api.ApiContract): Contract {
   return {
     id: row.id,
     title: row.title,
@@ -241,12 +296,35 @@ function mapContract(row: api.ApiContract): Contract {
     value: row.value,
     paymentFrequency: row.paymentFrequency,
     status: row.status,
-    signatures: [],
-    documents: [],
+    signatures: asArray<Record<string, unknown>>(row.signatures).map((signature) => ({
+      id: text(signature.id),
+      name: text(signature.name),
+      role: text(signature.role),
+      status: text(signature.status, 'Pending') === 'Signed' ? 'Signed' : 'Pending',
+      signedAt: signature.signedAt ? text(signature.signedAt) : undefined,
+    })),
+    documents: asArray<Record<string, unknown>>(row.documents).map((document) => ({
+      id: text(document.id),
+      name: text(document.name),
+      type: text(document.type, 'file'),
+      size: Number(document.size ?? 0),
+      uploadedAt: text(document.uploadedAt),
+      status: (text(document.status, 'Pending') as DocFile['status']) || 'Pending',
+    })),
     notes: row.notes,
-    paymentSchedule: [],
+    paymentSchedule: asArray<Record<string, unknown>>(row.paymentSchedule).map((item) => ({
+      id: text(item.id),
+      dueDate: text(item.dueDate),
+      amount: Number(item.amount ?? 0),
+      status: (text(item.status, 'Scheduled') as Contract['paymentSchedule'][number]['status']) || 'Scheduled',
+    })),
     createdAt: row.createdAt,
-    history: [],
+    history: asArray<Record<string, unknown>>(row.history).map((entry) => ({
+      id: text(entry.id),
+      date: text(entry.date),
+      action: text(entry.action),
+      actor: text(entry.actor),
+    })),
   }
 }
 
@@ -302,7 +380,12 @@ function mapRequest(row: api.ApiEmployeeRequest): EmployeeRequest {
     priority: row.priority,
     assignedTo: row.assignedTo,
     createdAt: row.createdAt,
-    responses: [],
+    responses: asArray<Record<string, unknown>>(row.responses).map((response) => ({
+      id: text(response.id),
+      author: text(response.author ?? response.by),
+      message: text(response.message ?? response.body),
+      date: text(response.date ?? response.at),
+    })),
   }
 }
 
@@ -387,13 +470,34 @@ export interface HrSyncOptions {
 }
 
 /**
- * Build the full HR `Database` from the API.
- * Throws only when the core employee directory cannot be loaded; secondary
- * modules degrade to the demo scaffolding so one permission gap cannot blank
- * the whole portal.
+ * Result of a store hydration.
+ *
+ * `errors` lists the collections the API refused for this caller (missing
+ * permission, RLS, ...). The portal stays in API mode and shows the honest
+ * error for those modules — it never falls back to demo records.
  */
-export async function fetchHrDatabase(options: HrSyncOptions = {}): Promise<Database> {
+export interface HrSyncResult {
+  database: Database
+  errors: Record<string, string>
+}
+
+/**
+ * Build the full HR `Database` from the API.
+ *
+ * Only a transport failure (network / unauthorized session) rejects. A
+ * collection that the signed-in role is not allowed to read is reported in
+ * `errors` so the UI can show a permission state instead of demo data.
+ */
+export async function fetchHrDatabase(options: HrSyncOptions = {}): Promise<HrSyncResult> {
   const base = createDemoDatabase()
+  const errors: Record<string, string> = {}
+
+  const record = (key: string, reason: unknown) => {
+    errors[key] =
+      reason instanceof Error && reason.message
+        ? reason.message
+        : `The ERP API refused the ${key} collection for your role.`
+  }
 
   const core = await Promise.allSettled([
     api.listAllEmployees({}, ),
@@ -445,18 +549,57 @@ export async function fetchHrDatabase(options: HrSyncOptions = {}): Promise<Data
     offboardingResult,
   ] = core
 
-  if (employeesResult.status === 'rejected') {
-    throw employeesResult.reason
-  }
+  const keys = [
+    'employees',
+    'attendance',
+    'leaves',
+    'payslips',
+    'contracts',
+    'payments',
+    'expenses',
+    'dashboard',
+    'activities',
+    'settings',
+    'departments',
+    'designations',
+    'leaveTypes',
+    'holidays',
+    'corrections',
+    'jobs',
+    'candidates',
+    'onboarding',
+    'reviews',
+    'requests',
+    'offboarding',
+  ] as const
 
-  const employees = employeesResult.value.map(mapEmployee)
+  core.forEach((result, index) => {
+    if (result.status === 'rejected') record(keys[index], result.reason)
+  })
+
+  const employees = settle(employeesResult, []).map(mapEmployee)
   const attendance = settle(attendanceResult, []).map(mapAttendance)
   const leaves = settle(leavesResult, []).map(mapLeave)
   const payroll = settle(payslipsResult, []).map(mapPayslip)
-  const contracts = settle(contractsResult, []).map(mapContract)
+  // List payloads omit signatures, payment schedule and documents, so hydrate
+  // those detail-only fields for the contract register.
+  const contracts = await mapWithLimit(settle(contractsResult, []), 5, async (row) => {
+    try {
+      return mapContract(await api.getContract(row.id))
+    } catch {
+      return mapContract(row)
+    }
+  })
   const payments = settle(paymentsResult, []).map(mapPayment)
   const jobs = settleData(jobsResult, []).map(mapJob)
-  const candidates = settleData(candidatesResult, []).map(mapCandidate)
+  const candidates = await mapWithLimit(settleData(candidatesResult, []), 4, async (row) => {
+    if (row.stage !== 'Interview') return mapCandidate(row)
+    try {
+      return mapCandidate(await api.getCandidate(row.id))
+    } catch {
+      return mapCandidate(row)
+    }
+  })
   const onboarding = settle(onboardingResult, []).map(mapOnboarding)
   const reviews = settleData(reviewsResult, []).map(mapReview)
   const requests = settleData(requestsResult, []).map(mapRequest)
@@ -505,10 +648,10 @@ export async function fetchHrDatabase(options: HrSyncOptions = {}): Promise<Data
   // without inventing a field on `Database`.
   void expensesResult
 
-  return database
+  return { database, errors }
 }
 
 /** Convenience alias used by the store. */
-export async function hydrateHrDatabase(options: HrSyncOptions = {}): Promise<Database> {
+export async function hydrateHrDatabase(options: HrSyncOptions = {}): Promise<HrSyncResult> {
   return fetchHrDatabase(options)
 }

@@ -189,7 +189,51 @@ None — all GET APIs listed in `src/lib/api/hr.ts` and `src/lib/api/marketing.t
 **Updated:**
 - `src/features/hr/pages/Dashboard.tsx` — added `syncStatus`/`syncError` loading/error handling; store hydration provides API-backed data in API mode
 - `src/features/hr/pages/Employees.tsx` — uses `useEmployees` hook for API-backed listing with loading/error/retry states
+- `src/features/hr/pages/Leave.tsx` — uses `useLeads`/`useLeaveTypes` hooks for API-backed leave listing with loading/error/retry states
+- `src/features/hr/pages/Attendance.tsx` — uses `useAttendance`/`useCorrections` hooks for API-backed attendance listing with loading/error/retry states
+- `src/features/hr/pages/DailyPayments.tsx` — uses `usePayments` hook for API-backed payments listing with loading/error/retry states
+- `src/features/hr/pages/Requests.tsx` — uses `useEmployeeRequests` hook for API-backed requests listing with loading/error/retry states
+- `src/features/hr/pages/Recruitment.tsx` — uses `useJobs`/`useCandidates` hooks for API-backed recruitment listing with loading/error/retry states
+- `src/features/hr/pages/Onboarding.tsx` — uses `useOnboarding` hook for API-backed onboarding listing with loading/error/retry states
+- `src/features/hr/pages/Offboarding.tsx` — uses `useOffboarding` hook for API-backed offboarding listing with loading/error/retry states
+- `src/features/hr/pages/Performance.tsx` — uses `useReviews` hook for API-backed performance listing with loading/error/retry states
 - `src/features/marketing/pages/MarketingDashboard.tsx` — uses `useMarketingDashboard` hook for API-backed KPI cards with loading/error states
+
+### Pages connected to READ APIs (per-endpoint)
+
+| Module | Page | READ Hook | API Mode Connected | Demo Mode Preserved | Loading/Error | Refresh | Status |
+|--------|------|-----------|-------------------|-------------------|---------------|---------|--------|
+| HR | Dashboard | `useHrDashboard` + hydration | Yes | Yes | Yes (syncStatus/syncError) | Yes | Connected |
+| HR | Employees | `useEmployees` | Yes | Yes | Yes | Yes | Connected |
+| HR | Leave | `useLeaves`/`useLeaveTypes` | Yes | Yes | Yes | Yes | Connected |
+| HR | Attendance | `useAttendance`/`useCorrections` | Yes | Yes | Yes | Yes | Connected |
+| HR | DailyPayments | `usePayments` | Yes | Yes | Yes | Yes | Connected |
+| HR | Requests | `useEmployeeRequests` | Yes | Yes | Yes | Yes | Connected |
+| HR | Recruitment | `useJobs`/`useCandidates` | Yes | Yes | Yes | Yes | Connected |
+| HR | Onboarding | `useOnboarding` | Yes | Yes | Yes | N/A | Connected |
+| HR | Offboarding | `useOffboarding` | Yes | Yes | Yes | N/A | Connected |
+| HR | Performance | `useReviews` | Yes | Yes | Yes | N/A | Connected |
+| Marketing | MarketingDashboard | `useMarketingDashboard` | Yes | Yes | Yes | Yes | Connected |
+
+### HR pages pending READ integration (type mismatch between local types and API types)
+- `Contracts.tsx` — `useContracts` hook available but `Contract`/`ApiContract` type incompatibility prevents direct integration
+- `ContractDetail.tsx` — detail page; no `useContract(id)` hook exists
+- `Payroll.tsx` — `usePayrollRuns` hook available but `PayrollEntry`/`ApiPayrollRun` type incompatibility prevents direct integration
+- `Reports.tsx` — uses `db.*` for analytics; `useHrAnalytics` hook available
+- `EmployeeProfile.tsx` — detail page; `useEmployee(id)` hook available
+- `Settings.tsx` — settings page; no dedicated READ hook
+
+### Marketing pages pending READ integration
+- `LeadsPage.tsx` — `useLeads` hook available; large file (140KB) needs detailed integration
+- `DigitalMarketingPage.tsx` — `useCampaigns` hook available
+- `PlansBudgetsPage.tsx` — `usePlans` hook available
+- `ExpensesPaymentsPage.tsx` — `useMarketingExpenses` hook available
+- `FieldMarketingPage.tsx` — `useVisits` hook available
+- `TradeRetailPage.tsx` — `useDealers` hook available
+- `ReportsAnalyticsPage.tsx` — various hooks available
+
+### Missing backend GET endpoints documented
+None — all GET APIs listed in `src/lib/api/hr.ts` and `src/lib/api/marketing.ts` have corresponding hooks. No new endpoints were created.
 
 ### TypeScript result
 `npx tsc -p tsconfig.app.json --noEmit --pretty false` — **PASS** (no errors)
@@ -204,7 +248,8 @@ None — no live Supabase/database available. All API wiring is code-level, veri
 **Deferred** — no credentials, no migrations applied, no live database verification.
 
 ### Remaining work
-- Connect remaining HR listing pages (Leave, Attendance, Payroll, Contracts, DailyPayments, Requests, Performance, Recruitment, Reports) to use `useHrData` hooks for per-endpoint loading/error states
-- Connect remaining Marketing listing pages (LeadsPage, DigitalMarketingPage, PlansBudgetsPage, ExpensesPaymentsPage, FieldMarketingPage, TradeRetailPage, ReportsAnalyticsPage) to use `useMarketingData` hooks
-- Create HR Expenses UI page (backend `hrExpensesRouter` exists; no dedicated page under `features/hr/pages`)
-- Documentation of missing UI pages for Marketing Offers/Discounts/Targets/Performance/Rewards/Field/Dealers/Surveys/Activity records
+1. Resolve type mismatches for `Contracts.tsx` (`Contract`/`ApiContract`) and `Payroll.tsx` (`PayrollEntry`/`ApiPayrollRun`) to enable hook integration
+2. Connect remaining Marketing listing pages (LeadsPage, DigitalMarketingPage, PlansBudgetsPage, ExpensesPaymentsPage, FieldMarketingPage, TradeRetailPage, ReportsAnalyticsPage)
+3. Create HR Expenses UI page (backend `hrExpensesRouter` exists; no dedicated page under `features/hr/pages`)
+4. Add `useContract(id)` hook for ContractDetail page
+5. Runtime testing blocked: no live Supabase/database available

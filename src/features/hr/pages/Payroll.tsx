@@ -1,13 +1,17 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   ArrowRight, Banknote, CalendarDays, Check, CheckCircle2, ChevronRight, CircleDollarSign,
-  Download, FileText, Play, Search, Users, Wallet,
+  Download, FileText, Play, RefreshCw, Search, Users, Wallet,
 } from 'lucide-react'
 import { useStore } from '../store'
+import { usePayrollRuns, usePayslips } from '../useHrData'
+import { describeMissingPermission, useHrAccess } from '../lib/access'
+import { mapPayslip } from '../api-sync'
 import { runHrApiAction, hrActions } from '../api-actions'
 import type { PayrollEntry, PayrollStatus } from '../types'
 import { downloadCSV, fmtDate, fmtMoney, fullName, monthLabel, sum, todayISO } from '../lib/utils'
+import { HrPermissionNotice } from '../components/hr-guard'
 import {
   Avatar, Badge, Button, Card, ConfirmDialog, Drawer, EmptyState, Field, Input, Modal, PageHeader,
   Pagination, ProgressBar, SearchInput, Select, StatCard, StatusBadge,
@@ -15,6 +19,14 @@ import {
 
 const FLOW: PayrollStatus[] = ['Draft', 'HR Review', 'Finance Approval', 'Approved', 'Paid']
 
+/**
+ * The backend enforces explicit transitions (see `server/src/routes/hr/payroll.ts`):
+ *  Draft -> HR Review          requires hr.payroll.prepare
+ *  HR Review -> Finance Approval requires hr.payroll.prepare
+ *  Finance Approval -> Approved requires finance.payment.approve
+ *  Approved -> Paid             requires finance.payment.approve
+ * The `actor` field names the team that owns each step.
+ */
 const nextAction = (status: PayrollStatus): { next: PayrollStatus; label: string; actor: string; description: string } | null => {
   switch (status) {
     case 'Draft': return { next: 'HR Review', label: 'Submit for HR review', actor: 'HR', description: 'Submitting the payroll entry moves it to the HR review queue. Attendance and leave adjustments should be confirmed first.' }
@@ -27,7 +39,9 @@ const nextAction = (status: PayrollStatus): { next: PayrollStatus; label: string
 
 export default function Payroll() {
   const { db, update, logActivity, toast, dataSource, refreshFromApi } = useStore()
+  const access = useHrAccess()
   const navigate = useNavigate()
+  const useApi = dataSource === 'api'
   const periods = useMemo(() => Array.from(new Set(db.payroll.map((p) => p.period))).sort().reverse(), [db.payroll])
   const [period, setPeriod] = useState(periods[0] || todayISO().slice(0, 7))
   const [status, setStatus] = useState('All')
@@ -40,9 +54,49 @@ export default function Payroll() {
   const [runOpen, setRunOpen] = useState(false)
   const [runPeriod, setRunPeriod] = useState(periods[0] || todayISO().slice(0, 7))
 
+  // API mode reads the real payroll runs and payslips. The backend supports
+  // period, status and pagination as server-side query parameters.
+  const runsQuery = usePayrollRuns({
+    period: useApi ? period : undefined,
+    status: useApi && status !== 'All' ? status : undefined,
+    page: useApi ? page : undefined,
+    pageSize: useApi ? pageSize : undefined,
+  })
+  const payslipsQuery = usePayslips({
+    period: useApi ? period : undefined,
+    status: useApi && status !== 'All' ? status : undefined,
+    page: useApi ? page : undefined,
+    pageSize: useApi ? pageSize : undefined,
+  })
+
+  const apiPayslips = useMemo(() => {
+    const data = payslipsQuery.data as any
+    return (((data?.data ?? []) as any[]).map((row) => mapPayslip(row) as PayrollEntry))
+  }, [payslipsQuery.data])
+
+  const apiRuns = useMemo(() => {
+    const data = runsQuery.data as any
+    return ((data?.data ?? []) as any[]) as Array<{
+      id: string
+      period: string
+      status: PayrollStatus
+      totalGross: number
+      totalDeductions: number
+      totalNet: number
+      notes: string
+      preparedBy: string
+      reviewedBy: string
+      approvedBy: string
+      payslipCount: number
+    }>
+  }, [runsQuery.data])
+
   const empMap = useMemo(() => new Map(db.employees.map((e) => [e.id, e])), [db.employees])
-  const periodEntries = useMemo(() => db.payroll.filter((p) => p.period === period), [db.payroll, period])
-  const selected = db.payroll.find((p) => p.id === selectedId) || null
+  const periodEntries = useMemo(
+    () => (useApi ? apiPayslips : db.payroll.filter((p) => p.period === period)),
+    [useApi, apiPayslips, db.payroll, period],
+  )
+  const selected = periodEntries.find((p) => p.id === selectedId) || null
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -57,10 +111,12 @@ export default function Payroll() {
     })
   }, [periodEntries, empMap, search, status, department])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
-  const currentPage = Math.min(page, totalPages)
-  const from = (currentPage - 1) * pageSize
-  const rows = filtered.slice(from, from + pageSize)
+  const payslipMeta = (payslipsQuery.data as any)?.meta
+  const totalItems = useApi ? Number(payslipMeta?.total ?? filtered.length) : filtered.length
+  const totalPages = useApi ? Math.max(1, Number(payslipMeta?.totalPages ?? 1)) : Math.max(1, Math.ceil(filtered.length / pageSize))
+  const currentPage = useApi ? Number(payslipMeta?.page ?? page) : Math.min(page, totalPages)
+  const from = useApi ? (filtered.length ? (currentPage - 1) * (payslipMeta?.pageSize ?? pageSize) : 0) : (Math.min(page, totalPages) - 1) * pageSize
+  const rows = useApi ? filtered : filtered.slice(from, from + pageSize)
 
   const gross = (p: PayrollEntry) => p.basic + p.allowances + p.overtime
   const deductions = (p: PayrollEntry) => p.deductions + p.leaveDeduction + p.tax
@@ -74,7 +130,14 @@ export default function Payroll() {
     pending: periodEntries.filter((p) => ['HR Review', 'Finance Approval'].includes(p.status)).length,
   }
 
-  const stepCounts = FLOW.map((s) => ({ status: s, count: periodEntries.filter((p) => p.status === s).length }))
+  // The stage counts follow the payroll runs (API mode) so they mirror the
+  // backend workflow, and the payslip statuses (demo mode).
+  const stepCounts = useMemo(() => {
+    if (useApi && apiRuns.length > 0) {
+      return FLOW.map((s) => ({ status: s, count: apiRuns.filter((r) => r.status === s).length }))
+    }
+    return FLOW.map((s) => ({ status: s, count: periodEntries.filter((p) => p.status === s).length }))
+  }, [useApi, apiRuns, periodEntries])
 
   const PAYROLL_ACTION_FOR_STATUS: Record<PayrollStatus, 'submit' | 'review' | 'approve' | 'mark-paid' | 'cancel' | null> = {
     Draft: 'submit',
@@ -84,6 +147,17 @@ export default function Payroll() {
     Paid: null,
   }
 
+  /** Which capability unlocks the transition for the current stage. */
+  const transitionCapability = (status: PayrollStatus): 'payroll.prepare' | 'payroll.approve' =>
+    status === 'Finance Approval' || status === 'Approved' ? 'payroll.approve' : 'payroll.prepare'
+
+  const canAdvance = (status: PayrollStatus) => access.can(transitionCapability(status))
+
+  useEffect(() => { setPage(1) }, [period, status, pageSize])
+
+  const apiLoading = useApi && (runsQuery.loading || payslipsQuery.loading)
+  const apiError = useApi ? (runsQuery.error || payslipsQuery.error) : null
+
   const applyAction = async () => {
     if (!confirm) return
     const action = nextAction(confirm.status)
@@ -91,15 +165,25 @@ export default function Payroll() {
     const apiAction = PAYROLL_ACTION_FOR_STATUS[confirm.status]
     if (!apiAction) return
 
+    if (!canAdvance(confirm.status)) {
+      toast('Action not available', 'warning', `${describeMissingPermission(transitionCapability(confirm.status))} The payroll entry was not changed.`)
+      setConfirm(null)
+      return
+    }
+
     if (dataSource === 'api') {
-      await runHrApiAction({ dataSource, refreshFromApi, toast }, {
-        action: () => hrActions.advancePayrollRun(confirm.id, apiAction, `Advanced ${confirm.status} to ${action.next}`),
+      // The backend advances a payroll *run*; every payslip of that run is
+      // moved to the next status by the server.
+      const runId = confirm.payrollRunId || confirm.id
+      const res = await runHrApiAction({ dataSource, refreshFromApi, toast }, {
+        action: () => hrActions.advancePayrollRun(runId, apiAction, `Advanced ${confirm.status} to ${action.next}`),
         successMessage: `Payroll moved to ${action.next}`,
         successDescription: `${empMap.get(confirm.employeeId) ? fullName(empMap.get(confirm.employeeId)!) : confirm.employeeId} · ${monthLabel(confirm.period)}`,
         errorTitle: `Could not advance payroll to ${action.next}`,
       })
       setConfirm(null)
       setSelectedId(null)
+      if (res.ok) { void runsQuery.refetch(); void payslipsQuery.refetch() }
       return
     }
 
@@ -166,13 +250,13 @@ export default function Payroll() {
   const downloadPayslip = (p: PayrollEntry) => {
     const e = empMap.get(p.employeeId)
     downloadCSV(`payslip-${p.employeeId}-${p.period}.csv`, [
-      ['TITAN HR — DEMO PAYSLIP'], ['Period', monthLabel(p.period)], ['Employee', e ? fullName(e) : p.employeeId], ['Employee ID', p.employeeId], ['Department', e?.department || ''],
+      ['TITAN HR PAYSLIP'], ['Period', monthLabel(p.period)], ['Employee', e ? fullName(e) : p.employeeId], ['Employee ID', p.employeeId], ['Department', e?.department || ''],
       [], ['EARNINGS'], ['Basic salary', p.basic], ['Allowances', p.allowances], ['Overtime', p.overtime], ['Gross pay', gross(p)],
       [], ['DEDUCTIONS'], ['Other deductions', p.deductions], ['Leave adjustment', p.leaveDeduction], ['Tax', p.tax], ['Total deductions', deductions(p)],
       [], ['NET PAY', net(p)], ['Status', p.status], ['Attendance days', p.attendanceDays], ['Leave days', p.leaveDays], ['Note', p.note || ''],
-      [], ['This is demo data. No real payroll was processed.'],
+      [], [useApi ? 'Amounts calculated by the ERP API payroll run.' : 'This is demo data. No real payroll was processed.'],
     ])
-    toast('Payslip downloaded', 'success', `Demo payslip for ${e ? fullName(e) : p.employeeId} exported.`)
+    toast('Payslip downloaded', 'success', `Payslip for ${e ? fullName(e) : p.employeeId} exported.`)
   }
 
   return (
@@ -181,8 +265,32 @@ export default function Payroll() {
         title="Payroll"
         subtitle="Coordinate the payroll cycle, review attendance adjustments and move entries through HR review and Finance approval."
         crumbs={['Finance & Legal', 'Payroll']}
-        actions={<><Button variant="secondary" onClick={exportPayroll}><Download className="h-4 w-4" /> Export</Button><Button onClick={() => setRunOpen(true)}><Play className="h-4 w-4" /> Run payroll</Button></>}
+        actions={
+          <>
+            {useApi && (
+              <Button variant="secondary" onClick={() => { void runsQuery.refetch(); void payslipsQuery.refetch() }} disabled={apiLoading}>
+                <RefreshCw className={`h-4 w-4 ${apiLoading ? 'animate-spin' : ''}`} /> Refresh
+              </Button>
+            )}
+            <Button variant="secondary" onClick={exportPayroll}><Download className="h-4 w-4" /> Export</Button>
+            {access.can('payroll.prepare') && (
+              <Button onClick={() => setRunOpen(true)}><Play className="h-4 w-4" /> Run payroll</Button>
+            )}
+          </>
+        }
       />
+
+      {!access.can('payroll.prepare') && (
+        <HrPermissionNotice className="mb-4" message={`${describeMissingPermission('payroll.prepare')} You can review payroll but cannot prepare or advance a payroll run.`} />
+      )}
+
+      {useApi && apiError && (
+        <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300">
+          <p className="font-semibold">Unable to load payroll data</p>
+          <p className="mt-0.5 text-[12px]">{apiError}</p>
+          <button onClick={() => { void runsQuery.refetch(); void payslipsQuery.refetch() }} className="mt-2 text-[12px] font-semibold text-rose-600 hover:underline dark:text-rose-300">Retry</button>
+        </div>
+      )}
 
       <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-slate-200/80 bg-white px-4 py-3 shadow-soft dark:border-white/[0.06] dark:bg-ink-900">
         <span className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-200"><CalendarDays className="h-4 w-4 text-brand-500" /> Payroll period</span>
@@ -260,9 +368,28 @@ export default function Payroll() {
               })}
             </tbody>
           </table>
-          {rows.length === 0 && <EmptyState icon={Wallet} title="No payroll entries" description="No payroll entries match this period and filters. Prepare a payroll run or adjust your filters." action={<Button onClick={() => setRunOpen(true)}><Play className="h-4 w-4" /> Run payroll</Button>} />}
+          {rows.length === 0 && (
+            <EmptyState
+              icon={Wallet}
+              title="No payroll entries"
+              description="No payroll entries match this period and filters. Prepare a payroll run or adjust your filters."
+              action={access.can('payroll.prepare') ? <Button onClick={() => setRunOpen(true)}><Play className="h-4 w-4" /> Run payroll</Button> : undefined}
+            />
+          )}
         </div>
-        {filtered.length > 0 && <Pagination page={currentPage} totalPages={totalPages} total={filtered.length} from={from} to={Math.min(from + pageSize, filtered.length)} onPage={setPage} pageSize={pageSize} onPageSize={setPageSize} label="entries" />}
+        {totalItems > 0 && (
+          <Pagination
+            page={currentPage}
+            totalPages={totalPages}
+            total={totalItems}
+            from={rows.length ? from + 1 : 0}
+            to={rows.length ? from + rows.length : 0}
+            onPage={setPage}
+            pageSize={payslipMeta?.pageSize ?? pageSize}
+            onPageSize={setPageSize}
+            label="entries"
+          />
+        )}
       </Card>
 
       <Drawer
@@ -274,7 +401,13 @@ export default function Payroll() {
         footer={selected ? (
           <>
             <Button variant="secondary" onClick={() => downloadPayslip(selected)}><Download className="h-4 w-4" /> Payslip</Button>
-            {nextAction(selected.status) ? <Button onClick={() => setConfirm(selected)}>{nextAction(selected.status)!.label} <ArrowRight className="h-4 w-4" /></Button> : <Button variant="secondary" onClick={() => setSelectedId(null)}>Close</Button>}
+            {nextAction(selected.status) && canAdvance(selected.status) ? (
+              <Button onClick={() => setConfirm(selected)}>{nextAction(selected.status)!.label} <ArrowRight className="h-4 w-4" /></Button>
+            ) : nextAction(selected.status) ? (
+              <span className="text-[11px] text-slate-400" title={describeMissingPermission(transitionCapability(selected.status))}>
+                {describeMissingPermission(transitionCapability(selected.status))}
+              </span>
+            ) : <Button variant="secondary" onClick={() => setSelectedId(null)}>Close</Button>}
           </>
         ) : null}
       >

@@ -13,12 +13,15 @@ import Payroll from './pages/Payroll';
 import Contracts from './pages/Contracts';
 import ContractDetail from './pages/ContractDetail';
 import DailyPayments from './pages/DailyPayments';
+import Expenses from './pages/Expenses';
 import Performance from './pages/Performance';
 import Requests from './pages/Requests';
 import Offboarding from './pages/Offboarding';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import NotFound from './pages/NotFound';
+import { HrRouteGuard } from './components/hr-guard';
+import { useHrAccess } from './lib/access';
 import './hr.css';
 
 import {
@@ -32,6 +35,7 @@ import {
   Wallet,
   FileSignature,
   Coins,
+  Receipt,
   MessageSquareText,
   UserMinus,
   BarChart3,
@@ -61,6 +65,7 @@ const HR_TABS: HRTabItem[] = [
   { id: 'payroll', path: '/hr/payroll', label: 'Payroll', icon: Wallet, group: 'finance' },
   { id: 'contracts', path: '/hr/contracts', label: 'Contracts', icon: FileSignature, group: 'finance' },
   { id: 'payments', path: '/hr/payments', label: 'Daily Payments', icon: Coins, group: 'finance', badgeKey: 'payments' },
+  { id: 'expenses', path: '/hr/expenses', label: 'HR Expenses', icon: Receipt, group: 'finance' },
 
   { id: 'requests', path: '/hr/requests', label: 'Requests', icon: MessageSquareText, group: 'ops', badgeKey: 'requests' },
   { id: 'offboarding', path: '/hr/offboarding', label: 'Offboarding', icon: UserMinus, group: 'ops' },
@@ -73,6 +78,14 @@ function HRNavigationHeader() {
   const location = useLocation();
   const navigate = useNavigate();
   const { db } = useStore();
+  const access = useHrAccess();
+
+  // Only modules the verified identity may open are rendered. Demo mode keeps
+  // the full demo navigation intact.
+  const visibleTabs = useMemo(
+    () => HR_TABS.filter((tab) => access.canAccess(tab.id)),
+    [access],
+  );
 
   const pendingLeave = (db.leaves || []).filter((l) => l.status === 'Pending').length;
   const pendingPayments = (db.payments || []).filter(
@@ -96,6 +109,7 @@ function HRNavigationHeader() {
     if (p.includes('/onboarding')) return 'onboarding';
     if (p.includes('/payroll')) return 'payroll';
     if (p.includes('/contracts')) return 'contracts';
+    if (p.includes('/expenses')) return 'expenses';
     if (p.includes('/payments')) return 'payments';
     if (p.includes('/performance')) return 'performance';
     if (p.includes('/requests')) return 'requests';
@@ -135,7 +149,7 @@ function HRNavigationHeader() {
 
       {/* Horizontal Nav Ribbon */}
       <nav className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 scrollbar-none border-t border-slate-100">
-        {HR_TABS.map((tab) => {
+        {visibleTabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = currentTabId === tab.id;
           const badgeCount = getBadgeCount(tab.badgeKey);
@@ -180,23 +194,24 @@ export const HRPortalLayout: React.FC = () => {
 
           {/* HR Sub-Routes Content */}
           <Routes>
-            <Route index element={<Dashboard />} />
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="employees" element={<Employees />} />
-            <Route path="employees/:id" element={<EmployeeProfile />} />
-            <Route path="attendance" element={<Attendance />} />
-            <Route path="leave" element={<Leave />} />
-            <Route path="recruitment" element={<Recruitment />} />
-            <Route path="onboarding" element={<Onboarding />} />
-            <Route path="payroll" element={<Payroll />} />
-            <Route path="contracts" element={<Contracts />} />
-            <Route path="contracts/:id" element={<ContractDetail />} />
-            <Route path="payments" element={<DailyPayments />} />
-            <Route path="performance" element={<Performance />} />
-            <Route path="requests" element={<Requests />} />
-            <Route path="offboarding" element={<Offboarding />} />
-            <Route path="reports" element={<Reports />} />
-            <Route path="settings" element={<Settings />} />
+            <Route index element={<HrRouteGuard routeId="dashboard"><Dashboard /></HrRouteGuard>} />
+            <Route path="dashboard" element={<HrRouteGuard routeId="dashboard"><Dashboard /></HrRouteGuard>} />
+            <Route path="employees" element={<HrRouteGuard routeId="employees"><Employees /></HrRouteGuard>} />
+            <Route path="employees/:id" element={<HrRouteGuard routeId="employee-profile"><EmployeeProfile /></HrRouteGuard>} />
+            <Route path="attendance" element={<HrRouteGuard routeId="attendance"><Attendance /></HrRouteGuard>} />
+            <Route path="leave" element={<HrRouteGuard routeId="leave"><Leave /></HrRouteGuard>} />
+            <Route path="recruitment" element={<HrRouteGuard routeId="recruitment"><Recruitment /></HrRouteGuard>} />
+            <Route path="onboarding" element={<HrRouteGuard routeId="onboarding"><Onboarding /></HrRouteGuard>} />
+            <Route path="payroll" element={<HrRouteGuard routeId="payroll"><Payroll /></HrRouteGuard>} />
+            <Route path="contracts" element={<HrRouteGuard routeId="contracts"><Contracts /></HrRouteGuard>} />
+            <Route path="contracts/:id" element={<HrRouteGuard routeId="contract-detail"><ContractDetail /></HrRouteGuard>} />
+            <Route path="payments" element={<HrRouteGuard routeId="payments"><DailyPayments /></HrRouteGuard>} />
+            <Route path="expenses" element={<HrRouteGuard routeId="expenses"><Expenses /></HrRouteGuard>} />
+            <Route path="performance" element={<HrRouteGuard routeId="performance"><Performance /></HrRouteGuard>} />
+            <Route path="requests" element={<HrRouteGuard routeId="requests"><Requests /></HrRouteGuard>} />
+            <Route path="offboarding" element={<HrRouteGuard routeId="offboarding"><Offboarding /></HrRouteGuard>} />
+            <Route path="reports" element={<HrRouteGuard routeId="reports"><Reports /></HrRouteGuard>} />
+            <Route path="settings" element={<HrRouteGuard routeId="settings"><Settings /></HrRouteGuard>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
 

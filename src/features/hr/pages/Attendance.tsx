@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  CalendarDays, CalendarRange, Check, ChevronLeft, ChevronRight, Clock, Download, Eye, LayoutGrid,
+  AlertTriangle, CalendarDays, CalendarRange, Check, ChevronLeft, ChevronRight, Clock, Download, Eye, LayoutGrid,
   List, PencilLine, Plus, RefreshCw, RotateCcw, X,
 } from 'lucide-react'
 import { useStore } from '../store'
 import { useAttendance, useCorrections } from '../useHrData'
+import { describeMissingPermission, useHrAccess } from '../lib/access'
 import type { AttendanceCorrection, AttendanceStatus, Employee } from '../types'
 import {
   addDays, downloadCSV, fmtDate, fmtDateShort, fullName, hoursBetween, sum, todayISO, toISO,
 } from '../lib/utils'
 import { runHrApiAction, hrActions } from '../api-actions'
+import { HrPermissionNotice } from '../components/hr-guard'
 import {
   Avatar, Badge, Button, Card, EmptyState, Field, IconButton, Input, Modal, PageHeader, Pagination,
   SearchInput, Select, StatCard, StatusBadge, Tabs, Textarea,
@@ -37,6 +39,7 @@ const monthRange = (iso: string) => {
 
 export default function Attendance() {
   const { db, update, toast, logActivity, dataSource, refreshFromApi } = useStore()
+  const access = useHrAccess()
   const navigate = useNavigate()
   const [savingCorrection, setSavingCorrection] = useState(false)
   const [decidingCorrection, setDecidingCorrection] = useState(false)
@@ -67,24 +70,6 @@ export default function Attendance() {
   const [remarks, setRemarks] = useState('')
   const [error, setError] = useState('')
 
-  const attendanceQuery = useAttendance({
-    employeeId: undefined,
-    departmentId: department === 'All' ? undefined : undefined,
-    status: status === 'All' ? undefined : status as any,
-    from: range.start,
-    to: range.end,
-    page,
-    pageSize,
-  })
-  const correctionsQuery = useCorrections({ status: 'Pending' })
-
-  const useApi = dataSource === 'api'
-  const attendanceData = useApi ? attendanceQuery.data : null
-  const correctionsData = useApi ? correctionsQuery.data : null
-
-  const allAttendance = attendanceData?.data ?? db.attendance
-  const allCorrections = correctionsData?.data ?? (db.corrections || [])
-
   useEffect(() => { setPage(1) }, [mode, date, department, status, search, pageSize])
 
   const range = useMemo(() => {
@@ -93,6 +78,29 @@ export default function Attendance() {
     const r = monthRange(date)
     return { ...r, label: new Date(date + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) }
   }, [mode, date])
+
+  const useApi = dataSource === 'api'
+  const selectedDepartmentId = useMemo(() => {
+    if (department === 'All') return undefined
+    return (db.settings.departments as Array<{ id?: string; name: string }>).find((d) => d.name === department)?.id
+  }, [department, db.settings.departments])
+
+  const attendanceQuery = useAttendance({
+    employeeId: undefined,
+    departmentId: selectedDepartmentId,
+    status: status === 'All' ? undefined : (status as any),
+    from: range.start,
+    to: range.end,
+    page: useApi ? page : undefined,
+    pageSize: useApi ? pageSize : undefined,
+  })
+  const correctionsQuery = useCorrections({ status: 'Pending' })
+
+  const attendanceData = useApi ? (attendanceQuery.data as any) : null
+  const correctionsData = useApi ? correctionsQuery.data : null
+
+  const allAttendance = (useApi ? (attendanceData?.data ?? []) : db.attendance) as typeof db.attendance
+  const allCorrections = ((useApi ? correctionsData : db.corrections) ?? []) as AttendanceCorrection[]
 
   const rangeRecords = useMemo(() => allAttendance.filter((a) => a.date >= range.start && a.date <= range.end), [allAttendance, range])
 
@@ -155,11 +163,15 @@ export default function Attendance() {
   }, [rangeRecords, empMap, department, search])
 
   const rowCount = mode === 'day' ? dailyRows.length : aggregateRows.length
-  const totalPages = Math.max(1, Math.ceil(rowCount / pageSize))
-  const currentPage = Math.min(page, totalPages)
-  const from = (currentPage - 1) * pageSize
-  const rowsDaily = dailyRows.slice(from, from + pageSize)
-  const rowsAgg = aggregateRows.slice(from, from + pageSize)
+  const meta = attendanceData?.meta
+  const totalItems = useApi ? Number(meta?.total ?? rowCount) : rowCount
+  const totalPages = useApi ? Math.max(1, Number(meta?.totalPages ?? 1)) : Math.max(1, Math.ceil(rowCount / pageSize))
+  const currentPage = useApi ? Number(meta?.page ?? page) : Math.min(page, totalPages)
+  const from = useApi ? (rowCount ? (currentPage - 1) * (meta?.pageSize ?? pageSize) : 0) : (Math.min(page, totalPages) - 1) * pageSize
+  // In API mode we request paginated data; keep client-side slicing as fallback for derived/filtered views.
+  const rowsDaily = useApi && mode === 'day' && !search && department === 'All' && status === 'All' ? dailyRows : dailyRows.slice((useApi ? 0 : from), (useApi ? dailyRows.length : from + pageSize))
+  const rowsAgg = useApi && mode !== 'day' ? aggregateRows : aggregateRows.slice((useApi ? 0 : from), (useApi ? aggregateRows.length : from + pageSize))
+  const displayTo = useApi ? from + (mode === 'day' ? rowsDaily.length : rowsAgg.length) : Math.min(from + pageSize, rowCount)
 
   const pendingCorrections = allCorrections.filter((c) => c.status === 'Pending').length
 
@@ -417,8 +429,23 @@ export default function Attendance() {
         title="Attendance"
         subtitle="Track presence, working hours and corrections across every team — with an audit trail for manual changes."
         crumbs={['People', 'Attendance']}
-        actions={<><Button variant="secondary" onClick={exportData}><Download className="h-4 w-4" /> Export</Button><Button onClick={() => openCorrection(db.employees[0]?.id || '', date)}><Plus className="h-4 w-4" /> Manual correction</Button><Button onClick={() => { setRequestForm({ employeeId: db.employees[0]?.id || '', date, status: 'Present', checkIn: '09:00', checkOut: '17:30', reason: '' }); setRequestErrors({}); setRequestOpen(true) }}><RefreshCw className="h-4 w-4" /> Request correction</Button></>}
+        actions={
+          <>
+            {useApi && <Button variant="secondary" onClick={() => { void attendanceQuery.refetch(); void correctionsQuery.refetch() }} disabled={attendanceQuery.loading || correctionsQuery.loading}><RefreshCw className={`h-4 w-4 ${attendanceQuery.loading || correctionsQuery.loading ? 'animate-spin' : ''}`} /> Refresh</Button>}
+            <Button variant="secondary" onClick={exportData}><Download className="h-4 w-4" /> Export</Button>
+            {access.can('attendance.record') && (
+              <Button onClick={() => openCorrection(db.employees[0]?.id || '', date)}><Plus className="h-4 w-4" /> Manual correction</Button>
+            )}
+            {access.can('attendance.record') && (
+              <Button onClick={() => { setRequestForm({ employeeId: db.employees[0]?.id || '', date, status: 'Present', checkIn: '09:00', checkOut: '17:30', reason: '' }); setRequestErrors({}); setRequestOpen(true) }}><RefreshCw className="h-4 w-4" /> Request correction</Button>
+            )}
+          </>
+        }
       />
+
+      {!access.can('attendance.record') && (
+        <HrPermissionNotice className="mb-4" message={`${describeMissingPermission('attendance.record')} You can review attendance records but cannot record or request changes.`} />
+      )}
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-6">
         <StatCard index={0} label="Present" value={summary.present + summary.remote} icon={Check} tone="green" hint={`${summary.remote} remote`} />
@@ -490,7 +517,11 @@ export default function Attendance() {
                           <StatusBadge status={r.status} />
                           <p className="mt-1 text-[10px] text-slate-400">{r.source}{r.corrected ? ' · corrected' : ''}</p>
                         </td>
-                        <td className="table-cell text-right"><Button variant="ghost" size="sm" onClick={() => openCorrection(e!.id, r.date, r)}><PencilLine className="h-3.5 w-3.5" /> Correct</Button></td>
+                        <td className="table-cell text-right">
+                          {access.can('attendance.record')
+                            ? <Button variant="ghost" size="sm" onClick={() => openCorrection(e!.id, r.date, r)}><PencilLine className="h-3.5 w-3.5" /> Correct</Button>
+                            : <span className="text-[11px] text-slate-400">Read only</span>}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -526,9 +557,9 @@ export default function Attendance() {
                   </tbody>
                 </table>
               )}
-              {rowCount === 0 && <EmptyState icon={CalendarDays} title="No attendance records" description="No records match this date range and filters. Try a different date or clear the filters." action={<Button variant="secondary" onClick={() => { setSearch(''); setDepartment('All'); setStatus('All') }}><RotateCcw className="h-4 w-4" /> Clear filters</Button>} />}
+              {rowCount === 0 && !attendanceQuery.loading && <EmptyState icon={CalendarDays} title="No attendance records" description="No records match this date range and filters. Try a different date or clear the filters." action={<Button variant="secondary" onClick={() => { setSearch(''); setDepartment('All'); setStatus('All') }}><RotateCcw className="h-4 w-4" /> Clear filters</Button>} />}
             </div>
-            {rowCount > 0 && <Pagination page={currentPage} totalPages={totalPages} total={rowCount} from={from} to={Math.min(from + pageSize, rowCount)} onPage={setPage} pageSize={pageSize} onPageSize={setPageSize} label={mode === 'day' ? 'records' : 'employees'} />}
+            {totalItems > 0 && <Pagination page={currentPage} totalPages={totalPages} total={totalItems} from={rowCount ? from + 1 : 0} to={rowCount ? displayTo : 0} onPage={setPage} pageSize={meta?.pageSize ?? pageSize} onPageSize={setPageSize} label={mode === 'day' ? 'records' : 'employees'} />}
           </>
         )}
 
@@ -588,7 +619,7 @@ export default function Attendance() {
               <table className="w-full min-w-[1050px]">
                 <thead className="bg-slate-50/80 dark:bg-white/[0.025]"><tr><th className="table-head">Employee</th><th className="table-head">Date</th><th className="table-head">Requested</th><th className="table-head">Reason</th><th className="table-head">Requested on</th><th className="table-head">Reviewer</th><th className="table-head">Status</th><th className="table-head text-right">Actions</th></tr></thead>
                 <tbody>
-                  {(db.corrections || []).map((c) => {
+                  {allCorrections.map((c) => {
                     const e = empMap.get(c.employeeId)
                     return (
                       <tr key={c.id} className="table-row">
@@ -596,17 +627,19 @@ export default function Attendance() {
                           <div className="flex items-center gap-2.5"><Avatar name={e ? fullName(e) : c.employeeId} src={e?.photo} size="xs" /><span><span className="block text-[13px] font-semibold text-slate-800 dark:text-slate-100">{e ? fullName(e) : c.employeeId}</span><span className="block text-[10px] text-slate-400">{c.id}</span></span></div>
                         </td>
                         <td className="table-cell">{fmtDate(c.date)}</td>
-                        <td className="table-cell"><StatusBadge status={c.requestedStatus} /><span className="ml-2 text-[11px] text-slate-400">{c.checkIn}–{c.checkOut}</span></td>
+                        <td className="table-cell"><StatusBadge status={c.requestedStatus} /><span className="ml-2 text-[11px] text-slate-400">{c.checkIn || '—'}–{c.checkOut || '—'}</span></td>
                         <td className="table-cell"><p className="max-w-[260px] truncate text-[11.5px]" title={c.reason}>{c.reason}</p></td>
                         <td className="table-cell">{fmtDate(c.requestedAt)}</td>
                         <td className="table-cell">{c.reviewedBy || '—'}</td>
                         <td className="table-cell"><StatusBadge status={c.status} /></td>
                         <td className="table-cell text-right">
-                          {c.status === 'Pending' ? (
+                          {c.status === 'Pending' && access.can('attendance.approve') ? (
                             <div className="flex justify-end gap-1">
                               <button onClick={() => { setCorrectTarget(c); setDecision('Approved'); setRemarks('') }} className="flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400"><Check className="h-3 w-3" /> Approve</button>
                               <button onClick={() => { setCorrectTarget(c); setDecision('Rejected'); setRemarks('') }} className="flex items-center gap-1 rounded-lg bg-rose-50 px-2.5 py-1.5 text-[11px] font-semibold text-rose-700 hover:bg-rose-100 dark:bg-rose-500/10 dark:text-rose-400"><X className="h-3 w-3" /> Reject</button>
                             </div>
+                          ) : c.status === 'Pending' ? (
+                            <span className="text-[11px] text-slate-400" title={describeMissingPermission('attendance.approve')}>Approval requires permission</span>
                           ) : <span className="text-[11px] text-slate-400">{c.remarks || 'Reviewed'}</span>}
                         </td>
                       </tr>
@@ -614,7 +647,7 @@ export default function Attendance() {
                   })}
                 </tbody>
               </table>
-              {(db.corrections || []).length === 0 && <EmptyState icon={PencilLine} title="No correction requests" description="Attendance correction requests raised by employees will appear here." />}
+              {allCorrections.length === 0 && <EmptyState icon={PencilLine} title="No correction requests" description="Attendance correction requests raised by employees will appear here." />}
             </div>
           </div>
         )}

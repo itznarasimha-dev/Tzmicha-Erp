@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
-  ArrowUpRight, Building2, Download, Eye, Mail, MapPin, Pencil, Plus, Trash2, UserCheck,
+  ArrowUpRight, Building2, Download, Eye, Mail, MapPin, Pencil, Plus, RefreshCw, Trash2, UserCheck,
   UserMinus, Users, UserX, SlidersHorizontal, AlertTriangle,
 } from 'lucide-react'
 import { useStore } from '../store'
 import { useEmployees } from '../useHrData'
+import { describeMissingPermission, useHrAccess } from '../lib/access'
 import type { Employee } from '../types'
 import { downloadCSV, fmtDate, fmtMoney, fullName, todayISO } from '../lib/utils'
 import { runHrApiAction, hrActions } from '../api-actions'
 import { EmployeeModal } from '../components/employee-modal'
+import { HrPermissionNotice } from '../components/hr-guard'
 import {
   Avatar, Button, Card, ConfirmDialog, EmptyState, IconButton, Input, PageHeader, Pagination,
   SearchInput, Select, StatCard, StatusBadge, Skeleton,
@@ -17,6 +19,7 @@ import {
 
 export default function Employees() {
   const { db, update, logActivity, toast, dataSource, refreshFromApi } = useStore()
+  const access = useHrAccess()
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
   const [search, setSearch] = useState('')
@@ -31,35 +34,58 @@ export default function Employees() {
   const [deleting, setDeleting] = useState<Employee | null>(null)
   const useApi = dataSource === 'api'
 
-  const employeesQuery = useEmployees({
-    q: search,
-    status: status === 'All' ? undefined : status as any,
-    employmentType: type === 'All' ? undefined : type as any,
-    sort: sort as any,
-    page,
-    pageSize,
-  })
+  const selectedDepartmentId = useMemo(() => {
+    if (department === 'All') return undefined
+    return (db.settings.departments as Array<{ id?: string; name: string }>).find((d) => d.name === department)?.id
+  }, [department, db.settings.departments])
+
+  const apiSortMap: Record<string, string | undefined> = {
+    'name-asc': 'name:asc',
+    'name-desc': 'name:desc',
+    'joined-desc': 'joiningDate:desc',
+    'joined-asc': 'joiningDate:asc',
+  }
+  const apiSort = apiSortMap[sort]
+
+  const employeesQuery = useEmployees(
+    useApi
+      ? {
+          q: search.trim() || undefined,
+          departmentId: selectedDepartmentId,
+          status: status === 'All' ? undefined : (status as any),
+          employmentType: type === 'All' ? undefined : (type as any),
+          sort: apiSort as any,
+          page,
+          pageSize,
+        }
+      : {},
+  )
 
   useEffect(() => {
     const newParam = params.get('new')
     const editParam = params.get('edit')
     if (newParam === '1') {
-      setEditing(null)
-      setModalOpen(true)
       setParams({}, { replace: true })
+      // The modal is only opened when the role may create employees.
+      if (access.can('employee.create')) {
+        setEditing(null)
+        setModalOpen(true)
+      } else {
+        toast('Action not available', 'warning', `${describeMissingPermission('employee.create')} The employee record was not opened.`)
+      }
     } else if (editParam) {
-      if (dataSource !== 'api') {
+      if (dataSource !== 'api' && access.can('employee.update')) {
         const emp = db.employees.find((e) => e.id === editParam)
         if (emp) { setEditing(emp); setModalOpen(true) }
       }
       setParams({}, { replace: true })
     }
-  }, [params, db.employees, dataSource, setParams])
+  }, [params, db.employees, dataSource, setParams, access, toast])
 
   useEffect(() => { setPage(1) }, [search, department, status, type, sort, pageSize])
 
-  const employeesData = useApi ? employeesQuery.data : null
-  const employeesList = useApi ? (employeesData?.data ?? []) : db.employees
+  const employeesData = useApi ? (employeesQuery.data as any) : null
+  const employeesList = (useApi ? (employeesData?.data ?? []) : db.employees) as Employee[]
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -82,20 +108,27 @@ export default function Employees() {
     })
   }, [employeesList, search, department, status, type, sort])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
-  const currentPage = Math.min(page, totalPages)
-  const from = (currentPage - 1) * pageSize
-  const rows = filtered.slice(from, from + pageSize)
+  const meta = employeesData?.meta
+  const totalItems = useApi ? Number(meta?.total ?? filtered.length) : filtered.length
+  const totalPages = useApi ? Math.max(1, Number(meta?.totalPages ?? 1)) : Math.max(1, Math.ceil(filtered.length / pageSize))
+  const currentPage = useApi ? Number(meta?.page ?? page) : Math.min(page, totalPages)
+  const from = useApi ? (rowsCount => rowsCount ? (currentPage - 1) * (meta?.pageSize ?? pageSize) : 0)(filtered.length) : (Math.min(page, totalPages) - 1) * pageSize
+  const rows = useApi ? filtered : filtered.slice(from, from + pageSize)
 
-  const active = employeesList.filter((e) => e.status === 'Active').length
-  const probation = employeesList.filter((e) => e.status === 'Probation').length
-  const notice = employeesList.filter((e) => e.status === 'Notice Period').length
-  const former = employeesList.filter((e) => e.status === 'Terminated').length
+  const statsSource = (useApi ? db.employees : employeesList) as Employee[]
+  const active = statsSource.filter((e) => e.status === 'Active').length
+  const probation = statsSource.filter((e) => e.status === 'Probation').length
+  const notice = statsSource.filter((e) => e.status === 'Notice Period').length
+  const former = statsSource.filter((e) => e.status === 'Terminated').length
 
   const exportRows = () => {
+    const canSeeSalary = access.can('employee.salary')
     const data: (string | number)[][] = [
-      ['Employee ID', 'Name', 'Email', 'Phone', 'Department', 'Designation', 'Manager', 'Employment type', 'Joining date', 'Status', 'Location', 'Annual salary'],
-      ...filtered.map((e) => [e.id, fullName(e), e.email, e.phone, e.department, e.designation, e.manager, e.employmentType, e.joiningDate, e.status, e.location, e.salary ?? 0]),
+      ['Employee ID', 'Name', 'Email', 'Phone', 'Department', 'Designation', 'Manager', 'Employment type', 'Joining date', 'Status', 'Location', ...(canSeeSalary ? ['Annual salary'] : [])],
+      ...filtered.map((e) => [
+        e.id, fullName(e), e.email, e.phone, e.department, e.designation, e.manager, e.employmentType,
+        e.joiningDate, e.status, e.location, ...(canSeeSalary ? [e.salary ?? 0] : []),
+      ]),
     ]
     downloadCSV(`titan-hr-employees-${todayISO()}.csv`, data)
     toast('Employee directory exported', 'success', `${filtered.length} records written to CSV.`)
@@ -135,8 +168,20 @@ export default function Employees() {
         title="Employees"
         subtitle="A single directory for everyone at Titan — profiles, employment details, documents and history."
         crumbs={['People', 'Employees']}
-        actions={<><Button variant="secondary" onClick={exportRows}><Download className="h-4 w-4" /> Export</Button><Button onClick={() => { setEditing(null); setModalOpen(true) }}><Plus className="h-4 w-4" /> Add employee</Button></>}
+        actions={
+          <>
+            {useApi && <Button variant="secondary" onClick={() => void employeesQuery.refetch()} disabled={employeesQuery.loading}><RefreshCw className={`h-4 w-4 ${employeesQuery.loading ? 'animate-spin' : ''}`} /> Refresh</Button>}
+            <Button variant="secondary" onClick={exportRows}><Download className="h-4 w-4" /> Export</Button>
+            {access.can('employee.create') && (
+              <Button onClick={() => { setEditing(null); setModalOpen(true) }}><Plus className="h-4 w-4" /> Add employee</Button>
+            )}
+          </>
+        }
       />
+
+      {!access.can('employee.create') && (
+        <HrPermissionNotice className="mb-4" message={`${describeMissingPermission('employee.create')} You have read-only access to the employee directory.`} />
+      )}
 
       {useApi && employeesQuery.loading && (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -188,7 +233,7 @@ export default function Employees() {
               <option value="name-desc">Name Z–A</option>
               <option value="joined-desc">Newest joiners</option>
               <option value="joined-asc">Longest tenure</option>
-              <option value="salary-desc">Highest salary</option>
+              {access.can('employee.salary') && <option value="salary-desc">Highest salary</option>}
               <option value="dept">Department</option>
             </Select>
           </div>
@@ -230,15 +275,21 @@ export default function Employees() {
                   <td className="table-cell">{e.department}</td>
                   <td className="table-cell">
                     <p className="max-w-[170px] truncate text-slate-700 dark:text-slate-300">{e.designation}</p>
-                    <p className="mt-0.5 text-[11px] text-slate-400">{fmtMoney(e.salary ?? 0, true)} / yr · {e.employmentType}</p>
+                    <p className="mt-0.5 text-[11px] text-slate-400">
+                      {access.canViewSalary(e.id) ? `${fmtMoney(e.salary ?? 0, true)} / yr · ` : ''}{e.employmentType}
+                    </p>
                   </td>
                   <td className="table-cell"><StatusBadge status={e.status} /></td>
                   <td className="table-cell tabular">{fmtDate(e.joiningDate)}</td>
                   <td className="table-cell">
                     <div className="flex items-center justify-end gap-0.5" onClick={(ev) => ev.stopPropagation()}>
                       <IconButton aria-label={`View ${fullName(e)}`} onClick={() => navigate(`/employees/${e.id}`)} title="View profile"><Eye className="h-4 w-4" /></IconButton>
-                      <IconButton aria-label={`Edit ${fullName(e)}`} onClick={() => { setEditing(e as Employee); setModalOpen(true) }} title="Edit employee"><Pencil className="h-3.5 w-3.5" /></IconButton>
-                      <IconButton aria-label={`Delete ${fullName(e)}`} onClick={() => setDeleting(e as Employee)} className="hover:text-rose-600 dark:hover:text-rose-400" title="Delete employee"><Trash2 className="h-3.5 w-3.5" /></IconButton>
+                      {access.can('employee.update') && (
+                        <IconButton aria-label={`Edit ${fullName(e)}`} onClick={() => { setEditing(e as Employee); setModalOpen(true) }} title="Edit employee"><Pencil className="h-3.5 w-3.5" /></IconButton>
+                      )}
+                      {access.can('employee.delete') && (
+                        <IconButton aria-label={`Delete ${fullName(e)}`} onClick={() => setDeleting(e as Employee)} className="hover:text-rose-600 dark:hover:text-rose-400" title="Delete employee"><Trash2 className="h-3.5 w-3.5" /></IconButton>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -246,11 +297,26 @@ export default function Employees() {
             </tbody>
           </table>
           {rows.length === 0 && (
-            <EmptyState icon={Users} title="No employees found" description="Try adjusting your search or filters, or add a new employee record." action={<Button onClick={() => { setEditing(null); setModalOpen(true) }}><Plus className="h-4 w-4" /> Add employee</Button>} />
+            <EmptyState
+              icon={Users}
+              title="No employees found"
+              description="Try adjusting your search or filters, or add a new employee record."
+              action={access.can('employee.create') ? <Button onClick={() => { setEditing(null); setModalOpen(true) }}><Plus className="h-4 w-4" /> Add employee</Button> : undefined}
+            />
           )}
         </div>
-        {filtered.length > 0 && (
-          <Pagination page={currentPage} totalPages={totalPages} total={filtered.length} from={from} to={Math.min(from + pageSize, filtered.length)} onPage={setPage} pageSize={pageSize} onPageSize={setPageSize} label="employees" />
+        {totalItems > 0 && (
+          <Pagination
+            page={currentPage}
+            totalPages={totalPages}
+            total={totalItems}
+            from={rows.length ? (useApi ? (currentPage - 1) * (meta?.pageSize ?? pageSize) + 1 : from + 1) : 0}
+            to={rows.length ? (useApi ? (currentPage - 1) * (meta?.pageSize ?? pageSize) + rows.length : Math.min(from + pageSize, filtered.length)) : 0}
+            onPage={setPage}
+            pageSize={meta?.pageSize ?? pageSize}
+            onPageSize={setPageSize}
+            label="employees"
+          />
         )}
       </Card>
 
@@ -277,7 +343,7 @@ export default function Employees() {
         </div>
       )}
 
-      <EmployeeModal open={modalOpen} onClose={() => setModalOpen(false)} employee={editing} />
+      <EmployeeModal open={modalOpen} onClose={() => { setModalOpen(false); if (useApi) void employeesQuery.refetch() }} employee={editing} />
 
       <ConfirmDialog
         open={!!deleting}
