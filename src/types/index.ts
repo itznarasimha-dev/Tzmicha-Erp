@@ -1,6 +1,6 @@
 // Comprehensive Domain Type Definitions for ApexFlow Manufacturing & Regional ERP
 
-export type UserRole = 'admin' | 'manager' | 'sales' | 'marketing' | 'store_manager' | 'finance' | 'service' | 'hr';
+export type UserRole = 'admin' | 'sales' | 'marketing' | 'store_manager' | 'finance' | 'service' | 'hr';
 
 export type SubscriptionPlan = 'Standard' | 'Professional' | 'Enterprise';
 
@@ -160,6 +160,7 @@ export interface Supplier {
   email: string;
   address: string;
   gstin?: string;
+  pan?: string;
   paymentTerms: string; // e.g. 'Net 30', 'Advance 50%', 'Net 15'
   rating?: number; // 1 to 5
   status: 'active' | 'inactive' | 'blacklisted';
@@ -779,6 +780,30 @@ export interface Invoice {
   paymentReference?: string;
   paymentDate?: string;
   notes?: string;
+  // Additive Multi-Company & GST Compliance Fields
+  companyProfileId?: string;
+  templateId?: string;
+  companySnapshot?: Record<string, any>;
+  templateSnapshot?: Record<string, any>;
+  placeOfSupplyState?: string;
+  isInterstate?: boolean;
+  cgstAmount?: number;
+  sgstAmount?: number;
+  igstAmount?: number;
+  hsnTaxSummary?: Array<{
+    hsnCode: string;
+    taxableValue: number;
+    cgstRate: number;
+    cgstAmount: number;
+    sgstRate: number;
+    sgstAmount: number;
+    igstRate: number;
+    igstAmount: number;
+    totalTax: number;
+  }>;
+  amountInWords?: string;
+  roundOff?: number;
+  reverseCharge?: boolean;
   // Simulated communication logs
   emailSent?: boolean;
   emailSentAt?: string;
@@ -992,6 +1017,24 @@ export interface Quotation {
   convertedOrderNo?: string | null;
   assignedAt?: string;
   assignedByUserId?: string;
+  // Additive Multi-Company & GST Compliance Fields
+  companyProfileId?: string;
+  templateId?: string;
+  companySnapshot?: Record<string, any>;
+  templateSnapshot?: Record<string, any>;
+  placeOfSupplyState?: string;
+  isInterstate?: boolean;
+  hsnTaxSummary?: Array<{
+    hsnCode: string;
+    taxableValue: number;
+    cgstRate: number;
+    cgstAmount: number;
+    sgstRate: number;
+    sgstAmount: number;
+    igstRate: number;
+    igstAmount: number;
+    totalTax: number;
+  }>;
 }
 
 export interface SalesRemittanceEntry {
@@ -1353,5 +1396,260 @@ export interface JournalEntry {
   createdByUserName: string;
   createdAt: string;
 }
+
+// =====================================================================
+// MULTI-ORGANIZATION COMPANY PROFILES, TEMPLATES & NUMBERING
+// =====================================================================
+
+export interface CompanyBankAccount {
+  id: string;
+  companyProfileId: string;
+  bankName: string;
+  accountName: string;
+  accountNumber: string;
+  ifsc: string;
+  branch?: string;
+  currentBalance?: number;
+  upiId?: string;
+  qrCodeUrl?: string;
+  isDefaultForInvoices: boolean;
+  isDefaultForQuotations: boolean;
+  isActive: boolean;
+}
+
+export interface CompanyProfile {
+  id: string;
+  orgId: string;
+  legalName: string;
+  tradeName?: string;
+  gstin: string;
+  pan: string;
+  cin?: string;
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  state: string;
+  stateCode: string; // e.g. "07", "27"
+  pincode: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  logoUrl?: string;
+  signatureUrl?: string;
+  defaultCurrency: string;
+  fiscalYearStartMonth: number;
+  bankAccounts: CompanyBankAccount[];
+  isDefault: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DocumentNumberingSeries {
+  id: string;
+  companyProfileId: string;
+  docType: 'quotation' | 'invoice' | 'credit_note' | 'debit_note' | 'receipt' | 'refund' | 'supplier_bill' | 'payment_voucher';
+  fiscalYear: string;
+  prefix: string;
+  currentNumber: number;
+  paddingLength: number;
+}
+
+export interface DocumentTemplate {
+  id: string;
+  companyProfileId: string;
+  docType: 'invoice' | 'quotation' | 'receipt' | 'credit_note';
+  name: string;
+  layoutDesign: 'modern_glass' | 'classic_enterprise' | 'minimalist_clean';
+  accentColor: string; // Hex color, e.g. "#4f46e5"
+  logoPosition: 'left' | 'right' | 'center';
+  headerText?: string;
+  footerText?: string;
+  defaultTerms?: string;
+  defaultNotes?: string;
+  signatoryTitle: string;
+  showBankDetails: boolean;
+  showQrCode: boolean;
+  showHsnSummary: boolean;
+  showAmountInWords: boolean;
+  version: number;
+  isDefault: boolean;
+  updatedAt: string;
+}
+
+export interface CreditNote {
+  id: string;
+  noteNumber: string;
+  noteType: 'credit_note' | 'debit_note';
+  companyProfileId: string;
+  originalInvoiceId: string;
+  originalInvoiceNumber: string;
+  customerId: string;
+  customerName: string;
+  customerGstin?: string;
+  issueDate: string;
+  reason: 'sales_return' | 'post_sale_discount' | 'deficiency_in_service' | 'correction_in_invoice' | 'rate_difference' | 'other';
+  taxableAmount: number;
+  cgstAmount: number;
+  sgstAmount: number;
+  igstAmount: number;
+  totalAmount: number;
+  amountInWords: string;
+  status: 'issued' | 'applied' | 'cancelled';
+  notes?: string;
+  idempotencyKey?: string;
+  createdByUserId: string;
+  createdByUserName: string;
+  createdAt: string;
+}
+
+export interface ReceiptPaymentIn {
+  id: string;
+  receiptNumber: string;
+  companyProfileId: string;
+  customerId: string;
+  customerName: string;
+  customerGstin?: string;
+  receiptDate: string;
+  amountReceived: number;
+  amountInWords: string;
+  paymentMode: 'neft_rtgs' | 'upi' | 'cheque' | 'cash' | 'demand_draft';
+  bankReference: string;
+  companyBankAccountId?: string;
+  idempotencyKey: string;
+  allocations: Array<{
+    invoiceId: string;
+    invoiceNumber: string;
+    allocatedAmount: number;
+  }>;
+  unallocatedAdvance: number;
+  status: 'posted' | 'reversed';
+  reversedAt?: string;
+  reversalReason?: string;
+  notes?: string;
+  createdByUserId: string;
+  createdByUserName: string;
+  createdAt: string;
+}
+
+export interface SupplierBill {
+  id: string;
+  billNumber: string;
+  supplierBillRefNumber: string;
+  supplierId: string;
+  supplierName: string;
+  supplierGstin?: string;
+  supplierPan?: string;
+  companyProfileId: string;
+  poId?: string;
+  poNumber?: string;
+  grnId?: string;
+  grnNumber?: string;
+  billDate: string;
+  dueDate: string;
+  matchStatus: '3_way_matched' | 'variance_flagged' | 'manual_review';
+  subtotal: number;
+  taxAmount: number;
+  totalAmount: number;
+  tdsApplicable: boolean;
+  tdsSection?: '194C' | '194J' | '194Q' | '194I';
+  tdsRatePercent?: number;
+  tdsAmount?: number;
+  netPayableAmount: number;
+  paidAmount: number;
+  outstandingBalance: number;
+  status: 'draft' | 'pending_approval' | 'approved' | 'partially_paid' | 'paid' | 'rejected';
+  approvalLevel?: number;
+  approvedByUserId?: string;
+  approvedByUserName?: string;
+  idempotencyKey?: string;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface PaymentRun {
+  id: string;
+  runNumber: string;
+  executionDate: string;
+  companyProfileId: string;
+  companyBankAccountId: string;
+  billIds: string[];
+  totalBillsCount: number;
+  totalAmount: number;
+  totalTdsDeducted: number;
+  netDisbursement: number;
+  paymentMode: 'neft_batch' | 'rtgs' | 'internal_transfer';
+  exportFormat: 'standard_csv' | 'hdfc_cif' | 'icici_corporate';
+  status: 'draft' | 'processing' | 'completed' | 'failed';
+  approvedByUserId?: string;
+  approvedByUserName?: string;
+  executedByUserId: string;
+  executedByUserName: string;
+  createdAt: string;
+}
+
+export interface CustomerRefundRequest {
+  id: string;
+  refundNumber: string;
+  customerId: string;
+  customerName: string;
+  originalInvoiceId?: string;
+  originalInvoiceNumber?: string;
+  originalPaymentRef?: string;
+  amountPaidOriginal: number;
+  priorRefundsTotal: number;
+  maxRefundAllowed: number;
+  requestedAmount: number;
+  approvedAmount?: number;
+  refundMode: 'original_source_neft' | 'upi_transfer' | 'credit_note_wallet';
+  customerBankDetails?: {
+    accountHolder: string;
+    accountNumber: string;
+    ifscCode: string;
+    bankName: string;
+  };
+  reasonCategory: 'cancellation' | 'transit_damage' | 'defective_goods' | 'double_payment';
+  reasonDetails: string;
+  raisedByRole: 'service' | 'sales' | 'finance' | 'admin';
+  raisedByUserId: string;
+  raisedByUserName: string;
+  requiresAdminApproval: boolean;
+  status: 'pending_finance_review' | 'escalated_to_admin' | 'approved' | 'disbursed' | 'rejected';
+  reviewedByUserId?: string;
+  reviewedByUserName?: string;
+  disbursedDate?: string;
+  transactionReference?: string;
+  idempotencyKey?: string;
+  createdAt: string;
+}
+
+export interface BankStatement {
+  id: string;
+  companyBankAccountId: string;
+  accountNumberMasked: string;
+  statementPeriod: string;
+  openingBalance: number;
+  closingBalance: number;
+  totalDebits: number;
+  totalCredits: number;
+  uploadedByUserId: string;
+  uploadedAt: string;
+}
+
+export interface BankStatementLine {
+  id: string;
+  statementId: string;
+  transactionDate: string;
+  description: string;
+  referenceNumber: string;
+  withdrawalAmount: number;
+  depositAmount: number;
+  runningBalance: number;
+  matchedRecordType?: 'receipt' | 'supplier_payment' | 'expense' | 'payroll';
+  matchedRecordId?: string;
+  reconciliationStatus: 'matched' | 'unmatched' | 'manual_override';
+  notes?: string;
+}
+
 
 

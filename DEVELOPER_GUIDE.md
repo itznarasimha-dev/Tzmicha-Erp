@@ -50,7 +50,7 @@ ApexFlow is an enterprise-grade ERP designed for **Manufacturing, Regional Distr
 
 ---
 
-## 3. The 8 Roles & System Capabilities
+## 3. The 7 Core Roles & System Capabilities
 
 Every persona in ApexFlow has an isolated, purpose-built navigation sidebar, role-specific dashboard, and granular permissions.
 
@@ -64,14 +64,7 @@ Every persona in ApexFlow has an isolated, purpose-built navigation sidebar, rol
   - Comprehensive, immutable system audit logs with CSV export.
   - User and role management across all branches.
 
-### 📊 2. Operations / General Manager (`manager`)
-- **Scope**: Organization-wide or assigned multi-region territory.
-- **Core Features**:
-  - Operational KPI monitoring (revenue targets, fulfillment rates, warehouse capacity).
-  - Cross-regional order dispatches and inventory health.
-  - Operational escalation resolution and pending workflow bottlenecks.
-
-### 💼 3. Field Sales (`sales`)
+### 💼 2. Field Sales (`sales`)
 - **Scope**: Scoped to assigned territory (e.g. North Region / Noida Central Hub).
 - **Core Features**:
   - Approved product catalog with standard selling prices and floor price bounds (landed manufacturing costs are strictly hidden).
@@ -81,7 +74,7 @@ Every persona in ApexFlow has an isolated, purpose-built navigation sidebar, rol
   - Payment Collection recording with automatic invoice reconciliation.
   - Monthly sales quota tracker and travel expense claim wallet.
 
-### 🎯 4. Marketing (`marketing`)
+### 🎯 3. Marketing (`marketing`)
 Contains three **isolated role logins** with separate workflows:
 1. **Field Marketing Agent (`marketing_agent`)**:
    - 100% on-ground physical visits (Check-In / Check-Out with GPS timestamp).
@@ -95,7 +88,7 @@ Contains three **isolated role logins** with separate workflows:
 3. **Marketing Performance Analyst (`marketing_analyst`)**:
    - High-level Marketing ROI, Customer Acquisition Cost (CAC), and regional lead conversion funnel.
 
-### 📦 5. Store / Warehouse Manager (`store_manager`)
+### 📦 4. Store / Warehouse Manager (`store_manager`)
 - **Scope**: Scoped to physical distribution hubs (e.g. Noida Central Hub, Mumbai Depot).
 - **Core Features**:
   - Physical batch & bin management (batch number, manufacturing date, expiry, storage bay).
@@ -105,7 +98,7 @@ Contains three **isolated role logins** with separate workflows:
   - Physical damage, leakage, and discrepancy write-off reporting with reason codes.
   - Immutable stock movements ledger.
 
-### 💳 6. Finance & Accounts (`finance`)
+### 💳 5. Finance & Accounts (`finance`)
 - **Scope**: Organization-wide financial operations.
 - **Core Features**:
   - Tax invoice generation, credit notes, and debit notes.
@@ -114,7 +107,7 @@ Contains three **isolated role logins** with separate workflows:
   - Vendor bill settlements against Purchase Orders.
   - Chart of accounts, journal entries, and GST returns reporting.
 
-### 🛠️ 7. Field Service / Engineer (`service`)
+### 🛠️ 6. Field Service / Engineer (`service`)
 - **Scope**: Regional customer service tickets & on-site technical support.
 - **Core Features**:
   - Service tickets lifecycle (Open, Assigned, Scheduled, In-Progress, Resolved).
@@ -122,7 +115,7 @@ Contains three **isolated role logins** with separate workflows:
   - Warranty validation and spare parts consumption tracking.
   - Customer digital signature / OTP sign-off upon completion.
 
-### 👥 8. Human Resources & Payroll (`hr`)
+### 👥 7. Human Resources & Payroll (`hr`)
 - **Scope**: Organization-wide employee lifecycle.
 - **Core Features**:
   - Employee directory, employment contracts, and department assignments.

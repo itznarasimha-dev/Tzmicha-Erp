@@ -108,8 +108,6 @@ export const AuditLogsView: React.FC = () => {
                       variant={
                         log.userRole === 'admin'
                           ? 'purple'
-                          : log.userRole === 'manager'
-                          ? 'primary'
                           : log.userRole === 'sales'
                           ? 'primary'
                           : log.userRole === 'marketing'

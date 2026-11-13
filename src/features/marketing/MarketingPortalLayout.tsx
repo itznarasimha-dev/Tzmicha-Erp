@@ -254,9 +254,7 @@ export const MarketingPortalLayout: React.FC = () => {
           <DemoDataProvider>
             <RoleWorkspaceProvider>
               <MarketingDepartmentProvider>
-                <div className="marketing-portal-workspace w-full max-w-[1600px] mx-auto pb-12 space-y-6">
-                  <MarketingHeaderRibbon />
-
+                <div className="marketing-portal-workspace w-full max-w-[1600px] mx-auto pb-12">
                   {/* Dynamic Marketing Sub-Routes */}
                   <Routes>
                     <Route index element={<RoleWorkspacePage />} />

@@ -98,31 +98,6 @@ const SYSTEM_ROLES_CATALOG: RoleDefinition[] = [
     },
   },
   {
-    id: 'manager',
-    title: 'Operations Manager',
-    department: 'Operations & Business Excellence',
-    description: 'Operational leadership across sales dispatches, stock audits, customer accounts, quotations, and staff leave approvals.',
-    badgeVariant: 'info',
-    responsibilities: [
-      'Operational approvals for sales orders & discounts',
-      'Inventory health, stock transfers & QC review',
-      'Staff leave approval & attendance coordination',
-      'Customer accounts & vendor operational management',
-    ],
-    defaultPermissions: {
-      'Dashboard (Operations Analytics)': true,
-      'Sales (Orders & Dispatch)': true,
-      'Customers (Directory & Credit)': true,
-      'Quotations (Pricing & Margin)': true,
-      'Inventory (Ledgers & Adjustments)': true,
-      'Suppliers (Purchasing & Inward)': true,
-      'Finance (A/R & Remittance Review)': true,
-      'Marketing (Surveys & Visits)': true,
-      'Attendance (Punches & Approvals)': true,
-      'Reports (Operational Analytics)': true,
-    },
-  },
-  {
     id: 'sales',
     title: 'Field Sales Representative',
     department: 'Sales & Business Development',
@@ -271,7 +246,7 @@ export const UserManagement: React.FC = () => {
     updateUser,
   } = useErpStore();
 
-  const isCurrentUserManager = currentUser?.role === 'manager';
+  const isCurrentUserManager = false;
 
   // Helper to compute holistic multi-dimensional employee performance & portfolio
   const getEmployeePerformance = (user: User) => {
@@ -319,7 +294,7 @@ export const UserManagement: React.FC = () => {
       const whCount = user.assignedWarehouseIds?.length || 1;
       targetSummary = `${whCount} Depot${whCount > 1 ? 's' : ''} Active`;
       targetProgress = 96;
-    } else if (user.role === 'admin' || user.role === 'manager') {
+    } else if (user.role === 'admin') {
       targetSummary = 'Org Governance';
       targetProgress = 100;
     }
@@ -411,8 +386,6 @@ export const UserManagement: React.FC = () => {
     switch (role) {
       case 'admin':
         return <Badge variant="purple">Executive Admin</Badge>;
-      case 'manager':
-        return <Badge variant="info">Operations Manager</Badge>;
       case 'sales':
         return <Badge variant="primary">Field Sales</Badge>;
       case 'store_manager':

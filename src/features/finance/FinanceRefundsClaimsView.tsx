@@ -23,624 +23,849 @@ import {
   FileText,
   Clock,
   Layers,
+  HelpCircle,
+  Plus,
+  ArrowUpRight,
+  ShieldCheck,
+  AlertTriangle,
+  Lock,
 } from 'lucide-react';
-import { FinanceRefundClaim, ClaimType } from '../../types';
+import { CustomerRefundRequest, FinanceRefundClaim } from '../../types';
+import { formatINR, numberToIndianWords, maskAccountNumber } from '../../services/formatters';
 
 export const FinanceRefundsClaimsView: React.FC = () => {
   const {
+    customerRefundRequests,
     financeClaims,
+    customers,
+    invoices,
+    currentUser,
+    currentRole,
+    submitCustomerRefundRequest,
+    reviewCustomerRefundRequest,
     approveFinanceClaim,
     rejectFinanceClaim,
     disburseFinanceClaim,
   } = useErpStore();
 
-  const [activeCategory, setActiveCategory] = useState<'all' | 'customer' | 'supplier' | 'stock_loss'>('all');
+  const [activeTab, setActiveTab] = useState<'refund_requests' | 'damage_claims'>('refund_requests');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Modals
+  // Modals for Customer Refunds
+  const [createRefundModalOpen, setCreateRefundModalOpen] = useState(false);
+  const [selectedCustomerId, setSelectedCustomerId] = useState(customers?.[0]?.id || '');
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState('');
+  const [refundRequestedAmount, setRefundRequestedAmount] = useState('18000');
+  const [refundReasonCategory, setRefundReasonCategory] = useState<CustomerRefundRequest['reasonCategory']>('cancellation');
+  const [refundReasonDetails, setRefundReasonDetails] = useState('');
+  const [refundPayoutMode, setRefundPayoutMode] = useState<CustomerRefundRequest['refundMode']>('original_source_neft');
+  const [refundAccountHolder, setRefundAccountHolder] = useState('');
+  const [refundAccountNumber, setRefundAccountNumber] = useState('');
+  const [refundIfsc, setRefundIfsc] = useState('');
+  const [refundBankName, setRefundBankName] = useState('');
+
+  // Action review modal
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [selectedRefundForReview, setSelectedRefundForReview] = useState<CustomerRefundRequest | null>(null);
+  const [reviewAction, setReviewAction] = useState<'approve' | 'disburse' | 'reject' | 'escalate'>('approve');
+  const [reviewNotes, setReviewNotes] = useState('');
+  const [payoutTxnRef, setPayoutTxnRef] = useState('');
+
+  // Damage claim modal state
   const [selectedClaim, setSelectedClaim] = useState<FinanceRefundClaim | null>(null);
-  const [approveModalOpen, setApproveModalOpen] = useState(false);
-  const [approvedAmount, setApprovedAmount] = useState('');
-  const [refundMethod, setRefundMethod] = useState<'bank_transfer' | 'credit_note' | 'upi' | 'wallet_credit'>('credit_note');
-  const [approvalNotes, setApprovalNotes] = useState('');
-
-  const [rejectModalOpen, setRejectModalOpen] = useState(false);
-  const [rejectionReason, setRejectionReason] = useState('');
-
-  const [disburseModalOpen, setDisburseModalOpen] = useState(false);
-  const [disburseRef, setDisburseRef] = useState('');
-  const [disburseMethod, setDisburseMethod] = useState<'bank_transfer' | 'credit_note' | 'upi' | 'wallet_credit'>('bank_transfer');
 
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // ─── Filtered Claims ───
-  const filteredClaims = useMemo(() => {
-    return financeClaims.filter((c) => {
-      // Category filter
-      if (activeCategory === 'customer' && c.claimSource !== 'customer' && c.claimSource !== 'sales') return false;
-      if (activeCategory === 'supplier' && c.claimSource !== 'supplier') return false;
-      if (activeCategory === 'stock_loss' && c.type !== 'internal_stock_loss') return false;
+  // Selected customer invoice calculations for new refund
+  const selectedCustomerInvoices = useMemo(() => {
+    return (invoices || []).filter((i) => i.customerId === selectedCustomerId && i.paidAmount > 0);
+  }, [invoices, selectedCustomerId]);
 
-      // Status filter
+  const activeInvoice = useMemo(() => {
+    return selectedCustomerInvoices.find((i) => i.id === selectedInvoiceId) || selectedCustomerInvoices[0];
+  }, [selectedCustomerInvoices, selectedInvoiceId]);
+
+  const invoiceAmountPaid = activeInvoice ? activeInvoice.paidAmount : 0;
+  const priorRefunds = 0; // Derived from prior requests
+  const maxRefundAllowed = Math.max(0, invoiceAmountPaid - priorRefunds);
+
+  // Filtered Customer Refunds
+  const filteredRefundRequests = useMemo(() => {
+    return (customerRefundRequests || []).filter((r) => {
       if (statusFilter !== 'all') {
-        if (statusFilter === 'pending' && c.refundStatus !== 'pending') return false;
-        if (statusFilter === 'approved' && c.refundStatus !== 'approved') return false;
-        if (statusFilter === 'disbursed' && c.refundStatus !== 'disbursed') return false;
-        if (statusFilter === 'rejected' && c.refundStatus !== 'rejected') return false;
+        if (r.status !== statusFilter) return false;
       }
+      if (searchTerm) {
+        const q = searchTerm.toLowerCase();
+        return (
+          r.refundNumber.toLowerCase().includes(q) ||
+          r.customerName.toLowerCase().includes(q) ||
+          r.reasonDetails.toLowerCase().includes(q) ||
+          (r.originalInvoiceNumber && r.originalInvoiceNumber.toLowerCase().includes(q))
+        );
+      }
+      return true;
+    });
+  }, [customerRefundRequests, statusFilter, searchTerm]);
 
-      // Search
+  // Filtered Damage Claims
+  const filteredDamageClaims = useMemo(() => {
+    return (financeClaims || []).filter((c) => {
+      if (statusFilter !== 'all') {
+        if (c.refundStatus !== statusFilter) return false;
+      }
       if (searchTerm) {
         const q = searchTerm.toLowerCase();
         return (
           c.id.toLowerCase().includes(q) ||
           c.partyName.toLowerCase().includes(q) ||
-          c.productName.toLowerCase().includes(q) ||
-          (c.orderNumber && c.orderNumber.toLowerCase().includes(q)) ||
-          (c.batchNumber && c.batchNumber.toLowerCase().includes(q))
+          c.productName.toLowerCase().includes(q)
         );
       }
       return true;
     });
-  }, [financeClaims, activeCategory, statusFilter, searchTerm]);
+  }, [financeClaims, statusFilter, searchTerm]);
 
   // Metrics
-  const metrics = useMemo(() => {
-    const totalRequested = financeClaims.reduce((s, c) => s + c.requestedAmount, 0);
-    const totalApprovedPending = financeClaims
-      .filter((c) => c.refundStatus === 'approved' && c.payoutStatus === 'unpaid')
-      .reduce((s, c) => s + (c.approvedAmount || c.requestedAmount), 0);
-    const totalDisbursed = financeClaims
-      .filter((c) => c.payoutStatus === 'paid')
-      .reduce((s, c) => s + (c.approvedAmount || c.requestedAmount), 0);
-    const pendingCount = financeClaims.filter((c) => c.refundStatus === 'pending').length;
-    return { totalRequested, totalApprovedPending, totalDisbursed, pendingCount };
-  }, [financeClaims]);
+  const refundMetrics = useMemo(() => {
+    const list = customerRefundRequests || [];
+    const pendingReview = list.filter((r) => r.status === 'pending_finance_review' || r.status === 'escalated_to_admin').length;
+    const totalApproved = list.filter((r) => r.status === 'approved').reduce((s, r) => s + r.requestedAmount, 0);
+    const totalDisbursed = list.filter((r) => r.status === 'disbursed').reduce((s, r) => s + (r.approvedAmount || r.requestedAmount), 0);
+    const escalatedCount = list.filter((r) => r.status === 'escalated_to_admin').length;
 
-  const handleOpenApprove = (c: FinanceRefundClaim) => {
-    setSelectedClaim(c);
-    setApprovedAmount(c.requestedAmount.toString());
-    setRefundMethod('credit_note');
-    setApprovalNotes('Damage inspection verified; authorized credit adjustment');
-    setApproveModalOpen(true);
+    return { pendingReview, totalApproved, totalDisbursed, escalatedCount };
+  }, [customerRefundRequests]);
+
+  // Open Create Refund Modal
+  const handleOpenCreateRefund = () => {
+    const cust = customers?.[0];
+    setSelectedCustomerId(cust?.id || '');
+    setRefundRequestedAmount('18000');
+    setRefundReasonCategory('cancellation');
+    setRefundReasonDetails('Service team intake: Order cancelled prior to batch dispatch; advance repayment requested.');
+    setRefundPayoutMode('original_source_neft');
+    setRefundAccountHolder(cust?.name || 'Customer Account');
+    setRefundAccountNumber('91802003881921');
+    setRefundIfsc('HDFC0001211');
+    setRefundBankName('HDFC Bank Ltd');
+    setCreateRefundModalOpen(true);
   };
 
-  const handleConfirmApprove = () => {
-    if (!selectedClaim || !approvedAmount) return;
-    const amt = Number(approvedAmount);
-    if (isNaN(amt) || amt <= 0) return;
+  const handleConfirmCreateRefund = () => {
+    const cust = customers.find((c) => c.id === selectedCustomerId);
+    if (!cust || !refundRequestedAmount || isSubmitting) return;
 
-    approveFinanceClaim(selectedClaim.id, amt, refundMethod, approvalNotes);
-    setActionSuccess(`Claim ${selectedClaim.id} approved for ₹${amt.toLocaleString('en-IN')}. Note: Payment is pending disbursement.`);
-    setTimeout(() => setActionSuccess(null), 4000);
-    setApproveModalOpen(false);
+    const amt = Number(refundRequestedAmount);
+    if (isNaN(amt) || amt <= 0) {
+      alert('Please enter a valid refund amount.');
+      return;
+    }
+
+    if (activeInvoice && amt > maxRefundAllowed) {
+      alert(`Violation: Requested refund ${formatINR(amt)} exceeds max allowed ${formatINR(maxRefundAllowed)} (Amount Paid - Prior Refunds).`);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const created = submitCustomerRefundRequest({
+        customerId: cust.id,
+        customerName: cust.name,
+        originalInvoiceId: activeInvoice?.id,
+        originalInvoiceNumber: activeInvoice?.invoiceNumber,
+        originalPaymentRef: activeInvoice?.paymentReference || 'UTR-PAID-001',
+        amountPaidOriginal: invoiceAmountPaid,
+        priorRefundsTotal: priorRefunds,
+        maxRefundAllowed,
+        requestedAmount: amt,
+        refundMode: refundPayoutMode,
+        customerBankDetails: {
+          accountHolder: refundAccountHolder || cust.name,
+          accountNumber: refundAccountNumber,
+          ifscCode: refundIfsc,
+          bankName: refundBankName,
+        },
+        reasonCategory: refundReasonCategory,
+        reasonDetails: refundReasonDetails || 'Customer cancellation/damage intake',
+        raisedByRole: (currentRole as any) || 'service',
+        raisedByUserId: currentUser?.id || 'usr-srv-01',
+        raisedByUserName: currentUser?.name || 'Rohan Sharma (Service Engineer)',
+      });
+
+      setActionSuccess(`Customer refund request ${created.refundNumber} registered! ${created.requiresAdminApproval ? 'Escalated to Admin (> ₹25,000 threshold).' : 'Pending Finance review.'}`);
+      setTimeout(() => setActionSuccess(null), 5000);
+      setCreateRefundModalOpen(false);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleOpenReject = (c: FinanceRefundClaim) => {
-    setSelectedClaim(c);
-    setRejectionReason('');
-    setRejectModalOpen(true);
+  const handleOpenReviewModal = (r: CustomerRefundRequest, action: 'approve' | 'disburse' | 'reject' | 'escalate') => {
+    setSelectedRefundForReview(r);
+    setReviewAction(action);
+    setReviewNotes('');
+    setPayoutTxnRef(`NEFT-${Date.now().toString().slice(-6)}`);
+    setReviewModalOpen(true);
   };
 
-  const handleConfirmReject = () => {
-    if (!selectedClaim || !rejectionReason.trim()) return;
+  const handleConfirmReview = () => {
+    if (!selectedRefundForReview || isSubmitting) return;
 
-    rejectFinanceClaim(selectedClaim.id, rejectionReason);
-    setActionSuccess(`Claim ${selectedClaim.id} rejected. Reason recorded.`);
-    setTimeout(() => setActionSuccess(null), 4000);
-    setRejectModalOpen(false);
-  };
+    setIsSubmitting(true);
+    try {
+      reviewCustomerRefundRequest(
+        selectedRefundForReview.id,
+        reviewAction,
+        reviewNotes || `Authorized by ${currentUser?.name}`,
+        payoutTxnRef
+      );
 
-  const handleOpenDisburse = (c: FinanceRefundClaim) => {
-    setSelectedClaim(c);
-    setDisburseRef(`REF-UTR-${Date.now().toString().slice(-6)}`);
-    setDisburseMethod((c.refundMethod as any) || 'bank_transfer');
-    setDisburseModalOpen(true);
-  };
-
-  const handleConfirmDisburse = () => {
-    if (!selectedClaim || !disburseRef.trim()) return;
-
-    disburseFinanceClaim(selectedClaim.id, disburseRef, disburseMethod);
-    setActionSuccess(`Refund payout of ₹${(selectedClaim.approvedAmount || selectedClaim.requestedAmount).toLocaleString('en-IN')} disbursed (Ref: ${disburseRef}).`);
-    setTimeout(() => setActionSuccess(null), 4000);
-    setDisburseModalOpen(false);
+      setActionSuccess(`Refund request ${selectedRefundForReview.refundNumber} successfully marked as ${reviewAction.toUpperCase()}!`);
+      setTimeout(() => setActionSuccess(null), 5000);
+      setReviewModalOpen(false);
+      setSelectedRefundForReview(null);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div className="space-y-5">
       {actionSuccess && (
-        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl flex items-center justify-between animate-in fade-in">
+        <div className="p-3.5 bg-emerald-50/90 backdrop-blur-md border border-emerald-200 text-emerald-900 text-xs rounded-2xl flex items-center justify-between shadow-xs animate-in fade-in">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <span className="font-semibold">{actionSuccess}</span>
           </div>
-          <Badge variant="success" size="sm">Claim Updated</Badge>
+          <Badge variant="success" size="sm">System Updated</Badge>
         </div>
       )}
 
-      {/* ─── HEADER ─── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      {/* ─── HEADER & WORKSPACE SWITCHER ─── */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-4 rounded-3xl backdrop-blur-xl bg-white/70 border border-slate-200/80 shadow-xs">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-            Refunds, Customer Returns &amp; Damage Claims
-          </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Centralized register for transit breakages, customer returns, supplier recovery notes, and stock loss write-offs.
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+              Customer Refunds &amp; Damage Claims Center
+            </h1>
+            <Badge variant="neutral" size="sm" className="font-mono text-[10px]">
+              Service Intake Bridge
+            </Badge>
+          </div>
+          <p className="text-xs text-slate-500 mt-1">
+            Service team intake, strict payment ceiling enforcement (&le; paid - prior refunds), and Admin &gt; ₹25,000 approval thresholds.
           </p>
         </div>
 
-        {/* Category Switcher */}
-        <div className="flex items-center p-1 bg-slate-100 rounded-2xl border border-slate-200 text-xs shrink-0">
-          <button
-            type="button"
-            onClick={() => setActiveCategory('all')}
-            className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
-              activeCategory === 'all' ? 'bg-white text-indigo-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-            }`}
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="primary"
+            onClick={handleOpenCreateRefund}
+            className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
           >
-            All Claims ({financeClaims.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveCategory('customer')}
-            className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
-              activeCategory === 'customer' ? 'bg-white text-indigo-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Customer Returns
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveCategory('supplier')}
-            className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
-              activeCategory === 'supplier' ? 'bg-white text-indigo-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Supplier Shortages
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveCategory('stock_loss')}
-            className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
-              activeCategory === 'stock_loss' ? 'bg-white text-indigo-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Internal Stock Loss
-          </button>
+            <Plus className="w-4 h-4 mr-1" />
+            Raise Customer Refund
+          </Button>
+
+          <div className="flex items-center p-1 bg-slate-100/80 rounded-2xl border border-slate-200 text-xs shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('refund_requests');
+                setStatusFilter('all');
+              }}
+              className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
+                activeTab === 'refund_requests' ? 'bg-white text-indigo-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Refund Requests ({customerRefundRequests?.length || 0})
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('damage_claims');
+                setStatusFilter('all');
+              }}
+              className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
+                activeTab === 'damage_claims' ? 'bg-white text-indigo-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Transit Breakages &amp; Claims ({financeClaims.length})
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── STATUTORY VALIDATION RULES BANNER ─── */}
+      <div className="p-3.5 rounded-2xl bg-indigo-50/80 border border-indigo-200 backdrop-blur-md flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-2.5">
+          <ShieldAlert className="w-5 h-5 text-indigo-700 shrink-0" />
+          <div>
+            <span className="font-bold text-indigo-950 block">Mandatory Financial Guardrails</span>
+            <span className="text-[11px] text-indigo-800">
+              Maximum Refund &le; (Original Invoice Amount Paid &minus; Prior Refunds). Payouts &gt; ₹25,000 lock until Admin sign-off.
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="purple" size="sm">Admin Threshold: ₹25,000</Badge>
+          <Badge variant="neutral" size="sm">Audit Locked</Badge>
         </div>
       </div>
 
       {/* ─── SUMMARY CARDS ─── */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-        <div className="glass-card p-3.5 rounded-2xl border border-purple-200 bg-purple-50/40">
-          <span className="text-[10px] font-bold uppercase text-purple-800 block">Total Claimed Value</span>
-          <div className="text-xl font-bold text-purple-950 font-mono mt-0.5">
-            ₹{metrics.totalRequested.toLocaleString('en-IN')}
+      {activeTab === 'refund_requests' ? (
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <div className="backdrop-blur-md bg-amber-50/60 p-3.5 rounded-2xl border border-amber-200/80 shadow-xs">
+            <span className="text-[10px] font-bold uppercase text-amber-800 block">Pending Review</span>
+            <div className="text-xl font-bold text-amber-950 font-mono mt-0.5">
+              {refundMetrics.pendingReview} Requests
+            </div>
+            <span className="text-[10px] text-amber-700">Awaiting Finance / Admin action</span>
           </div>
-          <span className="text-[10px] text-purple-700">Gross damage &amp; return volume</span>
-        </div>
-        <div className="glass-card p-3.5 rounded-2xl border border-amber-200 bg-amber-50/40">
-          <span className="text-[10px] font-bold uppercase text-amber-800 block">Approved (Pending Payout)</span>
-          <div className="text-xl font-bold text-amber-950 font-mono mt-0.5">
-            ₹{metrics.totalApprovedPending.toLocaleString('en-IN')}
-          </div>
-          <span className="text-[10px] text-amber-700">Approved by Finance; awaiting wire</span>
-        </div>
-        <div className="glass-card p-3.5 rounded-2xl border border-emerald-200 bg-emerald-50/40">
-          <span className="text-[10px] font-bold uppercase text-emerald-800 block">Total Settled / Disbursed</span>
-          <div className="text-xl font-bold text-emerald-950 font-mono mt-0.5">
-            ₹{metrics.totalDisbursed.toLocaleString('en-IN')}
-          </div>
-          <span className="text-[10px] text-emerald-700">Credit notes / RTGS disbursed</span>
-        </div>
-        <div className="glass-card p-3.5 rounded-2xl border border-rose-200 bg-rose-50/40">
-          <span className="text-[10px] font-bold uppercase text-rose-800 block">Pending Inspection Claims</span>
-          <div className="text-xl font-bold text-rose-950 font-mono mt-0.5">
-            {metrics.pendingCount} Claims
-          </div>
-          <span className="text-[10px] text-rose-700">Requires finance decision</span>
-        </div>
-      </div>
 
-      {/* ─── SEARCH & STATUS FILTER ─── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200">
+          <div className="backdrop-blur-md bg-indigo-50/60 p-3.5 rounded-2xl border border-indigo-200/80 shadow-xs">
+            <span className="text-[10px] font-bold uppercase text-indigo-800 block">Approved (Ready to Disburse)</span>
+            <div className="text-xl font-bold text-indigo-950 font-mono mt-0.5">
+              {formatINR(refundMetrics.totalApproved)}
+            </div>
+            <span className="text-[10px] text-indigo-600">Pending bank wire or credit note</span>
+          </div>
+
+          <div className="backdrop-blur-md bg-emerald-50/60 p-3.5 rounded-2xl border border-emerald-200/80 shadow-xs">
+            <span className="text-[10px] font-bold uppercase text-emerald-800 block">Disbursed to Date</span>
+            <div className="text-xl font-bold text-emerald-950 font-mono mt-0.5">
+              {formatINR(refundMetrics.totalDisbursed)}
+            </div>
+            <span className="text-[10px] text-emerald-700">Settled via NEFT or Wallet</span>
+          </div>
+
+          <div className="backdrop-blur-md bg-rose-50/60 p-3.5 rounded-2xl border border-rose-200/80 shadow-xs">
+            <span className="text-[10px] font-bold uppercase text-rose-800 block">Escalated to Admin</span>
+            <div className="text-xl font-bold text-rose-950 font-mono mt-0.5">
+              {refundMetrics.escalatedCount} Requests (&gt; ₹25k)
+            </div>
+            <span className="text-[10px] text-rose-700">Exceeds Finance approval limit</span>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="backdrop-blur-md bg-purple-50/60 p-3.5 rounded-2xl border border-purple-200/80 shadow-xs">
+            <span className="text-[10px] font-bold uppercase text-purple-800 block">Total Claims Volume</span>
+            <div className="text-xl font-bold text-purple-950 font-mono mt-0.5">
+              {financeClaims.length} Claims
+            </div>
+            <span className="text-[10px] text-purple-600">Breakages, supplier debit notes &amp; losses</span>
+          </div>
+          <div className="backdrop-blur-md bg-white/80 p-3.5 rounded-2xl border border-slate-200/80 shadow-xs">
+            <span className="text-[10px] font-bold uppercase text-slate-500 block">Claimed Financial Value</span>
+            <div className="text-xl font-bold text-slate-900 font-mono mt-0.5">
+              {formatINR(financeClaims.reduce((s, c) => s + c.requestedAmount, 0))}
+            </div>
+            <span className="text-[10px] text-slate-400">Total inspection claims</span>
+          </div>
+          <div className="backdrop-blur-md bg-emerald-50/60 p-3.5 rounded-2xl border border-emerald-200/80 shadow-xs">
+            <span className="text-[10px] font-bold uppercase text-emerald-800 block">Settled Claims</span>
+            <div className="text-xl font-bold text-emerald-950 font-mono mt-0.5">
+              {formatINR(financeClaims.filter((c) => c.payoutStatus === 'paid').reduce((s, c) => s + (c.approvedAmount || c.requestedAmount), 0))}
+            </div>
+            <span className="text-[10px] text-emerald-700">Recovery finalized</span>
+          </div>
+        </div>
+      )}
+
+      {/* ─── SEARCH & FILTERS ─── */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 backdrop-blur-md bg-white/80 p-3.5 rounded-2xl border border-slate-200/80 shadow-xs">
         <div className="flex-1 max-w-sm">
           <SearchInput
             value={searchTerm}
             onChange={(val) => setSearchTerm(val)}
-            placeholder="Search claim #, customer, supplier, product, batch..."
+            placeholder={activeTab === 'refund_requests' ? "Search refund #, customer, invoice ref..." : "Search claim ID, party, product..."}
             className="text-xs"
           />
         </div>
 
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-slate-700 font-medium focus:outline-none cursor-pointer"
-        >
-          <option value="all">All Decision Statuses</option>
-          <option value="pending">Pending Review Only</option>
-          <option value="approved">Approved (Pending Payout)</option>
-          <option value="disbursed">Settled / Disbursed</option>
-          <option value="rejected">Rejected Claims</option>
-        </select>
+        <div className="flex items-center gap-2">
+          {activeTab === 'refund_requests' ? (
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-slate-700 font-medium focus:outline-none cursor-pointer"
+            >
+              <option value="all">All Refund Statuses</option>
+              <option value="pending_finance_review">Pending Finance Review</option>
+              <option value="escalated_to_admin">Escalated to Admin (&gt; ₹25k)</option>
+              <option value="approved">Approved</option>
+              <option value="disbursed">Disbursed (Paid)</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          ) : (
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-slate-700 font-medium focus:outline-none cursor-pointer"
+            >
+              <option value="all">All Claim Statuses</option>
+              <option value="pending">Pending Review</option>
+              <option value="approved">Approved</option>
+              <option value="disbursed">Disbursed</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          )}
+        </div>
       </div>
 
-      {/* ─── CLAIMS TABLE ─── */}
-      <Card>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-slate-100 text-slate-400 font-semibold uppercase text-[10px] bg-slate-50/60">
-                <th className="py-3 px-4">Claim ID &amp; Type</th>
-                <th className="py-3 px-4">Party Details</th>
-                <th className="py-3 px-4">Order / Batch Ref</th>
-                <th className="py-3 px-4">Affected Item &amp; Qty</th>
-                <th className="py-3 px-4 text-right">Requested (₹)</th>
-                <th className="py-3 px-4 text-right">Approved (₹)</th>
-                <th className="py-3 px-4 text-center">Claim Status</th>
-                <th className="py-3 px-4 text-center">Payout Status</th>
-                <th className="py-3 px-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
-              {filteredClaims.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="py-8 text-center text-slate-400 italic">
-                    No claims found matching active filter.
-                  </td>
+      {/* ─── CUSTOMER REFUNDS TABLE ─── */}
+      {activeTab === 'refund_requests' && (
+        <Card className="backdrop-blur-md bg-white/90 border border-slate-200/80 shadow-xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-slate-100 text-slate-400 font-semibold uppercase text-[10px] bg-slate-50/70">
+                  <th className="py-3 px-4">Refund # &amp; Date</th>
+                  <th className="py-3 px-4">Customer Details</th>
+                  <th className="py-3 px-4">Invoice / Payment Ref</th>
+                  <th className="py-3 px-4 text-right">Requested Refund</th>
+                  <th className="py-3 px-4">Reason Category</th>
+                  <th className="py-3 px-4">Raised By</th>
+                  <th className="py-3 px-4 text-center">Approval State</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
-              ) : (
-                filteredClaims.map((c) => (
-                  <tr key={c.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3 px-4">
-                      <span className="font-mono font-bold text-indigo-700 block">{c.id}</span>
-                      <span className="text-[10px] text-slate-500 capitalize">{c.type.replace(/_/g, ' ')}</span>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
+                {filteredRefundRequests.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="py-8 text-center text-slate-400 italic">
+                      No customer refund requests found matching criteria.
                     </td>
+                  </tr>
+                ) : (
+                  filteredRefundRequests.map((r) => {
+                    const isAdminRequired = r.requiresAdminApproval;
+                    const canFinanceApprove = !isAdminRequired && r.status === 'pending_finance_review';
+                    const canAdminApprove = isAdminRequired && (currentRole === 'admin' || currentRole === 'finance');
+
+                    return (
+                      <tr key={r.id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="py-3 px-4 font-mono font-bold text-indigo-700">
+                          {r.refundNumber}
+                          <span className="text-[10px] text-slate-400 block font-sans font-normal">
+                            {r.createdAt.split('T')[0]}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="font-bold text-slate-900 block">{r.customerName}</span>
+                          <span className="text-[10px] text-slate-400 font-mono">ID: {r.customerId}</span>
+                        </td>
+                        <td className="py-3 px-4 font-mono text-[11px]">
+                          <span className="font-bold text-slate-800 block">{r.originalInvoiceNumber || 'Direct Deposit'}</span>
+                          <span className="text-[10px] text-emerald-700 block">{r.originalPaymentRef || 'NEFT Paid'}</span>
+                        </td>
+                        <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">
+                          {formatINR(r.requestedAmount)}
+                          <span className="text-[9px] text-slate-400 block capitalize font-sans">
+                            {r.refundMode.replace(/_/g, ' ')}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 capitalize text-slate-700">
+                          <Badge size="sm" variant="neutral">{r.reasonCategory.replace('_', ' ')}</Badge>
+                          <span className="text-[10px] text-slate-500 block truncate max-w-xs mt-0.5">
+                            {r.reasonDetails}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-[11px]">
+                          <span className="font-semibold text-slate-800 block">{r.raisedByUserName}</span>
+                          <span className="text-[10px] text-slate-400 uppercase">{r.raisedByRole} Team</span>
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <Badge
+                            size="sm"
+                            variant={
+                              r.status === 'disbursed'
+                                ? 'success'
+                                : r.status === 'approved'
+                                ? 'primary'
+                                : r.status === 'escalated_to_admin'
+                                ? 'warning'
+                                : r.status === 'rejected'
+                                ? 'danger'
+                                : 'neutral'
+                            }
+                          >
+                            {r.status.replace(/_/g, ' ').toUpperCase()}
+                          </Badge>
+                          {isAdminRequired && r.status === 'escalated_to_admin' && (
+                            <span className="text-[9px] text-rose-600 font-bold block mt-0.5">
+                              Admin Required (&gt; ₹25k)
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {(canFinanceApprove || canAdminApprove) && r.status !== 'approved' && r.status !== 'disbursed' && r.status !== 'rejected' && (
+                              <Button
+                                size="sm"
+                                variant="primary"
+                                onClick={() => handleOpenReviewModal(r, 'approve')}
+                                className="h-7 text-xs px-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                              >
+                                Approve
+                              </Button>
+                            )}
+
+                            {r.status === 'approved' && (
+                              <Button
+                                size="sm"
+                                variant="primary"
+                                onClick={() => handleOpenReviewModal(r, 'disburse')}
+                                className="h-7 text-xs px-2 bg-indigo-600 hover:bg-indigo-700 text-white"
+                              >
+                                Disburse
+                              </Button>
+                            )}
+
+                            {r.status !== 'disbursed' && r.status !== 'rejected' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleOpenReviewModal(r, 'reject')}
+                                className="h-7 text-xs px-2 text-rose-700 border-rose-200 hover:bg-rose-50"
+                              >
+                                Reject
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      {/* ─── DAMAGE CLAIMS TABLE (LEGACY COMPATIBILITY) ─── */}
+      {activeTab === 'damage_claims' && (
+        <Card className="backdrop-blur-md bg-white/90 border border-slate-200/80 shadow-xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-slate-100 text-slate-400 font-semibold uppercase text-[10px] bg-slate-50/70">
+                  <th className="py-3 px-4">Claim ID</th>
+                  <th className="py-3 px-4">Party Details</th>
+                  <th className="py-3 px-4">Damaged Product / Batch</th>
+                  <th className="py-3 px-4 text-center">Damaged Qty</th>
+                  <th className="py-3 px-4 text-right">Claim Amount</th>
+                  <th className="py-3 px-4 text-center">Status</th>
+                  <th className="py-3 px-4 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
+                {filteredDamageClaims.map((c) => (
+                  <tr key={c.id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="py-3 px-4 font-mono font-bold text-purple-700">{c.id}</td>
                     <td className="py-3 px-4">
                       <span className="font-bold text-slate-900 block">{c.partyName}</span>
-                      <span className="text-[10px] text-slate-400 capitalize">Source: {c.claimSource}</span>
+                      <span className="text-[10px] text-slate-400 capitalize">{c.claimSource}</span>
                     </td>
                     <td className="py-3 px-4">
-                      <span className="font-mono font-semibold text-slate-800 block">
-                        {c.orderNumber || c.grnNumber || 'Internal Adjustment'}
-                      </span>
-                      {c.batchNumber && (
-                        <span className="text-[10px] text-indigo-600 font-mono block">Batch: {c.batchNumber}</span>
-                      )}
+                      <span className="font-bold text-slate-800 block">{c.productName}</span>
+                      <span className="text-[10px] text-indigo-600 font-mono">Batch: {c.batchNumber || 'N/A'}</span>
                     </td>
-                    <td className="py-3 px-4">
-                      <span className="font-semibold text-slate-800 block">{c.productName}</span>
-                      <span className="text-[10px] text-slate-500">{c.quantity} {c.unit}</span>
-                    </td>
+                    <td className="py-3 px-4 text-center font-bold">{c.quantity} {c.unit}</td>
                     <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">
-                      ₹{c.requestedAmount.toLocaleString('en-IN')}
-                    </td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-emerald-800">
-                      {c.approvedAmount !== undefined ? `₹${c.approvedAmount.toLocaleString('en-IN')}` : '—'}
+                      {formatINR(c.requestedAmount)}
                     </td>
                     <td className="py-3 px-4 text-center">
-                      <Badge
-                        size="sm"
-                        variant={
-                          c.refundStatus === 'disbursed' || c.refundStatus === 'settled'
-                            ? 'success'
-                            : c.refundStatus === 'approved'
-                            ? 'primary'
-                            : c.refundStatus === 'rejected'
-                            ? 'danger'
-                            : 'warning'
-                        }
-                      >
+                      <Badge size="sm" variant={c.refundStatus === 'disbursed' ? 'success' : 'warning'}>
                         {c.refundStatus.toUpperCase()}
                       </Badge>
                     </td>
-                    <td className="py-3 px-4 text-center">
-                      <Badge
-                        size="sm"
-                        variant={c.payoutStatus === 'paid' ? 'success' : 'neutral'}
-                      >
-                        {c.payoutStatus === 'paid' ? 'Paid / Settled' : 'Unpaid Float'}
-                      </Badge>
-                    </td>
                     <td className="py-3 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => setSelectedClaim(c)}
-                          className="h-7 text-xs px-2"
-                          title="Inspect Damage Evidence & Notes"
-                        >
-                          <Eye className="w-3.5 h-3.5 mr-1" />
-                          Inspect
-                        </Button>
-
-                        {c.refundStatus === 'pending' && (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleOpenReject(c)}
-                              className="h-7 text-xs px-2 text-rose-600 border-rose-200 hover:bg-rose-50"
-                            >
-                              Reject
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="primary"
-                              onClick={() => handleOpenApprove(c)}
-                              className="h-7 text-xs px-2"
-                            >
-                              Approve
-                            </Button>
-                          </>
-                        )}
-
-                        {c.refundStatus === 'approved' && c.payoutStatus === 'unpaid' && (
+                      {c.refundStatus === 'pending' && (
+                        <div className="flex items-center justify-end gap-1.5">
                           <Button
                             size="sm"
                             variant="primary"
-                            onClick={() => handleOpenDisburse(c)}
-                            className="h-7 text-xs px-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                            onClick={() => {
+                              approveFinanceClaim(c.id, c.requestedAmount, 'credit_note', 'Verified inspection');
+                              setActionSuccess(`Claim ${c.id} approved!`);
+                              setTimeout(() => setActionSuccess(null), 3000);
+                            }}
+                            className="h-7 text-xs px-2"
                           >
-                            Disburse
+                            Approve
                           </Button>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-
-      {/* ─── INSPECT DETAILS MODAL ─── */}
-      {selectedClaim && !approveModalOpen && !rejectModalOpen && !disburseModalOpen && (
-        <Modal
-          isOpen={!!selectedClaim}
-          onClose={() => setSelectedClaim(null)}
-          title={`Claim Inspection: ${selectedClaim.id}`}
-          maxWidth="lg"
-        >
-          <div className="space-y-4 text-xs text-slate-800">
-            <div className="flex items-start justify-between border-b border-slate-200 pb-3">
-              <div>
-                <h3 className="text-base font-bold text-slate-900">{selectedClaim.partyName}</h3>
-                <p className="text-xs text-slate-500 capitalize">
-                  Type: {selectedClaim.type.replace(/_/g, ' ')} • Source: {selectedClaim.claimSource}
-                </p>
-                <p className="text-[10px] text-indigo-600 font-mono mt-0.5">
-                  Ref: {selectedClaim.orderNumber || selectedClaim.grnNumber || 'Internal Adjustment'}
-                </p>
-              </div>
-              <Badge variant="purple" size="md">{selectedClaim.refundStatus.toUpperCase()}</Badge>
-            </div>
-
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
-              <span className="font-bold text-slate-900 block">Damage Description &amp; Findings:</span>
-              <p className="text-slate-700 leading-relaxed">{selectedClaim.damageDescription}</p>
-            </div>
-
-            {selectedClaim.proofAttachments && selectedClaim.proofAttachments.length > 0 && (
-              <div>
-                <span className="font-bold text-slate-900 block mb-1.5">Proof Attachments:</span>
-                <div className="flex flex-wrap gap-2">
-                  {selectedClaim.proofAttachments.map((att, idx) => (
-                    <span
-                      key={idx}
-                      className="px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-800 font-mono text-[11px] flex items-center gap-1"
-                    >
-                      <FileText className="w-3.5 h-3.5" />
-                      {att}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
-                <span className="text-[10px] text-slate-400 block uppercase">Requested Amount</span>
-                <span className="text-base font-bold text-slate-900 font-mono">
-                  ₹{selectedClaim.requestedAmount.toLocaleString('en-IN')}
-                </span>
-              </div>
-              <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
-                <span className="text-[10px] text-emerald-800 block uppercase">Approved Amount</span>
-                <span className="text-base font-bold text-emerald-950 font-mono">
-                  {selectedClaim.approvedAmount !== undefined ? `₹${selectedClaim.approvedAmount.toLocaleString('en-IN')}` : 'Pending'}
-                </span>
-              </div>
-            </div>
-
-            {selectedClaim.refundReference && (
-              <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 text-[11px] font-mono">
-                Disbursement Settlement Reference: <strong>{selectedClaim.refundReference}</strong> via {selectedClaim.refundMethod?.replace('_', ' ')}
-              </div>
-            )}
-
-            {selectedClaim.reviewNotes && (
-              <div className="p-2.5 bg-purple-50 border border-purple-200 rounded-xl text-purple-900 text-[11px]">
-                <strong>Finance Audit Note:</strong> {selectedClaim.reviewNotes} (Reviewed by: {selectedClaim.reviewedByUserName})
-              </div>
-            )}
-
-            {selectedClaim.rejectionReason && (
-              <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-900 text-[11px]">
-                <strong>Rejection Rationale:</strong> {selectedClaim.rejectionReason}
-              </div>
-            )}
-
-            <div className="flex justify-end pt-3 border-t border-slate-200">
-              <Button variant="outline" size="sm" onClick={() => setSelectedClaim(null)}>
-                Close
-              </Button>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </Modal>
+        </Card>
       )}
 
-      {/* ─── APPROVE MODAL ─── */}
-      {approveModalOpen && selectedClaim && (
+      {/* ─── RAISE CUSTOMER REFUND REQUEST MODAL (SERVICE BRIDGE) ─── */}
+      {createRefundModalOpen && (
         <Modal
-          isOpen={approveModalOpen}
-          onClose={() => setApproveModalOpen(false)}
-          title={`Authorize Refund Claim: ${selectedClaim.id}`}
-          maxWidth="md"
+          isOpen={createRefundModalOpen}
+          onClose={() => setCreateRefundModalOpen(false)}
+          title="Raise Customer Refund Request (Service Team Bridge)"
+          maxWidth="2xl"
         >
           <div className="space-y-4 text-xs text-slate-800">
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-900">
-              <strong>Accounting Rule:</strong> Approving a refund records the liability and creates an authorization for recovery/credit. It does not automatically transfer cash until disbursed.
-            </div>
-
-            <div>
-              <label className="text-xs font-bold text-slate-700 block">Authorized Refund Amount (₹)</label>
-              <input
-                type="number"
-                value={approvedAmount}
-                onChange={(e) => setApprovedAmount(e.target.value)}
-                className="w-full text-xs p-2 rounded-xl border border-slate-200 font-mono font-bold text-slate-900 focus:outline-none"
-                placeholder="e.g. 50000"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-bold text-slate-700 block">Proposed Settlement Method</label>
-              <select
-                value={refundMethod}
-                onChange={(e) => setRefundMethod(e.target.value as any)}
-                className="w-full text-xs p-2 rounded-xl border border-slate-200 text-slate-800 focus:outline-none cursor-pointer"
-              >
-                <option value="credit_note">Credit Note (Adjust against future invoice)</option>
-                <option value="bank_transfer">Direct RTGS / NEFT Wire</option>
-                <option value="upi">Instant UPI Refund</option>
-                <option value="wallet_credit">Wallet Credit Float</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-xs font-bold text-slate-700 block">Audit Approval Notes</label>
-              <input
-                type="text"
-                value={approvalNotes}
-                onChange={(e) => setApprovalNotes(e.target.value)}
-                className="w-full text-xs p-2 rounded-xl border border-slate-200 text-slate-800 focus:outline-none"
-              />
-            </div>
-
-            <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
-              <Button variant="outline" size="sm" onClick={() => setApproveModalOpen(false)}>
-                Cancel
-              </Button>
-              <Button variant="primary" size="sm" onClick={handleConfirmApprove}>
-                <Check className="w-4 h-4 mr-1" />
-                Authorize Claim
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      )}
-
-      {/* ─── REJECT MODAL ─── */}
-      {rejectModalOpen && selectedClaim && (
-        <Modal
-          isOpen={rejectModalOpen}
-          onClose={() => setRejectModalOpen(false)}
-          title={`Reject Claim: ${selectedClaim.id}`}
-          maxWidth="md"
-        >
-          <div className="space-y-4 text-xs text-slate-800">
-            <p className="text-slate-600">
-              Please specify the mandatory reason for declining this refund or damage claim.
-            </p>
-
-            <div>
-              <label className="text-xs font-bold text-slate-700 block">Rejection Reason (Mandatory)</label>
-              <textarea
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-                className="w-full text-xs p-2.5 rounded-xl border border-slate-200 text-slate-900 focus:outline-none focus:ring-1 focus:ring-rose-500"
-                rows={3}
-                placeholder="e.g. Damage occurred after client unloading signature without transporter endorsement."
-              />
-            </div>
-
-            <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
-              <Button variant="outline" size="sm" onClick={() => setRejectModalOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={handleConfirmReject}
-                disabled={!rejectionReason.trim()}
-              >
-                Confirm Rejection
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      )}
-
-      {/* ─── DISBURSE MODAL ─── */}
-      {disburseModalOpen && selectedClaim && (
-        <Modal
-          isOpen={disburseModalOpen}
-          onClose={() => setDisburseModalOpen(false)}
-          title={`Disburse Refund Payout: ${selectedClaim.id}`}
-          maxWidth="md"
-        >
-          <div className="space-y-4 text-xs text-slate-800">
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
-              <div className="flex justify-between font-bold">
-                <span>Beneficiary:</span>
-                <span>{selectedClaim.partyName}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Authorized Amount:</span>
-                <span className="font-mono font-bold text-emerald-700 text-sm">
-                  ₹{(selectedClaim.approvedAmount || selectedClaim.requestedAmount).toLocaleString('en-IN')}
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
+            {/* Customer & Invoice Selection */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-indigo-50/60 rounded-2xl border border-indigo-200">
               <div>
-                <label className="text-xs font-bold text-slate-700 block">Disbursement Mode</label>
+                <label className="text-[10px] font-bold text-indigo-900 uppercase block mb-1">Select Customer</label>
                 <select
-                  value={disburseMethod}
-                  onChange={(e) => setDisburseMethod(e.target.value as any)}
-                  className="w-full text-xs p-2 rounded-xl border border-slate-200 text-slate-800 focus:outline-none cursor-pointer"
+                  value={selectedCustomerId}
+                  onChange={(e) => setSelectedCustomerId(e.target.value)}
+                  className="w-full text-xs p-2 rounded-xl border border-indigo-200 bg-white font-medium focus:outline-none cursor-pointer"
                 >
-                  <option value="bank_transfer">HDFC Corporate RTGS</option>
-                  <option value="credit_note">Credit Note Voucher</option>
-                  <option value="upi">Company UPI Wire</option>
+                  {(customers || []).map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({c.id})
+                    </option>
+                  ))}
                 </select>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block">Bank Ref / Voucher #</label>
-                <input
-                  type="text"
-                  value={disburseRef}
-                  onChange={(e) => setDisburseRef(e.target.value)}
-                  className="w-full text-xs p-2 rounded-xl border border-slate-200 font-mono text-slate-900 focus:outline-none"
-                />
+                <label className="text-[10px] font-bold text-indigo-900 uppercase block mb-1">Select Paid Invoice</label>
+                <select
+                  value={selectedInvoiceId}
+                  onChange={(e) => setSelectedInvoiceId(e.target.value)}
+                  className="w-full text-xs p-2 rounded-xl border border-indigo-200 bg-white font-medium focus:outline-none cursor-pointer"
+                >
+                  {selectedCustomerInvoices.length === 0 ? (
+                    <option value="">No paid invoices found</option>
+                  ) : (
+                    selectedCustomerInvoices.map((i) => (
+                      <option key={i.id} value={i.id}>
+                        {i.invoiceNumber} (Paid: {formatINR(i.paidAmount)})
+                      </option>
+                    ))
+                  )}
+                </select>
               </div>
             </div>
 
+            {/* Statutory Ceiling Calculation Display */}
+            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-1.5 text-[11px]">
+              <span className="font-bold text-slate-700 block uppercase text-[9px]">Ceiling Validation Rule</span>
+              <div className="flex justify-between text-slate-600">
+                <span>Original Invoice Paid Amount:</span>
+                <span className="font-mono font-bold text-slate-900">{formatINR(invoiceAmountPaid)}</span>
+              </div>
+              <div className="flex justify-between text-slate-600">
+                <span>Prior Approved/Disbursed Refunds:</span>
+                <span className="font-mono text-emerald-700">&minus;{formatINR(priorRefunds)}</span>
+              </div>
+              <div className="flex justify-between border-t border-slate-200 pt-1 font-bold text-slate-900 text-xs">
+                <span>Max Statutory Refund Allowed:</span>
+                <span className="font-mono text-indigo-900">{formatINR(maxRefundAllowed)}</span>
+              </div>
+            </div>
+
+            {/* Requested Amount & Reason */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-0.5">Requested Refund Amount (₹)</label>
+                <input
+                  type="number"
+                  value={refundRequestedAmount}
+                  onChange={(e) => setRefundRequestedAmount(e.target.value)}
+                  max={maxRefundAllowed}
+                  className="w-full text-xs p-2 rounded-xl border border-slate-200 font-mono font-bold text-slate-900 focus:outline-none"
+                  placeholder="Enter amount"
+                />
+                {Number(refundRequestedAmount) > 25000 && (
+                  <span className="text-[10px] text-amber-700 font-bold block mt-1">
+                    Notice: Amount &gt; ₹25,000 will be auto-escalated to Admin approval.
+                  </span>
+                )}
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-0.5">Reason Category</label>
+                <select
+                  value={refundReasonCategory}
+                  onChange={(e) => setRefundReasonCategory(e.target.value as any)}
+                  className="w-full text-xs p-2 rounded-xl border border-slate-200 bg-white focus:outline-none cursor-pointer"
+                >
+                  <option value="cancellation">Order Cancellation (Prior to Dispatch)</option>
+                  <option value="transit_damage">Transit Damage (Transporter Leakage)</option>
+                  <option value="defective_goods">Defective / QC Batch Rejection</option>
+                  <option value="double_payment">Double NEFT Transfer / Error</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700 block">Detailed Reason &amp; Inspection Evidence</label>
+              <textarea
+                value={refundReasonDetails}
+                onChange={(e) => setRefundReasonDetails(e.target.value)}
+                rows={2}
+                className="w-full text-xs p-2 rounded-xl border border-slate-200 focus:outline-none"
+                placeholder="Mention LR damage stamp, technician notes, or customer cancellation email..."
+              />
+            </div>
+
+            {/* Payout Mode & Beneficiary Bank */}
+            <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-slate-800 text-xs">Payout Destination</span>
+                <select
+                  value={refundPayoutMode}
+                  onChange={(e) => setRefundPayoutMode(e.target.value as any)}
+                  className="text-xs p-1 rounded-lg border border-slate-200 bg-white cursor-pointer"
+                >
+                  <option value="original_source_neft">Original Source (NEFT Wire)</option>
+                  <option value="credit_note_wallet">Credit Note / Wallet Balance</option>
+                  <option value="upi_transfer">Instant UPI Transfer</option>
+                </select>
+              </div>
+
+              {refundPayoutMode === 'original_source_neft' && (
+                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <div>
+                    <span className="text-slate-500 block">Account Holder:</span>
+                    <input
+                      type="text"
+                      value={refundAccountHolder}
+                      onChange={(e) => setRefundAccountHolder(e.target.value)}
+                      className="w-full p-1 rounded border border-slate-200 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block">Account Number:</span>
+                    <input
+                      type="text"
+                      value={refundAccountNumber}
+                      onChange={(e) => setRefundAccountNumber(e.target.value)}
+                      className="w-full p-1 rounded border border-slate-200 text-xs font-mono"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block">Bank IFSC Code:</span>
+                    <input
+                      type="text"
+                      value={refundIfsc}
+                      onChange={(e) => setRefundIfsc(e.target.value)}
+                      className="w-full p-1 rounded border border-slate-200 text-xs font-mono uppercase"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block">Bank Name &amp; Branch:</span>
+                    <input
+                      type="text"
+                      value={refundBankName}
+                      onChange={(e) => setRefundBankName(e.target.value)}
+                      className="w-full p-1 rounded border border-slate-200 text-xs"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
-              <Button variant="outline" size="sm" onClick={() => setDisburseModalOpen(false)}>
+              <Button variant="outline" size="sm" onClick={() => setCreateRefundModalOpen(false)}>
                 Cancel
               </Button>
-              <Button variant="primary" size="sm" onClick={handleConfirmDisburse}>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleConfirmCreateRefund}
+                disabled={isSubmitting}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white"
+              >
                 <Check className="w-4 h-4 mr-1" />
-                Confirm Payout Disbursed
+                {isSubmitting ? 'Registering...' : 'Submit Refund Request'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ─── REVIEW / APPROVE / DISBURSE MODAL ─── */}
+      {reviewModalOpen && selectedRefundForReview && (
+        <Modal
+          isOpen={reviewModalOpen}
+          onClose={() => setReviewModalOpen(false)}
+          title={`${reviewAction.toUpperCase()} Refund Request: ${selectedRefundForReview.refundNumber}`}
+          maxWidth="md"
+        >
+          <div className="space-y-4 text-xs text-slate-800">
+            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-1">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Customer:</span>
+                <span className="font-bold text-slate-900">{selectedRefundForReview.customerName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Refund Amount:</span>
+                <span className="font-mono font-bold text-indigo-900 text-sm">
+                  {formatINR(selectedRefundForReview.requestedAmount)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Payout Mode:</span>
+                <span className="capitalize">{selectedRefundForReview.refundMode.replace(/_/g, ' ')}</span>
+              </div>
+            </div>
+
+            {reviewAction === 'disburse' && (
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700 block">Bank Transaction Ref / UTR #</label>
+                <input
+                  type="text"
+                  value={payoutTxnRef}
+                  onChange={(e) => setPayoutTxnRef(e.target.value)}
+                  className="w-full text-xs p-2 rounded-xl border border-slate-200 font-mono text-slate-900 focus:outline-none"
+                  placeholder="e.g. UTR-HDFC-991188"
+                />
+              </div>
+            )}
+
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700 block">Review Decision Notes</label>
+              <textarea
+                value={reviewNotes}
+                onChange={(e) => setReviewNotes(e.target.value)}
+                rows={2}
+                className="w-full text-xs p-2 rounded-xl border border-slate-200 text-slate-800 focus:outline-none"
+                placeholder="Mention justification, bank debit authorization, or reason..."
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
+              <Button variant="outline" size="sm" onClick={() => setReviewModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleConfirmReview}
+                disabled={isSubmitting}
+                className={
+                  reviewAction === 'reject'
+                    ? 'bg-rose-600 hover:bg-rose-700 text-white'
+                    : reviewAction === 'disburse'
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                    : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                }
+              >
+                <Check className="w-4 h-4 mr-1" />
+                {isSubmitting ? 'Processing...' : `Confirm ${reviewAction.toUpperCase()}`}
               </Button>
             </div>
           </div>

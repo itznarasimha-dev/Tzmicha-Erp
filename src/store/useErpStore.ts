@@ -56,7 +56,34 @@ import {
   IncentiveSettlement,
   AccountHead,
   JournalEntry,
+  CompanyProfile,
+  CompanyBankAccount,
+  DocumentNumberingSeries,
+  DocumentTemplate,
+  CreditNote,
+  ReceiptPaymentIn,
+  SupplierBill,
+  PaymentRun,
+  CustomerRefundRequest,
+  BankStatement,
+  BankStatementLine,
 } from '../types';
+import {
+  SEED_COMPANY_PROFILES,
+  SEED_NUMBERING_SERIES,
+  SEED_DOCUMENT_TEMPLATES,
+} from '../mock-data/companyProfilesSeed';
+import {
+  SEED_CREDIT_NOTES,
+  SEED_RECEIPTS_PAYMENTS_IN,
+  SEED_SUPPLIER_BILLS,
+  SEED_CUSTOMER_REFUND_REQUESTS,
+  SEED_BANK_STATEMENTS,
+  SEED_BANK_STATEMENT_LINES,
+} from '../mock-data/financeReceivablesSeed';
+import { calculateGstTaxes, INDIAN_GST_STATES } from '../services/gstService';
+import { numberToIndianWords, formatINR } from '../services/formatters';
+import { generateDocumentNumber, getCurrentFiscalYear } from '../services/documentNumberingService';
 import {
   SEED_MARKETING_BUDGET_REQUESTS,
   SEED_FINANCE_CLAIMS,
@@ -468,6 +495,35 @@ interface ErpState {
   settleEmployeeExpense: (claimId: string, settledAmount: number, paymentMode: string, reference: string) => void;
   rejectEmployeeExpense: (claimId: string, reason: string) => void;
 
+  // Multi-Company Profiles, Document Templates & Numbering
+  companyProfiles: CompanyProfile[];
+  activeCompanyProfileId: string;
+  documentTemplates: DocumentTemplate[];
+  numberingSeries: DocumentNumberingSeries[];
+  setActiveCompanyProfile: (id: string) => void;
+  addCompanyProfile: (profile: Omit<CompanyProfile, 'id' | 'createdAt' | 'updatedAt'>) => CompanyProfile;
+  updateCompanyProfile: (id: string, updates: Partial<CompanyProfile>) => void;
+  addCompanyBankAccount: (companyProfileId: string, bank: Omit<CompanyBankAccount, 'id'>) => void;
+  updateCompanyBankAccount: (companyProfileId: string, bankId: string, updates: Partial<CompanyBankAccount>) => void;
+  updateDocumentTemplate: (id: string, updates: Partial<DocumentTemplate>) => void;
+  getNextDocumentNumber: (companyProfileId: string, docType: DocumentNumberingSeries['docType']) => string;
+
+  // Commercial Receivables, Payables, TDS & Banking Workspaces
+  creditNotes: CreditNote[];
+  receiptsPaymentsIn: ReceiptPaymentIn[];
+  supplierBills: SupplierBill[];
+  customerRefundRequests: CustomerRefundRequest[];
+  bankStatements: BankStatement[];
+  bankStatementLines: BankStatementLine[];
+  createCreditNote: (creditNote: Omit<CreditNote, 'id' | 'createdAt'>) => CreditNote;
+  recordPaymentIn: (data: Omit<ReceiptPaymentIn, 'id' | 'createdAt'>) => ReceiptPaymentIn;
+  convertQuotationToInvoice: (quotationId: string, companyProfileId?: string, templateId?: string) => Invoice;
+  createSupplierBill: (bill: Omit<SupplierBill, 'id' | 'createdAt'>) => SupplierBill;
+  approveSupplierBill: (billId: string, reviewerNotes?: string) => void;
+  submitCustomerRefundRequest: (refund: Omit<CustomerRefundRequest, 'id' | 'refundNumber' | 'createdAt' | 'status' | 'requiresAdminApproval'>) => CustomerRefundRequest;
+  reviewCustomerRefundRequest: (refundId: string, action: 'approve' | 'disburse' | 'reject' | 'escalate', notes?: string, txnRef?: string) => void;
+  reconcileBankStatementLine: (lineId: string, status: 'matched' | 'unmatched' | 'manual_override', notes?: string) => void;
+
   // Reset
   resetToDemoData: () => void;
 }
@@ -519,6 +575,16 @@ export const useErpStore = create<ErpState>()(
       incentiveSettlements: SEED_INCENTIVE_SETTLEMENTS,
       chartOfAccounts: SEED_CHART_OF_ACCOUNTS,
       journalEntries: SEED_JOURNAL_ENTRIES,
+      companyProfiles: SEED_COMPANY_PROFILES,
+      activeCompanyProfileId: 'comp-delhi-01',
+      documentTemplates: SEED_DOCUMENT_TEMPLATES,
+      numberingSeries: SEED_NUMBERING_SERIES,
+      creditNotes: SEED_CREDIT_NOTES,
+      receiptsPaymentsIn: SEED_RECEIPTS_PAYMENTS_IN,
+      supplierBills: SEED_SUPPLIER_BILLS,
+      customerRefundRequests: SEED_CUSTOMER_REFUND_REQUESTS,
+      bankStatements: SEED_BANK_STATEMENTS,
+      bankStatementLines: SEED_BANK_STATEMENT_LINES,
       theme: (typeof window !== 'undefined' && localStorage.getItem('apex_erp_theme') === 'dark') ? 'dark' : 'light',
 
       // Authentication & Session
@@ -552,8 +618,37 @@ export const useErpStore = create<ErpState>()(
         if (!state.roleQueries || state.roleQueries.length === 0) {
           set({ roleQueries: SEED_ROLE_QUERIES });
         }
-        if (!state.attendanceRecords || !state.attendanceRecords.some((r) => r.planOfAction)) {
+        if (!state.attendanceRecords || state.attendanceRecords.length === 0) {
           set({ attendanceRecords: SEED_ATTENDANCE_RECORDS });
+        } else if (!state.attendanceRecords.some((r) => r.id === 'att-2026-1111-ns')) {
+          set({ attendanceRecords: [SEED_ATTENDANCE_RECORDS[0], ...state.attendanceRecords] });
+        }
+        if (!state.companyProfiles || state.companyProfiles.length === 0) {
+          set({ companyProfiles: SEED_COMPANY_PROFILES, activeCompanyProfileId: 'comp-delhi-01' });
+        }
+        if (!state.documentTemplates || state.documentTemplates.length === 0) {
+          set({ documentTemplates: SEED_DOCUMENT_TEMPLATES });
+        }
+        if (!state.numberingSeries || state.numberingSeries.length === 0) {
+          set({ numberingSeries: SEED_NUMBERING_SERIES });
+        }
+        if (!state.creditNotes || state.creditNotes.length === 0) {
+          set({ creditNotes: SEED_CREDIT_NOTES });
+        }
+        if (!state.receiptsPaymentsIn || state.receiptsPaymentsIn.length === 0) {
+          set({ receiptsPaymentsIn: SEED_RECEIPTS_PAYMENTS_IN });
+        }
+        if (!state.supplierBills || state.supplierBills.length === 0) {
+          set({ supplierBills: SEED_SUPPLIER_BILLS });
+        }
+        if (!state.customerRefundRequests || state.customerRefundRequests.length === 0) {
+          set({ customerRefundRequests: SEED_CUSTOMER_REFUND_REQUESTS });
+        }
+        if (!state.bankStatements || state.bankStatements.length === 0) {
+          set({ bankStatements: SEED_BANK_STATEMENTS });
+        }
+        if (!state.bankStatementLines || state.bankStatementLines.length === 0) {
+          set({ bankStatementLines: SEED_BANK_STATEMENT_LINES });
         }
 
         // 1. Direct match by exact email in combined users
@@ -561,20 +656,14 @@ export const useErpStore = create<ErpState>()(
 
         // 2. Flexible demo aliases (supporting role shortcuts like manager@..., service@..., or specific names)
         if (!user) {
-          if (cleanEmail.includes('ananya.roy') || cleanEmail.includes('sales-mgr') || cleanEmail === 'sales_manager') {
+          if (cleanEmail.includes('narasimha')) {
+            user = allUsers.find((u) => u.id === 'usr-narasimha-01') || SEED_USERS.find((u) => u.id === 'usr-narasimha-01');
+          } else if (cleanEmail.includes('ananya.roy') || cleanEmail.includes('sales-mgr') || cleanEmail === 'sales_manager') {
             user = allUsers.find((u) => u.id === 'usr-sales-mgr') || SEED_USERS.find((u) => u.id === 'usr-sales-mgr');
           } else if (cleanEmail.includes('sneha') || cleanEmail.includes('sales-coord') || cleanEmail === 'sales_coordinator') {
             user = allUsers.find((u) => u.id === 'usr-sales-coord') || SEED_USERS.find((u) => u.id === 'usr-sales-coord');
           } else if (cleanEmail.includes('aditya') || cleanEmail.includes('sales-jr') || cleanEmail === 'junior_sales') {
             user = allUsers.find((u) => u.id === 'usr-sales-jr') || SEED_USERS.find((u) => u.id === 'usr-sales-jr');
-          } else if (
-            cleanEmail === 'manager' ||
-            cleanEmail === 'manager@apexflow-erp.com' ||
-            cleanEmail === 'manager@tzmicha.com' ||
-            cleanEmail === 'manager@tzmicha-erp.com' ||
-            cleanEmail.includes('pooja')
-          ) {
-            user = allUsers.find((u) => u.role === 'manager') || SEED_USERS.find((u) => u.role === 'manager');
           } else if (
             cleanEmail === 'service' ||
             cleanEmail === 'service@apexflow-erp.com' ||
@@ -913,7 +1002,7 @@ export const useErpStore = create<ErpState>()(
         set({
           currentRole: role,
           currentUser: found,
-          selectedRegionId: role === 'admin' || role === 'manager' ? 'all' : found.assignedRegionId,
+          selectedRegionId: role === 'admin' ? 'all' : found.assignedRegionId,
         });
       },
 
@@ -945,15 +1034,15 @@ export const useErpStore = create<ErpState>()(
           set({
             currentUser: found,
             currentRole: found.role,
-            selectedRegionId: found.role === 'admin' || found.role === 'manager' ? 'all' : found.assignedRegionId,
+            selectedRegionId: found.role === 'admin' ? 'all' : found.assignedRegionId,
           });
         }
       },
 
       setSelectedRegionId: (regionId: string) => {
         const { currentRole, currentUser } = get();
-        // If not admin/manager, restrict to assigned region
-        if (currentRole !== 'admin' && currentRole !== 'manager') {
+        // If not admin, restrict to assigned region
+        if (currentRole !== 'admin') {
           set({ selectedRegionId: currentUser.assignedRegionId });
         } else {
           set({ selectedRegionId: regionId });
@@ -3461,7 +3550,7 @@ export const useErpStore = create<ErpState>()(
           if (t.id === ticketId) {
             return {
               ...t,
-              status: t.status === 'open' && (state.currentUser.role === 'admin' || state.currentUser.role === 'manager')
+              status: t.status === 'open' && state.currentUser.role === 'admin'
                 ? ('in_progress' as const)
                 : t.status,
               updatedAt: nowIso,
@@ -5364,6 +5453,505 @@ export const useErpStore = create<ErpState>()(
         });
       },
 
+      // Multi-Company, Document Templates & Numbering Actions
+      setActiveCompanyProfile: (id: string) => {
+        set({ activeCompanyProfileId: id });
+      },
+
+      addCompanyProfile: (profileData) => {
+        const id = `comp-${Date.now()}`;
+        const now = new Date().toISOString();
+        const newProfile: CompanyProfile = {
+          ...profileData,
+          id,
+          bankAccounts: profileData.bankAccounts || [],
+          createdAt: now,
+          updatedAt: now,
+        };
+        set((state) => ({
+          companyProfiles: [...(state.companyProfiles || []), newProfile],
+        }));
+        return newProfile;
+      },
+
+      updateCompanyProfile: (id: string, updates: Partial<CompanyProfile>) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          companyProfiles: (state.companyProfiles || []).map((p) =>
+            p.id === id ? { ...p, ...updates, updatedAt: now } : p
+          ),
+        }));
+      },
+
+      addCompanyBankAccount: (companyProfileId: string, bankData) => {
+        const id = `bank-${Date.now()}`;
+        const newBank: CompanyBankAccount = {
+          ...bankData,
+          id,
+          companyProfileId,
+          isActive: bankData.isActive !== undefined ? bankData.isActive : true,
+          isDefaultForInvoices: Boolean(bankData.isDefaultForInvoices),
+          isDefaultForQuotations: Boolean(bankData.isDefaultForQuotations),
+        };
+        set((state) => ({
+          companyProfiles: (state.companyProfiles || []).map((p) => {
+            if (p.id !== companyProfileId) return p;
+            const updatedBanks = [...(p.bankAccounts || [])];
+            if (newBank.isDefaultForInvoices) {
+              updatedBanks.forEach((b) => (b.isDefaultForInvoices = false));
+            }
+            if (newBank.isDefaultForQuotations) {
+              updatedBanks.forEach((b) => (b.isDefaultForQuotations = false));
+            }
+            return {
+              ...p,
+              bankAccounts: [...updatedBanks, newBank],
+              updatedAt: new Date().toISOString(),
+            };
+          }),
+        }));
+      },
+
+      updateCompanyBankAccount: (companyProfileId: string, bankId: string, updates: Partial<CompanyBankAccount>) => {
+        set((state) => ({
+          companyProfiles: (state.companyProfiles || []).map((p) => {
+            if (p.id !== companyProfileId) return p;
+            let updatedBanks = (p.bankAccounts || []).map((b) =>
+              b.id === bankId ? { ...b, ...updates } : b
+            );
+            if (updates.isDefaultForInvoices) {
+              updatedBanks = updatedBanks.map((b) => (b.id === bankId ? b : { ...b, isDefaultForInvoices: false }));
+            }
+            if (updates.isDefaultForQuotations) {
+              updatedBanks = updatedBanks.map((b) => (b.id === bankId ? b : { ...b, isDefaultForQuotations: false }));
+            }
+            return {
+              ...p,
+              bankAccounts: updatedBanks,
+              updatedAt: new Date().toISOString(),
+            };
+          }),
+        }));
+      },
+
+      updateDocumentTemplate: (id: string, updates: Partial<DocumentTemplate>) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          documentTemplates: (state.documentTemplates || []).map((t) =>
+            t.id === id ? { ...t, ...updates, version: t.version + 1, updatedAt: now } : t
+          ),
+        }));
+      },
+
+      getNextDocumentNumber: (companyProfileId: string, docType) => {
+        const state = get();
+        const fy = getCurrentFiscalYear();
+        const allSeries = state.numberingSeries || [];
+        const existingIdx = allSeries.findIndex(
+          (s) => s.companyProfileId === companyProfileId && s.docType === docType && s.fiscalYear === fy
+        );
+
+        let nextNum = 1;
+        let prefix = 'TZM/';
+        let padding = 4;
+
+        if (existingIdx >= 0) {
+          const series = allSeries[existingIdx];
+          nextNum = series.currentNumber + 1;
+          prefix = series.prefix;
+          padding = series.paddingLength || 4;
+
+          const updated = [...allSeries];
+          updated[existingIdx] = { ...series, currentNumber: nextNum };
+          set({ numberingSeries: updated });
+        } else {
+          // Auto-provision a default series configuration
+          const comp = (state.companyProfiles || []).find((c) => c.id === companyProfileId);
+          const compCode = comp?.tradeName ? comp.tradeName.substring(0, 3).toUpperCase() : 'TZM';
+          const typeCode = docType === 'invoice' ? 'INV' : docType === 'quotation' ? 'QT' : docType.toUpperCase();
+          prefix = `${compCode}/${typeCode}/${fy}/`;
+          const newSeries: DocumentNumberingSeries = {
+            id: `num-${Date.now()}`,
+            companyProfileId,
+            docType,
+            fiscalYear: fy,
+            prefix,
+            currentNumber: nextNum,
+            paddingLength: padding,
+          };
+          set({ numberingSeries: [...allSeries, newSeries] });
+        }
+
+        const generated = generateDocumentNumber(prefix, nextNum, padding);
+        return generated.documentNumber;
+      },
+
+      // Commercial Receivables, Payables, TDS & Banking Workspaces
+      createCreditNote: (creditNoteData) => {
+        const state = get();
+        if (creditNoteData.idempotencyKey && state.creditNotes?.some((c) => c.idempotencyKey === creditNoteData.idempotencyKey)) {
+          return state.creditNotes.find((c) => c.idempotencyKey === creditNoteData.idempotencyKey)!;
+        }
+
+        const compId = creditNoteData.companyProfileId || state.activeCompanyProfileId;
+        const noteNo = creditNoteData.noteNumber || state.getNextDocumentNumber(compId, 'credit_note');
+        const amountWords = creditNoteData.amountInWords || numberToIndianWords(creditNoteData.totalAmount);
+
+        const newNote: CreditNote = {
+          ...creditNoteData,
+          id: `cn-${Date.now()}`,
+          noteNumber: noteNo,
+          amountInWords: amountWords,
+          createdAt: new Date().toISOString(),
+        };
+
+        const updatedInvoices = (state.invoices || []).map((inv) => {
+          if (inv.id === creditNoteData.originalInvoiceId || inv.invoiceNumber === creditNoteData.originalInvoiceNumber) {
+            const newOutstanding = Math.max(0, Math.round((inv.outstandingBalance - creditNoteData.totalAmount) * 100) / 100);
+            return {
+              ...inv,
+              outstandingBalance: newOutstanding,
+              paymentStatus: (newOutstanding === 0 ? 'paid' : inv.paidAmount > 0 ? 'partially_paid' : inv.paymentStatus) as InvoicePaymentStatus,
+            };
+          }
+          return inv;
+        });
+
+        const updatedCustomers = (state.customers || []).map((c) => {
+          if (c.id === creditNoteData.customerId) {
+            const newOutstanding = Math.max(0, Math.round(((c.currentOutstanding || 0) - creditNoteData.totalAmount) * 100) / 100);
+            return { ...c, currentOutstanding: newOutstanding };
+          }
+          return c;
+        });
+
+        const auditEntry: AuditLog = {
+          id: `aud-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          userId: state.currentUser?.id || 'usr-fin-01',
+          userName: state.currentUser?.name || 'Suresh Singhania (CFO)',
+          userRole: state.currentRole || 'finance',
+          action: 'create',
+          entityType: 'invoice',
+          entityId: newNote.id,
+          details: `Issued ${newNote.noteType.toUpperCase()} ${newNote.noteNumber} for ₹${newNote.totalAmount.toLocaleString('en-IN')} against ${newNote.originalInvoiceNumber}.`,
+        };
+
+        set({
+          creditNotes: [newNote, ...(state.creditNotes || [])],
+          invoices: updatedInvoices,
+          customers: updatedCustomers,
+          auditLogs: [auditEntry, ...(state.auditLogs || [])],
+        });
+
+        return newNote;
+      },
+
+      recordPaymentIn: (data) => {
+        const state = get();
+        if (data.idempotencyKey && state.receiptsPaymentsIn?.some((r) => r.idempotencyKey === data.idempotencyKey)) {
+          return state.receiptsPaymentsIn.find((r) => r.idempotencyKey === data.idempotencyKey)!;
+        }
+
+        const compId = data.companyProfileId || state.activeCompanyProfileId;
+        const receiptNo = data.receiptNumber || state.getNextDocumentNumber(compId, 'receipt');
+        const amountWords = data.amountInWords || numberToIndianWords(data.amountReceived);
+
+        const allocationMap = new Map<string, number>();
+        (data.allocations || []).forEach((a) => {
+          allocationMap.set(a.invoiceId, (allocationMap.get(a.invoiceId) || 0) + a.allocatedAmount);
+        });
+
+        const updatedInvoices = (state.invoices || []).map((inv) => {
+          if (allocationMap.has(inv.id)) {
+            const allocAmt = allocationMap.get(inv.id)!;
+            const newPaid = Math.round((inv.paidAmount + allocAmt) * 100) / 100;
+            const newOutstanding = Math.max(0, Math.round((inv.totalAmount - newPaid) * 100) / 100);
+            return {
+              ...inv,
+              paidAmount: newPaid,
+              outstandingBalance: newOutstanding,
+              paymentStatus: (newOutstanding === 0 ? 'paid' : 'partially_paid') as InvoicePaymentStatus,
+              paymentReference: data.bankReference,
+              paymentDate: data.receiptDate,
+            };
+          }
+          return inv;
+        });
+
+        const updatedCustomers = (state.customers || []).map((c) => {
+          if (c.id === data.customerId) {
+            const newOutstanding = Math.max(0, Math.round(((c.currentOutstanding || 0) - data.amountReceived) * 100) / 100);
+            return { ...c, currentOutstanding: newOutstanding };
+          }
+          return c;
+        });
+
+        const newReceipt: ReceiptPaymentIn = {
+          ...data,
+          id: `rcp-${Date.now()}`,
+          receiptNumber: receiptNo,
+          amountInWords: amountWords,
+          status: 'posted',
+          createdAt: new Date().toISOString(),
+        };
+
+        const auditEntry: AuditLog = {
+          id: `aud-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          userId: state.currentUser?.id || 'usr-fin-01',
+          userName: state.currentUser?.name || 'Suresh Singhania (CFO)',
+          userRole: state.currentRole || 'finance',
+          action: 'create',
+          entityType: 'remittance',
+          entityId: newReceipt.id,
+          details: `Recorded Customer Receipt ${newReceipt.receiptNumber} for ₹${newReceipt.amountReceived.toLocaleString('en-IN')} (Ref: ${newReceipt.bankReference}) from ${newReceipt.customerName}.`,
+        };
+
+        set({
+          receiptsPaymentsIn: [newReceipt, ...(state.receiptsPaymentsIn || [])],
+          invoices: updatedInvoices,
+          customers: updatedCustomers,
+          auditLogs: [auditEntry, ...(state.auditLogs || [])],
+        });
+
+        return newReceipt;
+      },
+
+      convertQuotationToInvoice: (quotationId, companyProfileId, templateId) => {
+        const state = get();
+        const quot = (state.quotations || []).find((q) => q.id === quotationId || q.quotationNo === quotationId);
+        if (!quot) throw new Error('Quotation not found.');
+
+        const compId = companyProfileId || state.activeCompanyProfileId;
+        const comp = (state.companyProfiles || []).find((c) => c.id === compId) || state.companyProfiles[0];
+        const template = (state.documentTemplates || []).find((t) => t.id === templateId || (t.companyProfileId === compId && t.isDefault)) || state.documentTemplates[0];
+
+        const invNumber = state.getNextDocumentNumber(compId, 'invoice');
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + 30);
+
+        const customer = (state.customers || []).find((c) => c.id === quot.customerId);
+        const compStateCode = comp.stateCode || '07';
+        const custGstPrefix = customer?.gstin ? customer.gstin.substring(0, 2) : '';
+        const custStateCode = custGstPrefix || (customer?.address?.toLowerCase().includes('haryana') ? '06' : compStateCode);
+        const customerStateObj = INDIAN_GST_STATES.find((s) => s.code === custStateCode);
+        const customerState = customerStateObj ? customerStateObj.name : 'Delhi';
+
+        const gstCalc = calculateGstTaxes(
+          compStateCode,
+          custStateCode,
+          quot.items.map((it) => ({
+            id: it.productId,
+            name: it.productName,
+            quantity: it.qty,
+            unitPrice: it.unitPrice,
+            discountPercent: it.discountPercent,
+            discountAmount: (it.unitPrice * it.qty * (it.discountPercent || 0)) / 100,
+            gstRate: 18,
+          }))
+        );
+
+        const invoiceItems: InvoiceItem[] = quot.items.map((it, idx) => ({
+          id: `inv-it-${Date.now()}-${idx}`,
+          productId: it.productId,
+          productSku: `SKU-${it.productId}`,
+          productName: it.productName,
+          quantity: it.qty,
+          unit: 'Units',
+          unitPrice: it.unitPrice,
+          discountPercent: it.discountPercent,
+          discountAmount: Math.round(((it.unitPrice * it.qty * it.discountPercent) / 100) * 100) / 100,
+          taxRatePercent: 18,
+          taxAmount: Math.round(((it.lineTotal * 0.18)) * 100) / 100,
+          netAmount: Math.round((it.lineTotal * 1.18) * 100) / 100,
+        }));
+
+        const totalTax = gstCalc.totalTax;
+        const totalAmount = gstCalc.grandTotal;
+
+        const newInvoice: Invoice = {
+          id: `inv-${Date.now()}`,
+          invoiceNumber: invNumber,
+          customerId: quot.customerId || customer?.id || 'cust-01',
+          customerName: quot.customerName,
+          customerEmail: customer?.email,
+          customerPhone: customer?.phone,
+          customerGstin: customer?.gstin || '07AABCA1234D1Z2',
+          orderNumber: `SO-QUOT-${quot.quotationNo}`,
+          regionId: 'reg-north',
+          invoiceDate: new Date().toISOString().split('T')[0],
+          dueDate: dueDate.toISOString().split('T')[0],
+          subtotal: gstCalc.taxableTotal,
+          totalDiscount: quot.discountTotal,
+          totalTax,
+          totalAmount,
+          paidAmount: 0,
+          outstandingBalance: totalAmount,
+          status: 'issued',
+          paymentStatus: 'unpaid',
+          source: 'admin_manual',
+          createdByUserId: state.currentUser?.id || 'usr-fin-01',
+          createdByUserName: state.currentUser?.name || 'Suresh Singhania (CFO)',
+          createdByUserRole: state.currentRole || 'finance',
+          items: invoiceItems,
+          companyProfileId: comp.id,
+          templateId: template?.id,
+          companySnapshot: comp,
+          templateSnapshot: template,
+          placeOfSupplyState: customerState,
+          isInterstate: gstCalc.isInterstate,
+          cgstAmount: gstCalc.cgstTotal,
+          sgstAmount: gstCalc.sgstTotal,
+          igstAmount: gstCalc.igstTotal,
+          amountInWords: numberToIndianWords(totalAmount),
+        };
+
+        const updatedQuotes = (state.quotations || []).map((q) =>
+          q.id === quot.id ? { ...q, status: 'Converted' as const } : q
+        );
+
+        const updatedCustomers = (state.customers || []).map((c) =>
+          c.id === quot.customerId
+            ? { ...c, currentOutstanding: Math.round(((c.currentOutstanding || 0) + totalAmount) * 100) / 100 }
+            : c
+        );
+
+        const auditEntry: AuditLog = {
+          id: `aud-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          userId: state.currentUser?.id || 'usr-fin-01',
+          userName: state.currentUser?.name || 'Suresh Singhania (CFO)',
+          userRole: state.currentRole || 'finance',
+          action: 'create',
+          entityType: 'invoice',
+          entityId: newInvoice.id,
+          details: `Converted Quotation ${quot.quotationNo} into Legal Tax Invoice ${newInvoice.invoiceNumber} for ₹${newInvoice.totalAmount.toLocaleString('en-IN')}.`,
+        };
+
+        set({
+          invoices: [newInvoice, ...(state.invoices || [])],
+          quotations: updatedQuotes,
+          customers: updatedCustomers,
+          auditLogs: [auditEntry, ...(state.auditLogs || [])],
+        });
+
+        return newInvoice;
+      },
+
+      createSupplierBill: (billData) => {
+        const state = get();
+        const duplicate = (state.supplierBills || []).find(
+          (b) => b.supplierId === billData.supplierId && b.supplierBillRefNumber.toLowerCase() === billData.supplierBillRefNumber.toLowerCase()
+        );
+        if (duplicate) {
+          throw new Error(`Duplicate bill reference '${billData.supplierBillRefNumber}' already registered for supplier '${billData.supplierName}'.`);
+        }
+
+        const compId = billData.companyProfileId || state.activeCompanyProfileId;
+        const billNo = billData.billNumber || state.getNextDocumentNumber(compId, 'supplier_bill');
+
+        const newBill: SupplierBill = {
+          ...billData,
+          id: `sb-${Date.now()}`,
+          billNumber: billNo,
+          outstandingBalance: billData.netPayableAmount,
+          paidAmount: 0,
+          createdAt: new Date().toISOString(),
+        };
+
+        set({
+          supplierBills: [newBill, ...(state.supplierBills || [])],
+        });
+
+        return newBill;
+      },
+
+      approveSupplierBill: (billId, reviewerNotes) => {
+        const state = get();
+        set({
+          supplierBills: (state.supplierBills || []).map((b) =>
+            b.id === billId
+              ? {
+                  ...b,
+                  status: 'approved',
+                  approvedByUserId: state.currentUser?.id,
+                  approvedByUserName: state.currentUser?.name,
+                  notes: reviewerNotes ? `${b.notes || ''} [Approval Note: ${reviewerNotes}]` : b.notes,
+                }
+              : b
+          ),
+        });
+      },
+
+      submitCustomerRefundRequest: (refundData) => {
+        const state = get();
+        const refundNo = `REF/26-27/${((state.customerRefundRequests?.length || 0) + 1).toString().padStart(4, '0')}`;
+        const requiresAdmin = refundData.requestedAmount > 25000;
+
+        const newRefund: CustomerRefundRequest = {
+          ...refundData,
+          id: `crr-${Date.now()}`,
+          refundNumber: refundNo,
+          requiresAdminApproval: requiresAdmin,
+          status: requiresAdmin ? 'escalated_to_admin' : 'pending_finance_review',
+          createdAt: new Date().toISOString(),
+        };
+
+        set({
+          customerRefundRequests: [newRefund, ...(state.customerRefundRequests || [])],
+        });
+
+        return newRefund;
+      },
+
+      reviewCustomerRefundRequest: (refundId, action, notes, txnRef) => {
+        const state = get();
+        const refund = (state.customerRefundRequests || []).find((r) => r.id === refundId);
+        if (!refund) return;
+
+        let nextStatus: CustomerRefundRequest['status'] = refund.status;
+        if (action === 'approve') nextStatus = 'approved';
+        else if (action === 'disburse') nextStatus = 'disbursed';
+        else if (action === 'reject') nextStatus = 'rejected';
+        else if (action === 'escalate') nextStatus = 'escalated_to_admin';
+
+        let updatedCustomers = state.customers;
+        if (action === 'disburse' && refund.refundMode === 'credit_note_wallet') {
+          updatedCustomers = (state.customers || []).map((c) =>
+            c.id === refund.customerId
+              ? { ...c, currentOutstanding: Math.max(0, Math.round(((c.currentOutstanding || 0) - refund.requestedAmount) * 100) / 100) }
+              : c
+          );
+        }
+
+        set({
+          customerRefundRequests: (state.customerRefundRequests || []).map((r) =>
+            r.id === refundId
+              ? {
+                  ...r,
+                  status: nextStatus,
+                  reviewedByUserId: state.currentUser?.id,
+                  reviewedByUserName: state.currentUser?.name,
+                  disbursedDate: action === 'disburse' ? new Date().toISOString().split('T')[0] : r.disbursedDate,
+                  transactionReference: txnRef || r.transactionReference,
+                  reasonDetails: notes ? `${r.reasonDetails} [Review: ${notes}]` : r.reasonDetails,
+                }
+              : r
+          ),
+          customers: updatedCustomers,
+        });
+      },
+
+      reconcileBankStatementLine: (lineId, status, notes) => {
+        const state = get();
+        set({
+          bankStatementLines: (state.bankStatementLines || []).map((l) =>
+            l.id === lineId ? { ...l, reconciliationStatus: status, notes: notes || l.notes } : l
+          ),
+        });
+      },
+
       // Reset to Seed Data
       resetToDemoData: () => {
         set({
@@ -5404,12 +5992,22 @@ export const useErpStore = create<ErpState>()(
           leaveRequests: SEED_LEAVE_REQUESTS,
           roleQueries: SEED_ROLE_QUERIES,
           invoices: SEED_INVOICES,
-      budgetRequests: SEED_MARKETING_BUDGET_REQUESTS,
-      financeClaims: SEED_FINANCE_CLAIMS,
-      payrollRecords: SEED_PAYROLL_RECORDS,
-      incentiveSettlements: SEED_INCENTIVE_SETTLEMENTS,
-      chartOfAccounts: SEED_CHART_OF_ACCOUNTS,
-      journalEntries: SEED_JOURNAL_ENTRIES,
+          budgetRequests: SEED_MARKETING_BUDGET_REQUESTS,
+          financeClaims: SEED_FINANCE_CLAIMS,
+          payrollRecords: SEED_PAYROLL_RECORDS,
+          incentiveSettlements: SEED_INCENTIVE_SETTLEMENTS,
+          chartOfAccounts: SEED_CHART_OF_ACCOUNTS,
+          journalEntries: SEED_JOURNAL_ENTRIES,
+          companyProfiles: SEED_COMPANY_PROFILES,
+          activeCompanyProfileId: 'comp-delhi-01',
+          documentTemplates: SEED_DOCUMENT_TEMPLATES,
+          numberingSeries: SEED_NUMBERING_SERIES,
+          creditNotes: SEED_CREDIT_NOTES,
+          receiptsPaymentsIn: SEED_RECEIPTS_PAYMENTS_IN,
+          supplierBills: SEED_SUPPLIER_BILLS,
+          customerRefundRequests: SEED_CUSTOMER_REFUND_REQUESTS,
+          bankStatements: SEED_BANK_STATEMENTS,
+          bankStatementLines: SEED_BANK_STATEMENT_LINES,
         });
       },
     }),

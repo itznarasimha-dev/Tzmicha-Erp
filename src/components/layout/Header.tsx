@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import clsx from 'clsx';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useErpStore } from '../../store/useErpStore';
 import {
@@ -27,6 +28,68 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import { Badge } from '../ui/Badge';
+
+interface UserAvatarProps {
+  src?: string;
+  name: string;
+  size?: 'sm' | 'md' | 'lg';
+  className?: string;
+}
+
+const UserAvatar: React.FC<UserAvatarProps> = ({ src, name, size = 'md', className = '' }) => {
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setHasError(false);
+  }, [src]);
+
+  const initials = useMemo(() => {
+    if (!name) return 'U';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return parts[0].slice(0, 2).toUpperCase();
+  }, [name]);
+
+  const sizeClasses = {
+    sm: 'w-7 h-7 text-[10px]',
+    md: 'w-8 h-8 text-xs',
+    lg: 'w-10 h-10 text-xs',
+  };
+
+  if (!src || hasError) {
+    return (
+      <div
+        className={clsx(
+          sizeClasses[size],
+          'rounded-xl bg-gradient-to-tr from-indigo-600 via-violet-600 to-purple-600 flex items-center justify-center font-bold text-white shadow-xs select-none shrink-0 ring-1 ring-white/20',
+          className
+        )}
+        title={name}
+      >
+        {initials}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={clsx(
+        sizeClasses[size],
+        'rounded-xl overflow-hidden shrink-0 bg-slate-100 dark:bg-slate-800 ring-1 ring-slate-200/80 dark:ring-slate-700/80 flex items-center justify-center',
+        className
+      )}
+    >
+      <img
+        src={src}
+        alt=""
+        onError={() => setHasError(true)}
+        className="w-full h-full object-cover"
+      />
+    </div>
+  );
+};
 
 interface HeaderProps {
   onToggleMobile: () => void;
@@ -95,7 +158,6 @@ export const Header: React.FC<HeaderProps> = ({
     if (pathname.includes('/queries') || pathname.includes('/chat')) {
       return { section: 'Helpdesk & Support', title: 'Role Queries & Internal Chat' };
     }
-    if (pathname.startsWith('/manager')) return { section: 'Operations', title: 'Manager Operations Desk' };
     if (pathname.startsWith('/admin/dashboard')) return { section: 'Executive', title: 'Dashboard Overview' };
     if (pathname.startsWith('/admin/stock')) return { section: 'Inventory', title: 'Regional Stock & Batches' };
     if (pathname.startsWith('/admin/inward-receipts') || pathname.startsWith('/admin/grn')) return { section: 'Inventory', title: 'Inward Consignments & GRN' };
@@ -133,8 +195,6 @@ export const Header: React.FC<HeaderProps> = ({
     switch (role) {
       case 'admin':
         return 'purple';
-      case 'manager':
-        return 'info';
       case 'sales':
         return 'primary';
       case 'store_manager':
@@ -156,8 +216,6 @@ export const Header: React.FC<HeaderProps> = ({
     switch (role) {
       case 'admin':
         return 'Executive Admin';
-      case 'manager':
-        return 'Operations Manager';
       case 'sales':
         return 'Field Sales';
       case 'store_manager':
@@ -238,7 +296,6 @@ export const Header: React.FC<HeaderProps> = ({
             if (role === 'sales') navigate('/sales/queries');
             else if (role === 'store_manager') navigate('/store-manager/queries');
             else if (role === 'marketing') navigate('/marketing/queries');
-            else if (role === 'manager') navigate('/manager/queries');
             else if (role === 'service') navigate('/service/queries');
             else if (role === 'finance') navigate('/finance/queries');
             else navigate('/admin/queries');
@@ -394,11 +451,7 @@ export const Header: React.FC<HeaderProps> = ({
             title="User Account"
           >
             <div className="relative">
-              <img
-                src={currentUser.avatar}
-                alt={currentUser.name}
-                className="w-8 h-8 rounded-lg object-cover ring-1 ring-slate-200/80 dark:ring-slate-700/80"
-              />
+              <UserAvatar src={currentUser.avatar} name={currentUser.name} size="md" />
               <span className="absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-500 ring-1 ring-white dark:ring-slate-950" />
             </div>
             <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
@@ -406,15 +459,11 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* User Menu Dropdown */}
           {userMenuOpen && (
-            <div className="absolute right-0 mt-2 w-[calc(100vw-1.5rem)] sm:w-80 max-w-sm rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-[0_20px_50px_rgba(0,0,0,0.18)] p-3 z-[999] ring-1 ring-slate-900/5 animate-in fade-in zoom-in-95 duration-150">
+            <div className="absolute right-0 mt-2 w-[calc(100vw-1.5rem)] sm:w-84 max-w-sm max-h-[calc(100vh-5rem)] overflow-y-auto overscroll-contain rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-[0_20px_50px_rgba(0,0,0,0.18)] p-3 z-[999] ring-1 ring-slate-900/5 animate-in fade-in zoom-in-95 duration-150">
               <div className="px-2 pb-2.5 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2.5">
-                <img
-                  src={currentUser.avatar}
-                  alt={currentUser.name}
-                  className="w-9 h-9 rounded-xl object-cover border border-slate-200 dark:border-slate-700"
-                />
+                <UserAvatar src={currentUser.avatar} name={currentUser.name} size="lg" />
                 <div className="min-w-0 flex-1">
-                  <span className="text-xs font-medium text-slate-900 dark:text-slate-100 block truncate">{currentUser.name}</span>
+                  <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 block truncate">{currentUser.name}</span>
                   <span className="text-[11px] text-slate-500 block truncate font-light">{currentUser.email}</span>
                   <div className="mt-1 flex items-center gap-1.5">
                     <Badge variant={getRoleBadgeVariant(currentUser.role)} size="sm">
@@ -445,7 +494,6 @@ export const Header: React.FC<HeaderProps> = ({
                     if (role === 'sales') navigate('/sales/queries');
                     else if (role === 'store_manager') navigate('/store-manager/queries');
                     else if (role === 'marketing') navigate('/marketing/queries');
-                    else if (role === 'manager') navigate('/manager/queries');
                     else if (role === 'service') navigate('/service/queries');
                     else if (role === 'finance') navigate('/finance/queries');
                     else navigate('/admin/queries');
@@ -494,282 +542,296 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
 
               {/* Quick Persona & Role Switcher for Testing */}
-              <div className="py-2 px-1 border-t border-slate-100 dark:border-slate-800">
-                <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider px-2 block mb-1.5">
+              <div className="py-2 px-1 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider px-2 block">
                   Switch Active Role (Mock Auth)
                 </span>
-                <div className="grid grid-cols-2 gap-1 text-[11px]">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      switchUser('usr-admin-01');
-                      setUserMenuOpen(false);
-                      navigate('/admin/dashboard');
-                    }}
-                    className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
-                      currentUser.role === 'admin'
-                        ? 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    <span>Admin</span>
-                    {currentUser.role === 'admin' && <Check className="w-3 h-3" />}
-                  </button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      switchUser('usr-mgr-01');
-                      setUserMenuOpen(false);
-                      navigate('/manager/dashboard');
-                    }}
-                    className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
-                      currentUser.role === 'manager'
-                        ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    <span>Manager</span>
-                    {currentUser.role === 'manager' && <Check className="w-3 h-3" />}
-                  </button>
+                {/* 1. Executive & Operations Core */}
+                <div>
+                  <span className="text-[9px] font-semibold uppercase text-slate-400 px-2 block mb-1">
+                    Leadership & Operations
+                  </span>
+                  <div className="grid grid-cols-2 gap-1 text-[11px]">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        switchUser('usr-admin-01');
+                        setUserMenuOpen(false);
+                        navigate('/admin/dashboard');
+                      }}
+                      className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
+                        currentUser.role === 'admin'
+                          ? 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 ring-1 ring-purple-300'
+                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <span>Admin</span>
+                      {currentUser.role === 'admin' && <Check className="w-3 h-3 text-purple-600" />}
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      switchUser('usr-sales-mgr');
-                      setUserMenuOpen(false);
-                      navigate('/sales/dashboard');
-                    }}
-                    className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
-                      currentUser.salesSubRole === 'sales_manager'
-                        ? 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    <span>Sales Manager (L1)</span>
-                    {currentUser.salesSubRole === 'sales_manager' && <Check className="w-3 h-3" />}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        switchUser('usr-fin-01');
+                        setUserMenuOpen(false);
+                        navigate('/finance');
+                      }}
+                      className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
+                        currentUser.role === 'finance'
+                          ? 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 ring-1 ring-purple-300'
+                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <span>Finance Lead</span>
+                      {currentUser.role === 'finance' && <Check className="w-3 h-3 text-purple-600" />}
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      switchUser('usr-sales-coord');
-                      setUserMenuOpen(false);
-                      navigate('/sales/dashboard');
-                    }}
-                    className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
-                      currentUser.salesSubRole === 'sales_coordinator'
-                        ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    <span>Sales Coord (L2)</span>
-                    {currentUser.salesSubRole === 'sales_coordinator' && <Check className="w-3 h-3" />}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        switchUser('usr-hr-01');
+                        setUserMenuOpen(false);
+                        navigate('/hr');
+                      }}
+                      className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
+                        currentUser.role === 'hr'
+                          ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 ring-1 ring-indigo-300'
+                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <span>HR Manager</span>
+                      {currentUser.role === 'hr' && <Check className="w-3 h-3 text-indigo-600" />}
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      switchUser('usr-sales-01');
-                      setUserMenuOpen(false);
-                      navigate('/sales/dashboard');
-                    }}
-                    className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
-                      currentUser.role === 'sales' && currentUser.salesSubRole === 'sales_rep'
-                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    <span>Senior Sales (L3)</span>
-                    {currentUser.role === 'sales' && currentUser.salesSubRole === 'sales_rep' && <Check className="w-3 h-3" />}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        switchUser('usr-store-01');
+                        setUserMenuOpen(false);
+                        navigate('/store-manager/overview');
+                      }}
+                      className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
+                        currentUser.role === 'store_manager'
+                          ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 ring-1 ring-amber-300'
+                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <span>Store Keeper</span>
+                      {currentUser.role === 'store_manager' && <Check className="w-3 h-3 text-amber-600" />}
+                    </button>
+                  </div>
+                </div>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      switchUser('usr-sales-jr');
-                      setUserMenuOpen(false);
-                      navigate('/sales/dashboard');
-                    }}
-                    className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
-                      currentUser.salesSubRole === 'junior_sales'
-                        ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    <span>Junior Sales (L4)</span>
-                    {currentUser.salesSubRole === 'junior_sales' && <Check className="w-3 h-3" />}
-                  </button>
+                {/* 2. Sales Team (L1 - L4) */}
+                <div>
+                  <span className="text-[9px] font-semibold uppercase text-slate-400 px-2 block mb-1">
+                    Sales Team (L1 - L4)
+                  </span>
+                  <div className="grid grid-cols-2 gap-1 text-[11px]">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        switchUser('usr-sales-mgr');
+                        setUserMenuOpen(false);
+                        navigate('/sales/dashboard');
+                      }}
+                      className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
+                        currentUser.salesSubRole === 'sales_manager'
+                          ? 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 ring-1 ring-purple-300'
+                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <span>Sales Manager (L1)</span>
+                      {currentUser.salesSubRole === 'sales_manager' && <Check className="w-3 h-3" />}
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      switchUser('usr-store-01');
-                      setUserMenuOpen(false);
-                      navigate('/store-manager/overview');
-                    }}
-                    className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
-                      currentUser.role === 'store_manager'
-                        ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    <span>Store Keeper</span>
-                    {currentUser.role === 'store_manager' && <Check className="w-3 h-3" />}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        switchUser('usr-sales-coord');
+                        setUserMenuOpen(false);
+                        navigate('/sales/dashboard');
+                      }}
+                      className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
+                        currentUser.salesSubRole === 'sales_coordinator'
+                          ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 ring-1 ring-blue-300'
+                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <span>Sales Coord (L2)</span>
+                      {currentUser.salesSubRole === 'sales_coordinator' && <Check className="w-3 h-3" />}
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      switchUser('usr-svc-mgr');
-                      setUserMenuOpen(false);
-                      navigate('/service/dashboard');
-                    }}
-                    className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
-                      currentUser.role === 'service' && currentUser.serviceSubRole === 'manager'
-                        ? 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    <span>Service Manager (T1)</span>
-                    {currentUser.role === 'service' && currentUser.serviceSubRole === 'manager' && <Check className="w-3 h-3" />}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        switchUser('usr-sales-01');
+                        setUserMenuOpen(false);
+                        navigate('/sales/dashboard');
+                      }}
+                      className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
+                        currentUser.role === 'sales' && currentUser.salesSubRole === 'sales_rep'
+                          ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 ring-1 ring-emerald-300'
+                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <span>Senior Sales (L3)</span>
+                      {currentUser.role === 'sales' && currentUser.salesSubRole === 'sales_rep' && <Check className="w-3 h-3" />}
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      switchUser('usr-svc-coord');
-                      setUserMenuOpen(false);
-                      navigate('/service/dashboard');
-                    }}
-                    className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
-                      currentUser.role === 'service' && currentUser.serviceSubRole === 'coordinator'
-                        ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    <span>Service Coord (T2)</span>
-                    {currentUser.role === 'service' && currentUser.serviceSubRole === 'coordinator' && <Check className="w-3 h-3" />}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        switchUser('usr-sales-jr');
+                        setUserMenuOpen(false);
+                        navigate('/sales/dashboard');
+                      }}
+                      className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
+                        currentUser.salesSubRole === 'junior_sales'
+                          ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 ring-1 ring-amber-300'
+                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <span>Junior Sales (L4)</span>
+                      {currentUser.salesSubRole === 'junior_sales' && <Check className="w-3 h-3" />}
+                    </button>
+                  </div>
+                </div>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      switchUser('usr-svc-01');
-                      setUserMenuOpen(false);
-                      navigate('/service/dashboard');
-                    }}
-                    className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
-                      currentUser.role === 'service' && currentUser.serviceSubRole === 'engineer'
-                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    <span>Service Engineer (T3)</span>
-                    {currentUser.role === 'service' && currentUser.serviceSubRole === 'engineer' && <Check className="w-3 h-3" />}
-                  </button>
+                {/* 3. Service Team (T1 - T4) */}
+                <div>
+                  <span className="text-[9px] font-semibold uppercase text-slate-400 px-2 block mb-1">
+                    Service Support (T1 - T4)
+                  </span>
+                  <div className="grid grid-cols-2 gap-1 text-[11px]">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        switchUser('usr-svc-mgr');
+                        setUserMenuOpen(false);
+                        navigate('/service/dashboard');
+                      }}
+                      className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
+                        currentUser.role === 'service' && currentUser.serviceSubRole === 'manager'
+                          ? 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 ring-1 ring-purple-300'
+                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <span>Service Manager (T1)</span>
+                      {currentUser.role === 'service' && currentUser.serviceSubRole === 'manager' && <Check className="w-3 h-3" />}
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      switchUser('usr-svc-emp');
-                      setUserMenuOpen(false);
-                      navigate('/service/dashboard');
-                    }}
-                    className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
-                      currentUser.role === 'service' && currentUser.serviceSubRole === 'employee'
-                        ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    <span>Service Employee (T4)</span>
-                    {currentUser.role === 'service' && currentUser.serviceSubRole === 'employee' && <Check className="w-3 h-3" />}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        switchUser('usr-svc-coord');
+                        setUserMenuOpen(false);
+                        navigate('/service/dashboard');
+                      }}
+                      className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
+                        currentUser.role === 'service' && currentUser.serviceSubRole === 'coordinator'
+                          ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 ring-1 ring-blue-300'
+                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <span>Service Coord (T2)</span>
+                      {currentUser.role === 'service' && currentUser.serviceSubRole === 'coordinator' && <Check className="w-3 h-3" />}
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      switchUser('usr-mkt-mgr');
-                      setUserMenuOpen(false);
-                      navigate('/marketing/workspace/dashboard');
-                    }}
-                    className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
-                      currentUser.role === 'marketing' && currentUser.marketingSubRole === 'marketing_manager'
-                        ? 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    <span>Mktg Manager (M1)</span>
-                    {currentUser.role === 'marketing' && currentUser.marketingSubRole === 'marketing_manager' && <Check className="w-3 h-3" />}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        switchUser('usr-svc-01');
+                        setUserMenuOpen(false);
+                        navigate('/service/dashboard');
+                      }}
+                      className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
+                        currentUser.role === 'service' && currentUser.serviceSubRole === 'engineer'
+                          ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 ring-1 ring-emerald-300'
+                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <span>Service Engineer (T3)</span>
+                      {currentUser.role === 'service' && currentUser.serviceSubRole === 'engineer' && <Check className="w-3 h-3" />}
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      switchUser('usr-mkt-senior');
-                      setUserMenuOpen(false);
-                      navigate('/marketing/workspace/dashboard');
-                    }}
-                    className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
-                      currentUser.role === 'marketing' && currentUser.marketingSubRole === 'marketing_senior'
-                        ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    <span>Senior Mktg (M2)</span>
-                    {currentUser.role === 'marketing' && currentUser.marketingSubRole === 'marketing_senior' && <Check className="w-3 h-3" />}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        switchUser('usr-svc-emp');
+                        setUserMenuOpen(false);
+                        navigate('/service/dashboard');
+                      }}
+                      className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
+                        currentUser.role === 'service' && currentUser.serviceSubRole === 'employee'
+                          ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 ring-1 ring-amber-300'
+                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <span>Service Employee (T4)</span>
+                      {currentUser.role === 'service' && currentUser.serviceSubRole === 'employee' && <Check className="w-3 h-3" />}
+                    </button>
+                  </div>
+                </div>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      switchUser('usr-mkt-junior');
-                      setUserMenuOpen(false);
-                      navigate('/marketing/workspace/dashboard');
-                    }}
-                    className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
-                      currentUser.role === 'marketing' && currentUser.marketingSubRole === 'marketing_junior'
-                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    <span>Junior Mktg (M3)</span>
-                    {currentUser.role === 'marketing' && currentUser.marketingSubRole === 'marketing_junior' && <Check className="w-3 h-3" />}
-                  </button>
+                {/* 4. Marketing Team (M1 - M3) */}
+                <div>
+                  <span className="text-[9px] font-semibold uppercase text-slate-400 px-2 block mb-1">
+                    Marketing Team (M1 - M3)
+                  </span>
+                  <div className="grid grid-cols-3 gap-1 text-[11px]">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        switchUser('usr-mkt-mgr');
+                        setUserMenuOpen(false);
+                        navigate('/marketing/workspace/dashboard');
+                      }}
+                      className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
+                        currentUser.role === 'marketing' && currentUser.marketingSubRole === 'marketing_manager'
+                          ? 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 ring-1 ring-purple-300'
+                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <span>Mktg Mgr (M1)</span>
+                      {currentUser.role === 'marketing' && currentUser.marketingSubRole === 'marketing_manager' && <Check className="w-3 h-3" />}
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      switchUser('usr-fin-01');
-                      setUserMenuOpen(false);
-                      navigate('/finance');
-                    }}
-                    className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
-                      currentUser.role === 'finance'
-                        ? 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    <span>Finance Lead</span>
-                    {currentUser.role === 'finance' && <Check className="w-3 h-3" />}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        switchUser('usr-mkt-senior');
+                        setUserMenuOpen(false);
+                        navigate('/marketing/workspace/dashboard');
+                      }}
+                      className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
+                        currentUser.role === 'marketing' && currentUser.marketingSubRole === 'marketing_senior'
+                          ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 ring-1 ring-indigo-300'
+                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <span>Senior (M2)</span>
+                      {currentUser.role === 'marketing' && currentUser.marketingSubRole === 'marketing_senior' && <Check className="w-3 h-3" />}
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      switchUser('usr-hr-01');
-                      setUserMenuOpen(false);
-                      navigate('/hr');
-                    }}
-                    className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
-                      currentUser.role === 'hr'
-                        ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    <span>HR Manager</span>
-                    {currentUser.role === 'hr' && <Check className="w-3 h-3" />}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        switchUser('usr-mkt-junior');
+                        setUserMenuOpen(false);
+                        navigate('/marketing/workspace/dashboard');
+                      }}
+                      className={`px-2 py-1.5 rounded-lg text-left font-semibold transition-colors flex items-center justify-between cursor-pointer ${
+                        currentUser.role === 'marketing' && currentUser.marketingSubRole === 'marketing_junior'
+                          ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 ring-1 ring-emerald-300'
+                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <span>Junior (M3)</span>
+                      {currentUser.role === 'marketing' && currentUser.marketingSubRole === 'marketing_junior' && <Check className="w-3 h-3" />}
+                    </button>
+                  </div>
                 </div>
               </div>
 

@@ -38,7 +38,7 @@ interface UnifiedActivityEvent {
   userName: string;
   userRole: UserRole;
   userAvatar?: string;
-  category: 'sales' | 'warehouse' | 'marketing' | 'admin' | 'manager';
+  category: 'sales' | 'warehouse' | 'marketing' | 'admin';
   actionTitle: string;
   description: string;
   entityType: string;
@@ -62,7 +62,7 @@ export const AllRolesActivityTracking: React.FC = () => {
     auditLogs,
   } = useErpStore();
 
-  const [activeRoleFilter, setActiveRoleFilter] = useState<'all' | 'sales' | 'store_manager' | 'marketing' | 'admin' | 'manager'>('all');
+  const [activeRoleFilter, setActiveRoleFilter] = useState<'all' | 'sales' | 'store_manager' | 'marketing' | 'admin'>('all');
   const [selectedRegion, setSelectedRegion] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEvent, setSelectedEvent] = useState<UnifiedActivityEvent | null>(null);
@@ -222,25 +222,24 @@ export const AllRolesActivityTracking: React.FC = () => {
       });
     });
 
-    // 7. System Governance & Manager/Admin Audit Logs
+    // 7. System Governance & Admin Audit Logs
     auditLogs.forEach((log) => {
       const logUser = users.find((u) => u.id === log.userId);
-      const isMgr = log.userRole === 'manager';
       events.push({
         id: `act-log-${log.id}`,
         timestamp: log.timestamp,
         userId: log.userId,
-        userName: log.userName || logUser?.name || (isMgr ? 'Pooja Hegde' : 'System Admin'),
-        userRole: log.userRole || (isMgr ? 'manager' : 'admin'),
+        userName: log.userName || logUser?.name || 'System Admin',
+        userRole: log.userRole || 'admin',
         userAvatar: logUser?.avatar,
-        category: isMgr ? 'manager' : 'admin',
-        actionTitle: isMgr ? `Operations: ${log.action}` : `Governance: ${log.action}`,
+        category: 'admin',
+        actionTitle: `Governance: ${log.action}`,
         description: `${log.details} (Entity: ${log.entityType} ${log.entityId})`,
         entityType: log.entityType,
         entityId: log.entityId,
         regionId: log.regionId || 'all',
-        locationDetails: isMgr ? 'Operations Tactical Console' : 'Corporate HQ Admin Console',
-        badgeVariant: isMgr ? 'primary' : 'purple',
+        locationDetails: 'Corporate HQ Admin Console',
+        badgeVariant: 'purple',
       });
     });
 
@@ -268,7 +267,6 @@ export const AllRolesActivityTracking: React.FC = () => {
   const warehouseCount = unifiedActivities.filter((e) => e.userRole === 'store_manager').length;
   const marketingCount = unifiedActivities.filter((e) => e.userRole === 'marketing').length;
   const adminCount = unifiedActivities.filter((e) => e.userRole === 'admin').length;
-  const managerCount = unifiedActivities.filter((e) => e.userRole === 'manager').length;
 
   const handleOpenDetail = (event: UnifiedActivityEvent) => {
     setSelectedEvent(event);
@@ -285,8 +283,6 @@ export const AllRolesActivityTracking: React.FC = () => {
         return <Compass className="w-3.5 h-3.5 text-amber-600" />;
       case 'admin':
         return <Shield className="w-3.5 h-3.5 text-purple-600" />;
-      case 'manager':
-        return <Compass className="w-3.5 h-3.5 text-indigo-600" />;
       default:
         return <Activity className="w-3.5 h-3.5 text-slate-600" />;
     }
@@ -302,8 +298,6 @@ export const AllRolesActivityTracking: React.FC = () => {
         return <Badge variant="warning">Ground Marketing</Badge>;
       case 'admin':
         return <Badge variant="purple">Executive Admin</Badge>;
-      case 'manager':
-        return <Badge variant="info">Operations Manager</Badge>;
       default:
         return <Badge variant="neutral">{role}</Badge>;
     }
@@ -456,19 +450,6 @@ export const AllRolesActivityTracking: React.FC = () => {
         >
           <Compass className="w-3.5 h-3.5" />
           <span>Ground Marketing Ops ({marketingCount})</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveRoleFilter('manager')}
-          className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
-            activeRoleFilter === 'manager'
-              ? 'bg-indigo-600 text-white shadow-xs'
-              : 'text-slate-600 hover:bg-slate-100'
-          }`}
-        >
-          <Compass className="w-3.5 h-3.5" />
-          <span>Operations Management ({managerCount})</span>
         </button>
 
         <button

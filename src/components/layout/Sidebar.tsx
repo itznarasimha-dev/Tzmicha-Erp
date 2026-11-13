@@ -101,9 +101,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   let activeRole = currentRole || currentUser.role;
   if (currentUser.role === 'admin') {
-    if (location.pathname.startsWith('/manager')) {
-      activeRole = 'manager';
-    } else if (location.pathname.startsWith('/sales')) {
+    if (location.pathname.startsWith('/sales')) {
       activeRole = 'sales';
     } else if (location.pathname.startsWith('/store-manager') || location.pathname.startsWith('/store')) {
       activeRole = 'store_manager';
@@ -116,8 +114,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     } else if (location.pathname.startsWith('/hr')) {
       activeRole = 'hr';
     }
-  } else if (currentUser.role === 'manager') {
-    activeRole = 'manager';
   }
 
   const pendingDiscountApprovals = salesOrders.filter((o) => o.status === 'pending_discount_approval').length;
@@ -765,6 +761,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       path: '/finance',
       icon: <LayoutDashboard className="w-4 h-4" />,
     },
+    {
+      name: 'Company Profiles & Templates',
+      path: '/finance/companies',
+      icon: <Building2 className="w-4 h-4" />,
+    },
     { group: 'Revenue & Receivables' },
     {
       name: 'Customer Receivables & Payments',
@@ -855,7 +856,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   // 6. Service Role Nav Items (Dedicated 9-Workspaces Department Portal)
   const isServiceManagerOrCoord =
     currentUser?.role === 'admin' ||
-    currentUser?.role === 'manager' ||
     !currentUser?.serviceSubRole ||
     currentUser?.serviceSubRole === 'manager' ||
     currentUser?.serviceSubRole === 'coordinator';
@@ -946,153 +946,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
   ];
 
-
-  // 7. Manager Role Nav Items (Full Operational Access, Excluding Audit Logs & Subscriptions)
-  const managerNavItems: NavEntry[] = [
-    { group: 'Operations Overview' },
-    {
-      name: 'Manager Operations Desk',
-      path: '/manager/dashboard',
-      icon: <LayoutDashboard className="w-4 h-4" />,
-      badge: totalPendingApprovals > 0 ? totalPendingApprovals : undefined,
-      badgeVariant: 'warning',
-    },
-    {
-      name: 'Organization Profile',
-      path: '/admin/organizations',
-      icon: <Building2 className="w-4 h-4" />,
-    },
-    { group: 'Sales & Field Commerce' },
-    {
-      name: 'Customers & Dealers',
-      path: '/admin/customers',
-      icon: <Users className="w-4 h-4" />,
-      badge: customers.length,
-      badgeVariant: 'neutral',
-    },
-    {
-      name: 'Orders & Dispatches (SO & PO)',
-      path: '/admin/orders',
-      icon: <Truck className="w-4 h-4" />,
-      badge: pendingDiscountApprovals > 0 ? `${pendingDiscountApprovals} Review` : undefined,
-      badgeVariant: 'warning',
-    },
-    {
-      name: 'Quotations & Approvals',
-      path: '/admin/quotations',
-      icon: <FileText className="w-4 h-4" />,
-      badge: unassignedQuotes > 0 ? `${unassignedQuotes} Assign` : undefined,
-      badgeVariant: 'warning',
-    },
-    {
-      name: 'Customer Credit & A/R',
-      path: '/admin/customer-credit',
-      icon: <CreditCard className="w-4 h-4" />,
-      badge: overLimitCredit > 0 ? `${overLimitCredit} Over` : undefined,
-      badgeVariant: 'danger',
-    },
-    {
-      name: 'Invoices & Billing Register',
-      path: '/admin/invoices',
-      icon: <Receipt className="w-4 h-4" />,
-      badge: unpaidInvoicesCount > 0 ? `${unpaidInvoicesCount} Due` : undefined,
-      badgeVariant: 'warning',
-    },
-    {
-      name: 'Sales Performance & Payouts',
-      path: '/admin/sales-performance',
-      icon: <Award className="w-4 h-4" />,
-      badge: 'Payouts',
-      badgeVariant: 'success',
-    },
-    {
-      name: 'Approvals & Requests',
-      path: '/admin/approvals',
-      icon: <CheckSquare className="w-4 h-4" />,
-      badge: totalPendingApprovals > 0 ? totalPendingApprovals : undefined,
-      badgeVariant: 'warning',
-    },
-    {
-      name: 'Expenses & Field Claims',
-      path: '/admin/expenses',
-      icon: <Receipt className="w-4 h-4" />,
-      badge: pendingExpenses > 0 ? pendingExpenses : undefined,
-      badgeVariant: 'warning',
-    },
-    {
-      name: 'Field Marketing Intelligence',
-      path: '/admin/field-marketing',
-      icon: <Compass className="w-4 h-4" />,
-    },
-    { group: 'Depot & Inventory Operations' },
-    {
-      name: 'Product Master & Costing',
-      path: '/admin/products',
-      icon: <Boxes className="w-4 h-4" />,
-    },
-    {
-      name: 'Inward Receiving & GRN',
-      path: '/store/inward',
-      icon: <Truck className="w-4 h-4" />,
-      badge: pendingInwards > 0 ? pendingInwards : undefined,
-      badgeVariant: 'warning',
-    },
-    {
-      name: 'Inventory & Batch Ledger',
-      path: '/store/batches',
-      icon: <Warehouse className="w-4 h-4" />,
-    },
-    {
-      name: 'Damage & QC Discard',
-      path: '/store/damage',
-      icon: <ShieldCheck className="w-4 h-4" />,
-    },
-    {
-      name: 'Suppliers & Vendors',
-      path: '/admin/suppliers',
-      icon: <Building2 className="w-4 h-4" />,
-      badge: suppliers.length,
-      badgeVariant: 'neutral',
-    },
-    {
-      name: 'Territories & Depots',
-      path: '/admin/regions',
-      icon: <MapPin className="w-4 h-4" />,
-    },
-    { group: 'Workforce & Activity' },
-    {
-      name: 'Employee Directory',
-      path: '/admin/users',
-      icon: <Users className="w-4 h-4" />,
-    },
-    {
-      name: 'Attendance & Leaves',
-      path: '/admin/attendance',
-      icon: <CalendarCheck className="w-4 h-4" />,
-      badge: pendingLeaves > 0 ? `${pendingLeaves} Pending` : undefined,
-      badgeVariant: 'warning',
-    },
-    {
-      name: 'Targets & Quotas',
-      path: '/admin/targets',
-      icon: <Target className="w-4 h-4" />,
-    },
-    {
-      name: 'All Roles Activity',
-      path: '/admin/activity',
-      icon: <Activity className="w-4 h-4" />,
-      badge: 'Live',
-      badgeVariant: 'success',
-    },
-    {
-      name: 'Role Queries & Chat Desk',
-      path: '/manager/queries',
-      icon: <MessageSquare className="w-4 h-4" />,
-      badge: openQueriesCount > 0 ? `${openQueriesCount} Open` : undefined,
-      badgeVariant: 'warning',
-    },
-  ];
-
   const hrNavItems: NavEntry[] = [
     { group: 'HR Workspace' },
     {
@@ -1174,9 +1027,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   ];
 
   const currentNavItems =
-    activeRole === 'manager'
-      ? managerNavItems
-      : activeRole === 'sales'
+    activeRole === 'sales'
       ? salesNavItems
       : activeRole === 'store_manager'
       ? storeKeeperNavItems
@@ -1203,12 +1054,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Sidebar Container */}
       <aside
         className={clsx(
-          'glass-sidebar sticky top-0 h-screen inset-y-0 left-0 z-50 flex flex-col transition-all duration-300 ease-in-out border-r border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl',
+          'glass-sidebar h-screen inset-y-0 left-0 z-50 flex flex-col transition-all duration-300 ease-in-out border-r border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl',
+          'fixed lg:static lg:sticky lg:top-0',
           mobileOpen
-            ? 'w-[280px] sm:w-64 translate-x-0 fixed shadow-2xl'
+            ? 'w-[280px] sm:w-64 translate-x-0 shadow-2xl'
             : clsx(
-                collapsed ? 'w-20' : 'w-64',
-                '-translate-x-full lg:translate-x-0 shadow-2xs'
+                '-translate-x-full lg:translate-x-0 shadow-2xs',
+                collapsed ? 'w-[280px] sm:w-64 lg:w-20' : 'w-[280px] sm:w-64 lg:w-64'
               )
         )}
       >

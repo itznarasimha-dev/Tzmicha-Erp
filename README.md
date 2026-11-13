@@ -118,7 +118,6 @@ Creates an optimized production bundle in the `dist/` directory.
 
 Use the **interactive banner at the very top of the screen** to switch between all roles anytime:
 - **👑 Admin**: Rajesh Verma (`usr-admin-01`, Org-wide)
-- **📊 Manager**: Operational & Regional Supervision
 - **💼 Sales Rep**: Vikram Malhotra (`usr-sales-01`, North, 8% Limit)
 - **🎯 Field Marketing**: Ananya Sharma (`usr-mkt-01`, Ground Visits & Shelf Audits)
 - **💻 Digital Marketing**: Campaign Management & Lead Tracking

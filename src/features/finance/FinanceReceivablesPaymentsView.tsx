@@ -26,63 +26,148 @@ import {
   Calendar,
   Send,
   Download,
+  MessageSquare,
+  Mail,
+  HelpCircle,
+  FileSpreadsheet,
+  Layers,
+  ArrowRight,
+  TrendingDown,
+  Sparkles,
+  FileText,
 } from 'lucide-react';
-import { Customer, SalesRemittanceEntry, Invoice } from '../../types';
+import { Customer, SalesRemittanceEntry, Invoice, ReceiptPaymentIn } from '../../types';
+import { formatINR, numberToIndianWords, maskAccountNumber } from '../../services/formatters';
 
 export const FinanceReceivablesPaymentsView: React.FC = () => {
   const {
     customers,
     salesRemittances,
     invoices,
-    salesOrders,
-    recordCustomerPaymentReceipt,
+    receiptsPaymentsIn,
+    companyProfiles,
+    activeCompanyProfileId,
+    recordPaymentIn,
     verifyCustomerRemittance,
   } = useErpStore();
 
-  const [activeSubTab, setActiveSubTab] = useState<'receivables' | 'remittances'>('receivables');
+  const [activeTab, setActiveTab] = useState<'aging' | 'receipts' | 'remittances'>('aging');
   const [searchTerm, setSearchTerm] = useState('');
   const [riskFilter, setRiskFilter] = useState<string>('all');
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [recordModalOpen, setRecordModalOpen] = useState(false);
+  const [selectedCustomerForStatement, setSelectedCustomerForStatement] = useState<Customer | null>(null);
+  const [selectedReceiptDetail, setSelectedReceiptDetail] = useState<ReceiptPaymentIn | null>(null);
+
+  // Record Multi-Invoice Allocation Modal State
+  const [recordReceiptModalOpen, setRecordReceiptModalOpen] = useState(false);
+  const [targetCustomerId, setTargetCustomerId] = useState('');
+  const [receivedAmount, setReceivedAmount] = useState('');
+  const [paymentMode, setPaymentMode] = useState<ReceiptPaymentIn['paymentMode']>('neft_rtgs');
+  const [bankRef, setBankRef] = useState('');
+  const [selectedBankAccountId, setSelectedBankAccountId] = useState('cba-01');
+  const [allocations, setAllocations] = useState<{ [invoiceId: string]: number }>({});
+  const [receiptRemarks, setReceiptRemarks] = useState('');
+
+  // Remittance Verification Modal
   const [verifyModalOpen, setVerifyModalOpen] = useState(false);
   const [selectedRemittance, setSelectedRemittance] = useState<SalesRemittanceEntry | null>(null);
   const [discrepancyNote, setDiscrepancyNote] = useState('');
 
-  // Form State
-  const [targetCustomerId, setTargetCustomerId] = useState('');
-  const [collectionAmount, setCollectionAmount] = useState('');
-  const [paymentMode, setPaymentMode] = useState('neft_rtgs');
-  const [transactionRef, setTransactionRef] = useState('');
-  const [linkedOrderId, setLinkedOrderId] = useState('');
-  const [linkedInvoiceId, setLinkedInvoiceId] = useState('');
-  const [paymentNotes, setPaymentNotes] = useState('');
   const [successToast, setSuccessToast] = useState<string | null>(null);
-  const [custPage, setCustPage] = useState(1);
-  const [custPageSize, setCustPageSize] = useState(8);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Pagination
+  const [agingPage, setAgingPage] = useState(1);
+  const [agingPageSize, setAgingPageSize] = useState(8);
+  const [rcpPage, setRcpPage] = useState(1);
+  const [rcpPageSize, setRcpPageSize] = useState(8);
   const [remPage, setRemPage] = useState(1);
   const [remPageSize, setRemPageSize] = useState(8);
 
-  // ─── Filtered Customers ───
-  const filteredCustomers = useMemo(() => {
-    return customers.filter((c) => {
-      if (riskFilter === 'overdue' && c.currentOutstanding <= 0) return false;
-      if (riskFilter === 'exceeded_limit' && c.currentOutstanding <= c.creditLimit) return false;
+  // ─── AGING BUCKETS CALCULATION PER CUSTOMER ───
+  const customerAgingData = useMemo(() => {
+    const today = new Date('2026-11-12'); // System current fiscal date
+
+    return (customers || []).map((cust) => {
+      const custInvoices = (invoices || []).filter(
+        (i) => i.customerId === cust.id && i.outstandingBalance > 0
+      );
+
+      let b0_30 = 0;
+      let b31_60 = 0;
+      let b61_90 = 0;
+      let b90_plus = 0;
+
+      custInvoices.forEach((inv) => {
+        const due = new Date(inv.dueDate);
+        const diffDays = Math.floor((today.getTime() - due.getTime()) / (1000 * 3600 * 24));
+
+        if (diffDays <= 30) {
+          b0_30 += inv.outstandingBalance;
+        } else if (diffDays <= 60) {
+          b31_60 += inv.outstandingBalance;
+        } else if (diffDays <= 90) {
+          b61_90 += inv.outstandingBalance;
+        } else {
+          b90_plus += inv.outstandingBalance;
+        }
+      });
+
+      const totalOverdue = b31_60 + b61_90 + b90_plus;
+      const totalOutstanding = b0_30 + totalOverdue;
+      const creditUtilization = cust.creditLimit > 0 ? (totalOutstanding / cust.creditLimit) * 100 : 0;
+
+      return {
+        customer: cust,
+        totalOutstanding,
+        b0_30,
+        b31_60,
+        b61_90,
+        b90_plus,
+        totalOverdue,
+        creditUtilization,
+        invoicesCount: custInvoices.length,
+      };
+    });
+  }, [customers, invoices]);
+
+  // Filtered Aging Customers
+  const filteredAging = useMemo(() => {
+    return customerAgingData.filter((item) => {
+      if (riskFilter === 'overdue' && item.totalOverdue <= 0) return false;
+      if (riskFilter === 'high_risk' && item.b90_plus <= 0) return false;
+      if (riskFilter === 'exceeded_limit' && item.creditUtilization <= 100) return false;
+
       if (searchTerm) {
         const q = searchTerm.toLowerCase();
         return (
-          c.name.toLowerCase().includes(q) ||
-          c.businessName.toLowerCase().includes(q) ||
-          c.phone.toLowerCase().includes(q) ||
-          c.id.toLowerCase().includes(q)
+          item.customer.name.toLowerCase().includes(q) ||
+          item.customer.businessName.toLowerCase().includes(q) ||
+          item.customer.phone.toLowerCase().includes(q) ||
+          item.customer.id.toLowerCase().includes(q)
         );
       }
       return true;
     });
-  }, [customers, riskFilter, searchTerm]);
+  }, [customerAgingData, riskFilter, searchTerm]);
 
-  // ─── Filtered Remittances ───
+  // Filtered Receipts
+  const filteredReceipts = useMemo(() => {
+    return (receiptsPaymentsIn || []).filter((r) => {
+      if (searchTerm) {
+        const q = searchTerm.toLowerCase();
+        return (
+          r.receiptNumber.toLowerCase().includes(q) ||
+          r.customerName.toLowerCase().includes(q) ||
+          r.bankReference.toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [receiptsPaymentsIn, searchTerm]);
+
+  // Filtered Remittances
   const filteredRemittances = useMemo(() => {
-    return salesRemittances.filter((r) => {
+    return (salesRemittances || []).filter((r) => {
       if (searchTerm) {
         const q = searchTerm.toLowerCase();
         return (
@@ -96,276 +181,436 @@ export const FinanceReceivablesPaymentsView: React.FC = () => {
     });
   }, [salesRemittances, searchTerm]);
 
-  const paginatedCustomers = useMemo(() => {
-    return filteredCustomers.slice((custPage - 1) * custPageSize, custPage * custPageSize);
-  }, [filteredCustomers, custPage, custPageSize]);
+  const paginatedAging = useMemo(() => {
+    return filteredAging.slice((agingPage - 1) * agingPageSize, agingPage * agingPageSize);
+  }, [filteredAging, agingPage, agingPageSize]);
+
+  const paginatedReceipts = useMemo(() => {
+    return filteredReceipts.slice((rcpPage - 1) * rcpPageSize, rcpPage * rcpPageSize);
+  }, [filteredReceipts, rcpPage, rcpPageSize]);
 
   const paginatedRemittances = useMemo(() => {
     return filteredRemittances.slice((remPage - 1) * remPageSize, remPage * remPageSize);
   }, [filteredRemittances, remPage, remPageSize]);
 
-  // Metrics
-  const receivablesSummary = useMemo(() => {
-    const totalOutstanding = customers.reduce((s, c) => s + (c.currentOutstanding || 0), 0);
-    const totalCreditLimit = customers.reduce((s, c) => s + (c.creditLimit || 0), 0);
-    const totalCollectionsMonth = salesRemittances
-      .filter((r) => r.type === 'collection_from_customer' && r.status === 'verified')
-      .reduce((s, r) => s + r.amount, 0);
-    const pendingVerificationCount = salesRemittances.filter((r) => r.status === 'pending_verification').length;
-    return { totalOutstanding, totalCreditLimit, totalCollectionsMonth, pendingVerificationCount };
-  }, [customers, salesRemittances]);
+  // Overall Portfolio Metrics
+  const agingMetrics = useMemo(() => {
+    let totalOutstanding = 0;
+    let b0_30 = 0;
+    let b31_60 = 0;
+    let b61_90 = 0;
+    let b90_plus = 0;
 
-  const handleOpenRecordModal = (cust?: Customer) => {
-    if (cust) {
-      setTargetCustomerId(cust.id);
-      setCollectionAmount(cust.currentOutstanding.toString());
-    } else {
-      setTargetCustomerId(customers[0]?.id || '');
-      setCollectionAmount('50000');
+    customerAgingData.forEach((d) => {
+      totalOutstanding += d.totalOutstanding;
+      b0_30 += d.b0_30;
+      b31_60 += d.b31_60;
+      b61_90 += d.b61_90;
+      b90_plus += d.b90_plus;
+    });
+
+    return { totalOutstanding, b0_30, b31_60, b61_90, b90_plus };
+  }, [customerAgingData]);
+
+  // Open Multi-Invoice Allocation Modal
+  const handleOpenRecordReceiptModal = (cust?: Customer) => {
+    const cid = cust ? cust.id : customers[0]?.id || '';
+    setTargetCustomerId(cid);
+
+    const custInvs = (invoices || []).filter((i) => i.customerId === cid && i.outstandingBalance > 0);
+    const totalDue = custInvs.reduce((s, i) => s + i.outstandingBalance, 0);
+
+    setReceivedAmount(totalDue > 0 ? totalDue.toString() : '50000');
+    setPaymentMode('neft_rtgs');
+    setBankRef(`UTR-${Date.now().toString().slice(-6)}`);
+    setSelectedBankAccountId('cba-01');
+    setReceiptRemarks('');
+
+    // Pre-populate FIFO allocation
+    const initialAlloc: { [id: string]: number } = {};
+    let rem = totalDue;
+    custInvs.forEach((inv) => {
+      const take = Math.min(rem, inv.outstandingBalance);
+      if (take > 0) {
+        initialAlloc[inv.id] = take;
+        rem -= take;
+      }
+    });
+    setAllocations(initialAlloc);
+
+    setRecordReceiptModalOpen(true);
+  };
+
+  // Recompute allocation when target customer or received amount changes
+  const targetCustomerInvoices = useMemo(() => {
+    if (!targetCustomerId) return [];
+    return (invoices || []).filter((i) => i.customerId === targetCustomerId && i.outstandingBalance > 0);
+  }, [targetCustomerId, invoices]);
+
+  const totalAllocatedAmount = useMemo(() => {
+    return Object.values(allocations).reduce((sum, val) => sum + (Number(val) || 0), 0);
+  }, [allocations]);
+
+  const unallocatedAdvance = useMemo(() => {
+    const totalRecv = Number(receivedAmount) || 0;
+    return Math.max(0, Math.round((totalRecv - totalAllocatedAmount) * 100) / 100);
+  }, [receivedAmount, totalAllocatedAmount]);
+
+  const handleAllocationChange = (invId: string, val: string) => {
+    const num = Math.max(0, Number(val) || 0);
+    setAllocations((prev) => ({
+      ...prev,
+      [invId]: num,
+    }));
+  };
+
+  const handleAutoAllocateFIFO = () => {
+    let rem = Number(receivedAmount) || 0;
+    const newAlloc: { [id: string]: number } = {};
+
+    targetCustomerInvoices.forEach((inv) => {
+      const take = Math.min(rem, inv.outstandingBalance);
+      if (take > 0) {
+        newAlloc[inv.id] = take;
+        rem -= take;
+      }
+    });
+    setAllocations(newAlloc);
+  };
+
+  const handleConfirmSaveReceipt = () => {
+    if (!targetCustomerId || !receivedAmount || isSubmitting) return;
+    const amt = Number(receivedAmount);
+    if (isNaN(amt) || amt <= 0) {
+      alert('Please enter a valid received amount.');
+      return;
     }
-    setTransactionRef(`NEFT-${Date.now().toString().slice(-6)}`);
-    setLinkedOrderId('');
-    setLinkedInvoiceId('');
-    setPaymentNotes('');
-    setRecordModalOpen(true);
+
+    const cust = (customers || []).find((c) => c.id === targetCustomerId);
+    if (!cust) return;
+
+    setIsSubmitting(true);
+    try {
+      const allocArray = Object.entries(allocations)
+        .filter(([_, allocAmt]) => allocAmt > 0)
+        .map(([invId, allocAmt]) => {
+          const matchedInv = targetCustomerInvoices.find((i) => i.id === invId);
+          return {
+            invoiceId: invId,
+            invoiceNumber: matchedInv?.invoiceNumber || invId,
+            allocatedAmount: allocAmt,
+          };
+        });
+
+      const receipt = recordPaymentIn({
+        receiptNumber: '',
+        companyProfileId: activeCompanyProfileId,
+        customerId: targetCustomerId,
+        customerName: cust.name,
+        customerGstin: cust.gstin,
+        receiptDate: new Date().toISOString().split('T')[0],
+        amountReceived: amt,
+        amountInWords: numberToIndianWords(amt),
+        paymentMode,
+        bankReference: bankRef || `UTR-${Date.now().toString().slice(-6)}`,
+        companyBankAccountId: selectedBankAccountId,
+        idempotencyKey: `idemp-rcp-${Date.now()}`,
+        allocations: allocArray,
+        unallocatedAdvance,
+        status: 'posted',
+        notes: receiptRemarks || `Payment received from ${cust.name}`,
+        createdByUserId: 'usr-fin-01',
+        createdByUserName: 'Suresh Singhania (CFO)',
+      });
+
+      setSuccessToast(`Payment receipt ${receipt.receiptNumber} recorded for ${formatINR(amt)}! Invoices and ledgers updated.`);
+      setTimeout(() => setSuccessToast(null), 5000);
+      setRecordReceiptModalOpen(false);
+    } catch (err: any) {
+      alert(`Error saving receipt: ${err.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleSavePayment = () => {
-    if (!targetCustomerId || !collectionAmount) return;
-    const amt = Number(collectionAmount);
-    if (isNaN(amt) || amt <= 0) return;
-
-    recordCustomerPaymentReceipt(
-      targetCustomerId,
-      amt,
-      paymentMode,
-      transactionRef,
-      linkedOrderId || undefined,
-      linkedInvoiceId || undefined,
-      paymentNotes || 'Direct customer collection recorded by Finance'
-    );
-
-    const cust = customers.find((c) => c.id === targetCustomerId);
-    setSuccessToast(`Collection of ₹${amt.toLocaleString('en-IN')} successfully booked for ${cust?.name || 'Customer'}.`);
+  // Dunning simulated actions
+  const handleSendDunningNotice = (custName: string, channel: 'whatsapp' | 'email') => {
+    setSuccessToast(`Automated ${channel.toUpperCase()} dunning notice & aging statement dispatched to accounts team of ${custName}.`);
     setTimeout(() => setSuccessToast(null), 4000);
-    setRecordModalOpen(false);
-  };
-
-  const handleVerifyRemittance = (rem: SalesRemittanceEntry, isApproved: boolean) => {
-    verifyCustomerRemittance(rem.id, isApproved, isApproved ? undefined : (discrepancyNote || 'Amount discrepancy noted'));
-    setSuccessToast(isApproved ? `Remittance ${rem.entryNumber} marked as Verified.` : `Remittance ${rem.entryNumber} marked as Discrepancy.`);
-    setTimeout(() => setSuccessToast(null), 3500);
-    setVerifyModalOpen(false);
-    setSelectedRemittance(null);
   };
 
   return (
     <div className="space-y-5">
       {successToast && (
-        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl flex items-center justify-between animate-in fade-in">
+        <div className="p-3.5 bg-emerald-50/90 backdrop-blur-md border border-emerald-200 text-emerald-900 text-xs rounded-2xl flex items-center justify-between shadow-xs animate-in fade-in">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <span className="font-semibold">{successToast}</span>
           </div>
-          <Badge variant="success" size="sm">Receipt Cleared</Badge>
+          <Badge variant="success" size="sm">Updated</Badge>
         </div>
       )}
 
-      {/* ─── HEADER ─── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      {/* ─── HEADER & TAB SWITCHER ─── */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-4 rounded-3xl backdrop-blur-xl bg-white/70 border border-slate-200/80 shadow-xs">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-            Customer Payments &amp; Accounts Receivable
-          </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Credit limits, trade aging, customer payment receipts, and sales field remittances.
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+              Customer Receivables, Aging Matrix &amp; Receipts
+            </h1>
+            <Badge variant="neutral" size="sm" className="font-mono text-[10px]">
+              FIFO Allocation
+            </Badge>
+          </div>
+          <p className="text-xs text-slate-500 mt-1">
+            Real-time 4-bucket aging analysis, multi-invoice payment allocation with on-account advances, and dunning triggers.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Sub-tab Switcher */}
-          <div className="flex items-center p-1 bg-slate-100 rounded-2xl border border-slate-200 text-xs">
-            <button
-              type="button"
-              onClick={() => setActiveSubTab('receivables')}
-              className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
-                activeSubTab === 'receivables' ? 'bg-white text-indigo-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Customer Dues ({customers.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveSubTab('remittances')}
-              className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
-                activeSubTab === 'remittances' ? 'bg-white text-indigo-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Collections &amp; Remittances ({salesRemittances.length})
-            </button>
-          </div>
-
-          <Button variant="primary" size="sm" onClick={() => handleOpenRecordModal()}>
+          <Button
+            size="sm"
+            variant="primary"
+            onClick={() => handleOpenRecordReceiptModal()}
+            className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
+          >
             <Plus className="w-4 h-4 mr-1" />
-            Record Payment
+            Record Payment In
           </Button>
+
+          {/* Sub Tab Switcher */}
+          <div className="flex items-center p-1 bg-slate-100/80 rounded-2xl border border-slate-200 text-xs shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('aging');
+                setRiskFilter('all');
+              }}
+              className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
+                activeTab === 'aging' ? 'bg-white text-indigo-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Aging Matrix ({customers.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('receipts');
+                setRiskFilter('all');
+              }}
+              className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
+                activeTab === 'receipts' ? 'bg-white text-indigo-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Receipts Register ({receiptsPaymentsIn?.length || 0})
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('remittances');
+                setRiskFilter('all');
+              }}
+              className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
+                activeTab === 'remittances' ? 'bg-white text-indigo-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Field Remittances ({salesRemittances.length})
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* ─── SUMMARY CARDS ─── */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-        <div className="glass-card p-3.5 rounded-2xl border border-amber-200 bg-amber-50/40">
-          <span className="text-[10px] font-bold uppercase text-amber-800 block">Total Receivables Outstanding</span>
-          <div className="text-xl font-bold text-amber-950 font-mono mt-0.5">
-            ₹{receivablesSummary.totalOutstanding.toLocaleString('en-IN')}
+      {/* ─── 4-BUCKET AGING SUMMARY CARDS ─── */}
+      {activeTab === 'aging' && (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="backdrop-blur-md bg-white/80 p-3.5 rounded-2xl border border-slate-200/80 shadow-xs col-span-2 md:col-span-1">
+            <span className="text-[10px] font-bold uppercase text-slate-500 block">Total Receivables</span>
+            <div className="text-xl font-bold text-slate-900 font-mono mt-0.5">
+              {formatINR(agingMetrics.totalOutstanding)}
+            </div>
+            <span className="text-[10px] text-slate-400">Total customer book</span>
           </div>
-          <span className="text-[10px] text-amber-700">Across {customers.length} business accounts</span>
-        </div>
-        <div className="glass-card p-3.5 rounded-2xl border border-emerald-200 bg-emerald-50/40">
-          <span className="text-[10px] font-bold uppercase text-emerald-800 block">Verified Collections (This Period)</span>
-          <div className="text-xl font-bold text-emerald-950 font-mono mt-0.5">
-            ₹{receivablesSummary.totalCollectionsMonth.toLocaleString('en-IN')}
-          </div>
-          <span className="text-[10px] text-emerald-700">Bank advice verified</span>
-        </div>
-        <div className="glass-card p-3.5 rounded-2xl border border-slate-200 bg-white">
-          <span className="text-[10px] font-bold uppercase text-slate-500 block">Total Credit Limits Authorized</span>
-          <div className="text-xl font-bold text-slate-900 font-mono mt-0.5">
-            ₹{receivablesSummary.totalCreditLimit.toLocaleString('en-IN')}
-          </div>
-          <span className="text-[10px] text-slate-400">Total exposure cap</span>
-        </div>
-        <div className="glass-card p-3.5 rounded-2xl border border-purple-200 bg-purple-50/40">
-          <span className="text-[10px] font-bold uppercase text-purple-800 block">Remittances Awaiting Check</span>
-          <div className="text-xl font-bold text-purple-950 font-mono mt-0.5">
-            {receivablesSummary.pendingVerificationCount} Pending
-          </div>
-          <span className="text-[10px] text-purple-700">Field agent deposit slips</span>
-        </div>
-      </div>
 
-      {/* ─── SEARCH & FILTER ─── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200">
+          <div className="backdrop-blur-md bg-emerald-50/60 p-3.5 rounded-2xl border border-emerald-200/80 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase text-emerald-800">Current (0-30 Days)</span>
+              <Badge variant="success" size="sm" className="text-[9px]">Normal</Badge>
+            </div>
+            <div className="text-lg font-bold text-emerald-950 font-mono mt-0.5">
+              {formatINR(agingMetrics.b0_30)}
+            </div>
+            <span className="text-[10px] text-emerald-700">Within payment terms</span>
+          </div>
+
+          <div className="backdrop-blur-md bg-amber-50/60 p-3.5 rounded-2xl border border-amber-200/80 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase text-amber-800">31-60 Days</span>
+              <Badge variant="warning" size="sm" className="text-[9px]">Soft Dunning</Badge>
+            </div>
+            <div className="text-lg font-bold text-amber-950 font-mono mt-0.5">
+              {formatINR(agingMetrics.b31_60)}
+            </div>
+            <span className="text-[10px] text-amber-700">First email reminder</span>
+          </div>
+
+          <div className="backdrop-blur-md bg-orange-50/60 p-3.5 rounded-2xl border border-orange-200/80 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase text-orange-800">61-90 Days</span>
+              <Badge variant="warning" size="sm" className="text-[9px]">Phone Follow-up</Badge>
+            </div>
+            <div className="text-lg font-bold text-orange-950 font-mono mt-0.5">
+              {formatINR(agingMetrics.b61_90)}
+            </div>
+            <span className="text-[10px] text-orange-700">Urgent collections</span>
+          </div>
+
+          <div className="backdrop-blur-md bg-rose-50/60 p-3.5 rounded-2xl border border-rose-200/80 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase text-rose-800">90+ Days (Critical)</span>
+              <Badge variant="danger" size="sm" className="text-[9px]">Hold Dispatches</Badge>
+            </div>
+            <div className="text-lg font-bold text-rose-950 font-mono mt-0.5">
+              {formatINR(agingMetrics.b90_plus)}
+            </div>
+            <span className="text-[10px] text-rose-700">Credit hold recommended</span>
+          </div>
+        </div>
+      )}
+
+      {/* ─── FILTERS & SEARCH ─── */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 backdrop-blur-md bg-white/80 p-3.5 rounded-2xl border border-slate-200/80 shadow-xs">
         <div className="flex-1 max-w-sm">
           <SearchInput
             value={searchTerm}
             onChange={(val) => setSearchTerm(val)}
-            placeholder={activeSubTab === 'receivables' ? "Search customer name, code, contact..." : "Search remittance #, customer, UTR..."}
+            placeholder={
+              activeTab === 'aging'
+                ? "Search customer, business, phone, ID..."
+                : activeTab === 'receipts'
+                ? "Search receipt #, customer, UTR ref..."
+                : "Search remittance #, sales rep..."
+            }
             className="text-xs"
           />
         </div>
 
-        {activeSubTab === 'receivables' && (
-          <select
-            value={riskFilter}
-            onChange={(e) => setRiskFilter(e.target.value)}
-            className="text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-slate-700 font-medium focus:outline-none cursor-pointer"
-          >
-            <option value="all">All Accounts</option>
-            <option value="overdue">With Outstanding Dues (&gt;0)</option>
-            <option value="exceeded_limit">Credit Limit Exceeded</option>
-          </select>
-        )}
+        <div className="flex items-center gap-2">
+          {activeTab === 'aging' && (
+            <select
+              value={riskFilter}
+              onChange={(e) => setRiskFilter(e.target.value)}
+              className="text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-slate-700 font-medium focus:outline-none cursor-pointer"
+            >
+              <option value="all">All Debtors Portfolio</option>
+              <option value="overdue">Overdue Invoices Only</option>
+              <option value="high_risk">90+ Days Critical Dues</option>
+              <option value="exceeded_limit">Credit Limit Breached</option>
+            </select>
+          )}
+        </div>
       </div>
 
-      {/* ─── SUB-TAB 1: CUSTOMER RECEIVABLES ─── */}
-      {activeSubTab === 'receivables' ? (
-        <Card>
+      {/* ─── AGING MATRIX TABLE ─── */}
+      {activeTab === 'aging' && (
+        <Card className="backdrop-blur-md bg-white/90 border border-slate-200/80 shadow-xs">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-slate-100 text-slate-400 font-semibold uppercase text-[10px] bg-slate-50/60">
-                  <th className="py-3 px-4">Customer ID &amp; Name</th>
-                  <th className="py-3 px-4">Business &amp; GSTIN</th>
-                  <th className="py-3 px-4">Payment Terms</th>
-                  <th className="py-3 px-4 text-right">Credit Limit</th>
-                  <th className="py-3 px-4 text-right">Outstanding Balance</th>
-                  <th className="py-3 px-4" style={{ minWidth: '130px' }}>Credit Utilization</th>
-                  <th className="py-3 px-4 text-center">Risk Tier</th>
+                <tr className="border-b border-slate-100 text-slate-400 font-semibold uppercase text-[10px] bg-slate-50/70">
+                  <th className="py-3 px-4">Customer Details</th>
+                  <th className="py-3 px-4">Credit Limit &amp; Terms</th>
+                  <th className="py-3 px-4 text-right">0-30 Days</th>
+                  <th className="py-3 px-4 text-right">31-60 Days</th>
+                  <th className="py-3 px-4 text-right">61-90 Days</th>
+                  <th className="py-3 px-4 text-right">90+ Days</th>
+                  <th className="py-3 px-4 text-right font-bold text-slate-700">Total Outstanding</th>
+                  <th className="py-3 px-4 text-center">Risk Badge</th>
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
-                {filteredCustomers.length === 0 ? (
+                {filteredAging.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-8 text-center text-slate-400 italic">
-                      No customer accounts matching filter.
+                    <td colSpan={9} className="py-8 text-center text-slate-400 italic">
+                      No debtor accounts match the selected filter.
                     </td>
                   </tr>
                 ) : (
-                  paginatedCustomers.map((c) => {
-                    const utilPercent = c.creditLimit > 0 ? (c.currentOutstanding / c.creditLimit) * 100 : 0;
-                    const isExceeded = c.currentOutstanding > c.creditLimit;
+                  paginatedAging.map((row) => {
+                    const c = row.customer;
+                    const isExceeded = row.creditUtilization > 100;
                     return (
                       <tr key={c.id} className="hover:bg-slate-50/80 transition-colors">
                         <td className="py-3 px-4">
                           <span className="font-bold text-slate-900 block">{c.name}</span>
-                          <span className="text-[10px] text-indigo-600 font-mono block">{c.id}</span>
+                          <span className="text-[10px] text-slate-400 block font-mono">
+                            {c.businessName} • {c.phone}
+                          </span>
                         </td>
                         <td className="py-3 px-4">
-                          <span className="text-slate-800 font-medium block">{c.businessName}</span>
-                          <span className="text-[10px] text-slate-400 font-mono">{c.gstin || 'Unregistered'}</span>
+                          <span className="font-semibold text-slate-800 block">
+                            {formatINR(c.creditLimit)}
+                          </span>
+                          <span className={`text-[10px] font-mono block ${isExceeded ? 'text-rose-600 font-bold' : 'text-slate-400'}`}>
+                            {row.creditUtilization.toFixed(0)}% Utilized (30 Days)
+                          </span>
                         </td>
-                        <td className="py-3 px-4 text-[11px] text-slate-600">
-                          {c.paymentTerms || 'Net 30 Days'}
+                        <td className="py-3 px-4 text-right font-mono text-emerald-700">
+                          {row.b0_30 > 0 ? formatINR(row.b0_30) : '—'}
                         </td>
-                        <td className="py-3 px-4 text-right font-mono text-slate-700 font-semibold">
-                          ₹{c.creditLimit.toLocaleString('en-IN')}
+                        <td className="py-3 px-4 text-right font-mono text-amber-700">
+                          {row.b31_60 > 0 ? formatINR(row.b31_60) : '—'}
                         </td>
-                        <td className="py-3 px-4 text-right font-mono font-bold">
-                          {c.currentOutstanding > 0 ? (
-                            <span className={isExceeded ? 'text-rose-600' : 'text-amber-900'}>
-                              ₹{c.currentOutstanding.toLocaleString('en-IN')}
-                            </span>
-                          ) : (
-                            <span className="text-slate-400">₹0</span>
-                          )}
+                        <td className="py-3 px-4 text-right font-mono text-orange-700">
+                          {row.b61_90 > 0 ? formatINR(row.b61_90) : '—'}
                         </td>
-                        <td className="py-3 px-4">
-                          <div className="space-y-1">
-                            <div className="flex justify-between text-[10px] font-mono">
-                              <span>{utilPercent.toFixed(0)}%</span>
-                              <span className={isExceeded ? 'text-rose-600 font-bold' : 'text-slate-400'}>
-                                {isExceeded ? 'Exceeded' : 'Safe'}
-                              </span>
-                            </div>
-                            <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200">
-                              <div
-                                className={`h-full rounded-full transition-all ${
-                                  isExceeded ? 'bg-rose-500' : utilPercent > 80 ? 'bg-amber-500' : 'bg-emerald-500'
-                                }`}
-                                style={{ width: `${Math.min(100, utilPercent)}%` }}
-                              />
-                            </div>
-                          </div>
+                        <td className="py-3 px-4 text-right font-mono text-rose-700 font-bold">
+                          {row.b90_plus > 0 ? formatINR(row.b90_plus) : '—'}
+                        </td>
+                        <td className="py-3 px-4 text-right font-mono font-bold text-slate-950">
+                          {formatINR(row.totalOutstanding)}
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <Badge
-                            size="sm"
-                            variant={isExceeded ? 'danger' : c.currentOutstanding > 0 ? 'warning' : 'success'}
-                          >
-                            {isExceeded ? 'High Risk' : c.currentOutstanding > 0 ? 'Normal' : 'Cleared'}
-                          </Badge>
+                          {row.b90_plus > 0 ? (
+                            <Badge variant="danger" size="sm">Critical 90+</Badge>
+                          ) : isExceeded ? (
+                            <Badge variant="warning" size="sm">Limit Breached</Badge>
+                          ) : row.totalOverdue > 0 ? (
+                            <Badge variant="warning" size="sm">Overdue</Badge>
+                          ) : (
+                            <Badge variant="success" size="sm">Healthy</Badge>
+                          )}
                         </td>
                         <td className="py-3 px-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             <Button
                               size="sm"
                               variant="secondary"
-                              onClick={() => setSelectedCustomer(c)}
+                              onClick={() => setSelectedCustomerForStatement(c)}
                               className="h-7 text-xs px-2"
-                              title="View Customer Ledgers"
+                              title="Customer 360 Statement of Account"
                             >
-                              <Eye className="w-3.5 h-3.5 mr-1" />
-                              Ledger
+                              <FileText className="w-3.5 h-3.5 mr-1" />
+                              Statement
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleSendDunningNotice(c.name, 'whatsapp')}
+                              className="h-7 text-xs px-2 text-emerald-700 border-emerald-200 hover:bg-emerald-50"
+                              title="Send WhatsApp Payment Follow-up"
+                            >
+                              <Send className="w-3 h-3 mr-1" />
+                              WhatsApp
                             </Button>
                             <Button
                               size="sm"
                               variant="primary"
-                              onClick={() => handleOpenRecordModal(c)}
-                              className="h-7 text-xs px-2"
+                              onClick={() => handleOpenRecordReceiptModal(c)}
+                              className="h-7 text-xs px-2 bg-indigo-600 hover:bg-indigo-700 text-white"
+                              title="Record received payment against invoices"
                             >
-                              Collect
+                              Pay In
                             </Button>
                           </div>
                         </td>
@@ -377,44 +622,148 @@ export const FinanceReceivablesPaymentsView: React.FC = () => {
             </table>
           </div>
 
-          {filteredCustomers.length > custPageSize && (
+          {filteredAging.length > agingPageSize && (
             <div className="p-4 border-t border-slate-100 bg-slate-50/40">
               <Pagination
-                currentPage={custPage}
-                totalPages={Math.ceil(filteredCustomers.length / custPageSize)}
-                totalItems={filteredCustomers.length}
-                itemsPerPage={custPageSize}
-                onPageChange={setCustPage}
+                currentPage={agingPage}
+                totalPages={Math.ceil(filteredAging.length / agingPageSize)}
+                totalItems={filteredAging.length}
+                itemsPerPage={agingPageSize}
+                onPageChange={setAgingPage}
                 onItemsPerPageChange={(size) => {
-                  setCustPageSize(size);
-                  setCustPage(1);
+                  setAgingPageSize(size);
+                  setAgingPage(1);
                 }}
               />
             </div>
           )}
         </Card>
-      ) : (
-        /* ─── SUB-TAB 2: REMITTANCES LEDGER ─── */
-        <Card>
+      )}
+
+      {/* ─── RECEIPTS REGISTER TABLE ─── */}
+      {activeTab === 'receipts' && (
+        <Card className="backdrop-blur-md bg-white/90 border border-slate-200/80 shadow-xs">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-slate-100 text-slate-400 font-semibold uppercase text-[10px] bg-slate-50/60">
-                  <th className="py-3 px-4">Remittance #</th>
-                  <th className="py-3 px-4">Date</th>
+                <tr className="border-b border-slate-100 text-slate-400 font-semibold uppercase text-[10px] bg-slate-50/70">
+                  <th className="py-3 px-4">Receipt # &amp; Date</th>
                   <th className="py-3 px-4">Customer Details</th>
-                  <th className="py-3 px-4">Sales Collector</th>
-                  <th className="py-3 px-4">Payment Mode &amp; Ref</th>
-                  <th className="py-3 px-4 text-right">Amount (₹)</th>
-                  <th className="py-3 px-4 text-center">Verification Status</th>
+                  <th className="py-3 px-4">Payment Mode &amp; UTR</th>
+                  <th className="py-3 px-4 text-right">Amount Received</th>
+                  <th className="py-3 px-4 text-center">Allocated Invoices</th>
+                  <th className="py-3 px-4 text-right">Unallocated Advance</th>
+                  <th className="py-3 px-4 text-center">Status</th>
                   <th className="py-3 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
+                {filteredReceipts.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="py-8 text-center text-slate-400 italic">
+                      No payment receipts posted yet.
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedReceipts.map((rcp) => (
+                    <tr key={rcp.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3 px-4 font-mono font-bold text-indigo-700">
+                        {rcp.receiptNumber}
+                        <span className="text-[10px] text-slate-400 block font-normal font-sans">
+                          {rcp.receiptDate}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="font-bold text-slate-900 block">{rcp.customerName}</span>
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          {rcp.customerGstin || 'Unregistered'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="font-semibold uppercase text-slate-800 block text-[11px]">
+                          {rcp.paymentMode.replace('_', ' ')}
+                        </span>
+                        <span className="text-[10px] text-indigo-600 font-mono block">
+                          {rcp.bankReference}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-right font-mono font-bold text-emerald-800">
+                        {formatINR(rcp.amountReceived)}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <Badge size="sm" variant="neutral">
+                          {rcp.allocations?.length || 0} Invoices
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4 text-right font-mono font-bold">
+                        {rcp.unallocatedAdvance > 0 ? (
+                          <span className="text-indigo-700">{formatINR(rcp.unallocatedAdvance)}</span>
+                        ) : (
+                          <span className="text-slate-400">₹0.00</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <Badge size="sm" variant={rcp.status === 'posted' ? 'success' : 'danger'}>
+                          {rcp.status.toUpperCase()}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => setSelectedReceiptDetail(rcp)}
+                          className="h-7 text-xs px-2"
+                        >
+                          <Eye className="w-3.5 h-3.5 mr-1" />
+                          View
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {filteredReceipts.length > rcpPageSize && (
+            <div className="p-4 border-t border-slate-100 bg-slate-50/40">
+              <Pagination
+                currentPage={rcpPage}
+                totalPages={Math.ceil(filteredReceipts.length / rcpPageSize)}
+                totalItems={filteredReceipts.length}
+                itemsPerPage={rcpPageSize}
+                onPageChange={setRcpPage}
+                onItemsPerPageChange={(size) => {
+                  setRcpPageSize(size);
+                  setRcpPage(1);
+                }}
+              />
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* ─── FIELD REMITTANCES TABLE ─── */}
+      {activeTab === 'remittances' && (
+        <Card className="backdrop-blur-md bg-white/90 border border-slate-200/80 shadow-xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-slate-100 text-slate-400 font-semibold uppercase text-[10px] bg-slate-50/70">
+                  <th className="py-3 px-4">Remittance #</th>
+                  <th className="py-3 px-4">Sales Rep Details</th>
+                  <th className="py-3 px-4">Customer Name</th>
+                  <th className="py-3 px-4 text-right">Remitted Amount</th>
+                  <th className="py-3 px-4">Bank Ref</th>
+                  <th className="py-3 px-4 text-center">Status</th>
+                  <th className="py-3 px-4 text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
                 {filteredRemittances.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-8 text-center text-slate-400 italic">
-                      No remittances recorded.
+                    <td colSpan={7} className="py-8 text-center text-slate-400 italic">
+                      No field remittances recorded.
                     </td>
                   </tr>
                 ) : (
@@ -422,24 +771,22 @@ export const FinanceReceivablesPaymentsView: React.FC = () => {
                     <tr key={rem.id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="py-3 px-4 font-mono font-bold text-indigo-700">
                         {rem.entryNumber}
-                      </td>
-                      <td className="py-3 px-4 text-[11px] text-slate-600">
-                        {rem.date}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="font-bold text-slate-900 block">{rem.customerName || 'Direct Deposit'}</span>
-                        <span className="text-[10px] text-slate-400">{rem.companyBankAccount || 'HDFC Central Escrow'}</span>
+                        <span className="text-[10px] text-slate-400 block font-normal font-sans">
+                          {rem.date}
+                        </span>
                       </td>
                       <td className="py-3 px-4">
-                        <span className="font-semibold text-slate-800 block text-[11px]">{rem.salesUserName}</span>
-                        <span className="text-[10px] text-slate-400 capitalize">{rem.userRole}</span>
+                        <span className="font-bold text-slate-900 block">{rem.salesUserName}</span>
+                        <span className="text-[10px] text-slate-400">ID: {rem.salesUserId}</span>
                       </td>
                       <td className="py-3 px-4">
-                        <span className="font-bold text-slate-800 block uppercase text-[11px]">{rem.paymentMode.replace('_', ' ')}</span>
-                        <span className="text-[10px] text-slate-500 font-mono">{rem.referenceNumber}</span>
+                        <span className="font-bold text-slate-900 block">{rem.customerName || 'Multi-Party Cash'}</span>
                       </td>
-                      <td className="py-3 px-4 text-right font-mono font-bold text-emerald-800 text-sm">
-                        ₹{rem.amount.toLocaleString('en-IN')}
+                      <td className="py-3 px-4 text-right font-mono font-bold text-emerald-800">
+                        {formatINR(rem.amount)}
+                      </td>
+                      <td className="py-3 px-4 font-mono text-[11px] text-slate-600">
+                        {rem.referenceNumber}
                       </td>
                       <td className="py-3 px-4 text-center">
                         <Badge
@@ -452,38 +799,37 @@ export const FinanceReceivablesPaymentsView: React.FC = () => {
                               : 'warning'
                           }
                         >
-                          {rem.status === 'verified' ? 'Verified' : rem.status === 'discrepancy' ? 'Discrepancy' : 'Pending Check'}
+                          {rem.status.replace('_', ' ')}
                         </Badge>
                       </td>
                       <td className="py-3 px-4 text-right">
-                        {rem.status === 'pending_verification' ? (
+                        {rem.status === 'pending_verification' && (
                           <div className="flex items-center justify-end gap-1.5">
+                            <Button
+                              size="sm"
+                              variant="primary"
+                              onClick={() => {
+                                verifyCustomerRemittance(rem.id, true);
+                                setSuccessToast(`Remittance ${rem.entryNumber} verified and credited.`);
+                                setTimeout(() => setSuccessToast(null), 3000);
+                              }}
+                              className="h-7 text-xs px-2"
+                            >
+                              Verify
+                            </Button>
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={() => {
-                                setSelectedRemittance(rem);
-                                setVerifyModalOpen(true);
+                                verifyCustomerRemittance(rem.id, false, 'Discrepancy in bank credit');
+                                setSuccessToast(`Remittance ${rem.entryNumber} marked as rejected.`);
+                                setTimeout(() => setSuccessToast(null), 3000);
                               }}
-                              className="h-7 text-xs px-2 text-rose-600 border-rose-200 hover:bg-rose-50"
+                              className="h-7 text-xs px-2 text-rose-700 border-rose-200"
                             >
-                              <X className="w-3.5 h-3.5 mr-0.5" />
-                              Dispute
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="primary"
-                              onClick={() => handleVerifyRemittance(rem, true)}
-                              className="h-7 text-xs px-2"
-                            >
-                              <Check className="w-3.5 h-3.5 mr-0.5" />
-                              Verify
+                              Reject
                             </Button>
                           </div>
-                        ) : (
-                          <span className="text-[10px] text-slate-400 italic">
-                            {rem.verifiedByUserName ? `By ${rem.verifiedByUserName}` : 'Completed'}
-                          </span>
                         )}
                       </td>
                     </tr>
@@ -492,260 +838,62 @@ export const FinanceReceivablesPaymentsView: React.FC = () => {
               </tbody>
             </table>
           </div>
-
-          {filteredRemittances.length > remPageSize && (
-            <div className="p-4 border-t border-slate-100 bg-slate-50/40">
-              <Pagination
-                currentPage={remPage}
-                totalPages={Math.ceil(filteredRemittances.length / remPageSize)}
-                totalItems={filteredRemittances.length}
-                itemsPerPage={remPageSize}
-                onPageChange={setRemPage}
-                onItemsPerPageChange={(size) => {
-                  setRemPageSize(size);
-                  setRemPage(1);
-                }}
-              />
-            </div>
-          )}
         </Card>
       )}
 
-      {/* ─── RECORD PAYMENT COLLECTION MODAL ─── */}
-      {recordModalOpen && (
+      {/* ─── CUSTOMER 360 STATEMENT OF ACCOUNT MODAL ─── */}
+      {selectedCustomerForStatement && (
         <Modal
-          isOpen={recordModalOpen}
-          onClose={() => setRecordModalOpen(false)}
-          title="Record Customer Payment Receipt"
-          maxWidth="lg"
-        >
-          <div className="space-y-4 text-xs text-slate-800">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-bold text-slate-700 block">Select Customer</label>
-                <select
-                  value={targetCustomerId}
-                  onChange={(e) => setTargetCustomerId(e.target.value)}
-                  className="w-full text-xs p-2 rounded-xl border border-slate-200 text-slate-800 focus:outline-none cursor-pointer"
-                >
-                  {customers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} (Due: ₹{c.currentOutstanding.toLocaleString('en-IN')})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-700 block">Payment Mode</label>
-                <select
-                  value={paymentMode}
-                  onChange={(e) => setPaymentMode(e.target.value)}
-                  className="w-full text-xs p-2 rounded-xl border border-slate-200 text-slate-800 focus:outline-none cursor-pointer"
-                >
-                  <option value="NEFT / RTGS Wire">NEFT / RTGS Wire Transfer</option>
-                  <option value="Company UPI">Company UPI / QR</option>
-                  <option value="Cheque">Account Payee Cheque</option>
-                  <option value="Cash Receipt">Cash Counterfoil Receipt</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-bold text-slate-700 block">Collection Amount (₹)</label>
-                <input
-                  type="number"
-                  value={collectionAmount}
-                  onChange={(e) => setCollectionAmount(e.target.value)}
-                  className="w-full text-xs p-2 rounded-xl border border-slate-200 font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  placeholder="e.g. 50000"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-700 block">Bank Transaction Ref / UTR #</label>
-                <input
-                  type="text"
-                  value={transactionRef}
-                  onChange={(e) => setTransactionRef(e.target.value)}
-                  className="w-full text-xs p-2 rounded-xl border border-slate-200 font-mono text-slate-900 focus:outline-none"
-                  placeholder="e.g. UTR-HDFC-99120"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-bold text-slate-700 block">Link to Sales Order (Optional)</label>
-                <select
-                  value={linkedOrderId}
-                  onChange={(e) => setLinkedOrderId(e.target.value)}
-                  className="w-full text-xs p-2 rounded-xl border border-slate-200 text-slate-800 focus:outline-none cursor-pointer"
-                >
-                  <option value="">None / General Advance Payment</option>
-                  {salesOrders
-                    .filter((o) => o.customerId === targetCustomerId)
-                    .map((o) => (
-                      <option key={o.id} value={o.id}>
-                        {o.orderNumber} (₹{o.totalAmount.toLocaleString('en-IN')})
-                      </option>
-                    ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-700 block">Link to Invoice (Optional)</label>
-                <select
-                  value={linkedInvoiceId}
-                  onChange={(e) => setLinkedInvoiceId(e.target.value)}
-                  className="w-full text-xs p-2 rounded-xl border border-slate-200 text-slate-800 focus:outline-none cursor-pointer"
-                >
-                  <option value="">None / Allocate by FIFO</option>
-                  {invoices
-                    .filter((i) => i.customerId === targetCustomerId && i.outstandingBalance > 0)
-                    .map((i) => (
-                      <option key={i.id} value={i.id}>
-                        {i.invoiceNumber} (Due: ₹{i.outstandingBalance.toLocaleString('en-IN')})
-                      </option>
-                    ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-700 block">Finance Collection Remarks</label>
-              <input
-                type="text"
-                value={paymentNotes}
-                onChange={(e) => setPaymentNotes(e.target.value)}
-                className="w-full text-xs p-2 rounded-xl border border-slate-200 text-slate-800 focus:outline-none"
-                placeholder="e.g. Direct bank credit verified on HDFC portal"
-              />
-            </div>
-
-            <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
-              <Button variant="outline" size="sm" onClick={() => setRecordModalOpen(false)}>
-                Cancel
-              </Button>
-              <Button variant="primary" size="sm" onClick={handleSavePayment}>
-                <Check className="w-4 h-4 mr-1" />
-                Book Payment Receipt
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      )}
-
-      {/* ─── DISPUTE REMITTANCE MODAL ─── */}
-      {verifyModalOpen && selectedRemittance && (
-        <Modal
-          isOpen={verifyModalOpen}
-          onClose={() => setVerifyModalOpen(false)}
-          title={`Flag Discrepancy for ${selectedRemittance.entryNumber}`}
-          maxWidth="md"
-        >
-          <div className="space-y-4 text-xs text-slate-800">
-            <p className="text-slate-600">
-              Please enter the discrepancy rationale or reason why this payment remittance cannot be verified against the corporate bank statement.
-            </p>
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl space-y-1">
-              <div className="flex justify-between font-medium">
-                <span>Remittance Amount:</span>
-                <span className="font-mono font-bold">₹{selectedRemittance.amount.toLocaleString('en-IN')}</span>
-              </div>
-              <div className="flex justify-between font-medium">
-                <span>Claimed Reference:</span>
-                <span className="font-mono">{selectedRemittance.referenceNumber}</span>
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-700 block">Discrepancy Note (Mandatory)</label>
-              <textarea
-                value={discrepancyNote}
-                onChange={(e) => setDiscrepancyNote(e.target.value)}
-                className="w-full text-xs p-2.5 rounded-xl border border-slate-200 text-slate-900 focus:outline-none focus:ring-1 focus:ring-rose-500"
-                rows={3}
-                placeholder="e.g. UTR not reflected on bank statement. Counterfoil image illegible."
-              />
-            </div>
-
-            <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
-              <Button variant="outline" size="sm" onClick={() => setVerifyModalOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={() => handleVerifyRemittance(selectedRemittance, false)}
-                disabled={!discrepancyNote.trim()}
-              >
-                Flag Discrepancy
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      )}
-
-      {/* ─── CUSTOMER LEDGER MODAL ─── */}
-      {selectedCustomer && (
-        <Modal
-          isOpen={!!selectedCustomer}
-          onClose={() => setSelectedCustomer(null)}
-          title={`Customer Ledger: ${selectedCustomer.name}`}
+          isOpen={!!selectedCustomerForStatement}
+          onClose={() => setSelectedCustomerForStatement(null)}
+          title={`Statement of Account: ${selectedCustomerForStatement.name}`}
           maxWidth="2xl"
         >
           <div className="space-y-4 text-xs text-slate-800">
-            <div className="grid grid-cols-3 gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
               <div>
-                <span className="text-[10px] text-slate-400 block uppercase">Outstanding Dues</span>
-                <span className="text-base font-bold text-rose-600 font-mono">
-                  ₹{selectedCustomer.currentOutstanding.toLocaleString('en-IN')}
-                </span>
+                <h3 className="text-sm font-bold text-slate-900">{selectedCustomerForStatement.name}</h3>
+                <p className="text-[11px] text-slate-500 font-mono">
+                  ID: {selectedCustomerForStatement.id} • Phone: {selectedCustomerForStatement.phone}
+                </p>
+                <p className="text-[10px] text-slate-400">GSTIN: {selectedCustomerForStatement.gstin || 'Unregistered'}</p>
               </div>
-              <div>
-                <span className="text-[10px] text-slate-400 block uppercase">Credit Limit</span>
-                <span className="text-base font-bold text-slate-900 font-mono">
-                  ₹{selectedCustomer.creditLimit.toLocaleString('en-IN')}
+              <div className="text-right">
+                <span className="text-[10px] font-bold uppercase text-slate-400 block">Total Balance Outstanding</span>
+                <span className="text-base font-bold font-mono text-rose-700 block">
+                  {formatINR(selectedCustomerForStatement.currentOutstanding)}
                 </span>
-              </div>
-              <div>
-                <span className="text-[10px] text-slate-400 block uppercase">Payment Terms</span>
-                <span className="text-sm font-semibold text-indigo-700">
-                  {selectedCustomer.paymentTerms || 'Net 30 Days'}
-                </span>
+                <span className="text-[10px] text-slate-500">Credit Limit: {formatINR(selectedCustomerForStatement.creditLimit)}</span>
               </div>
             </div>
 
+            {/* Invoices list */}
             <div>
-              <span className="text-xs font-bold text-slate-900 block mb-2">Linked Invoices &amp; Receipts</span>
-              <div className="border border-slate-200 rounded-xl overflow-hidden">
+              <h4 className="font-bold text-slate-900 text-xs mb-2">Unpaid &amp; Active Tax Invoices</h4>
+              <div className="overflow-x-auto border border-slate-200 rounded-2xl">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="bg-slate-100 text-slate-500 font-semibold text-[10px]">
+                    <tr className="bg-slate-100/70 border-b border-slate-200 text-slate-500 font-semibold text-[10px]">
                       <th className="py-2 px-3">Invoice #</th>
-                      <th className="py-2 px-3">Date</th>
-                      <th className="py-2 px-3 text-right">Invoiced</th>
+                      <th className="py-2 px-3">Invoice Date</th>
+                      <th className="py-2 px-3">Due Date</th>
+                      <th className="py-2 px-3 text-right">Total Amount</th>
                       <th className="py-2 px-3 text-right">Paid</th>
-                      <th className="py-2 px-3 text-right">Balance</th>
-                      <th className="py-2 px-3 text-center">Status</th>
+                      <th className="py-2 px-3 text-right">Balance Due</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {invoices
-                      .filter((i) => i.customerId === selectedCustomer.id)
+                    {(invoices || [])
+                      .filter((i) => i.customerId === selectedCustomerForStatement.id)
                       .map((inv) => (
                         <tr key={inv.id}>
                           <td className="py-2 px-3 font-mono font-bold text-indigo-700">{inv.invoiceNumber}</td>
-                          <td className="py-2 px-3 text-slate-500">{inv.invoiceDate}</td>
-                          <td className="py-2 px-3 text-right font-mono">₹{inv.totalAmount.toLocaleString('en-IN')}</td>
-                          <td className="py-2 px-3 text-right font-mono text-emerald-700">₹{inv.paidAmount.toLocaleString('en-IN')}</td>
-                          <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">₹{inv.outstandingBalance.toLocaleString('en-IN')}</td>
-                          <td className="py-2 px-3 text-center">
-                            <Badge size="sm" variant={inv.paymentStatus === 'paid' ? 'success' : 'warning'}>
-                              {inv.paymentStatus}
-                            </Badge>
+                          <td className="py-2 px-3">{inv.invoiceDate}</td>
+                          <td className="py-2 px-3">{inv.dueDate}</td>
+                          <td className="py-2 px-3 text-right font-mono">{formatINR(inv.totalAmount)}</td>
+                          <td className="py-2 px-3 text-right font-mono text-emerald-700">{formatINR(inv.paidAmount)}</td>
+                          <td className="py-2 px-3 text-right font-mono font-bold text-rose-700">
+                            {formatINR(inv.outstandingBalance)}
                           </td>
                         </tr>
                       ))}
@@ -754,9 +902,250 @@ export const FinanceReceivablesPaymentsView: React.FC = () => {
               </div>
             </div>
 
+            <div className="flex justify-between pt-3 border-t border-slate-200">
+              <Button variant="outline" size="sm" onClick={() => window.print()}>
+                Print Statement
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setSelectedCustomerForStatement(null)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ─── RECORD PAYMENT IN MODAL (MULTI-INVOICE FIFO ALLOCATION) ─── */}
+      {recordReceiptModalOpen && (
+        <Modal
+          isOpen={recordReceiptModalOpen}
+          onClose={() => setRecordReceiptModalOpen(false)}
+          title="Record Customer Payment Receipt (Multi-Invoice Allocation)"
+          maxWidth="2xl"
+        >
+          <div className="space-y-4 text-xs text-slate-800">
+            {/* Customer & Bank Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-indigo-50/60 rounded-2xl border border-indigo-200">
+              <div>
+                <label className="text-[10px] font-bold text-indigo-900 uppercase block mb-1">Debtor Customer</label>
+                <select
+                  value={targetCustomerId}
+                  onChange={(e) => setTargetCustomerId(e.target.value)}
+                  className="w-full text-xs p-2 rounded-xl border border-indigo-200 bg-white font-semibold text-slate-900 focus:outline-none cursor-pointer"
+                >
+                  {(customers || []).map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} (Due: {formatINR(c.currentOutstanding)})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-indigo-900 uppercase block mb-1">Total Amount Received (₹)</label>
+                <input
+                  type="number"
+                  value={receivedAmount}
+                  onChange={(e) => setReceivedAmount(e.target.value)}
+                  className="w-full text-xs p-2 rounded-xl border border-indigo-200 bg-white font-mono font-bold text-indigo-950 focus:outline-none"
+                  placeholder="Enter total money received"
+                />
+              </div>
+            </div>
+
+            {/* Payment Mode & Bank Ref */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-0.5">Payment Mode</label>
+                <select
+                  value={paymentMode}
+                  onChange={(e) => setPaymentMode(e.target.value as any)}
+                  className="w-full text-xs p-2 rounded-xl border border-slate-200 bg-white focus:outline-none cursor-pointer"
+                >
+                  <option value="neft_rtgs">NEFT / RTGS Wire</option>
+                  <option value="upi">Company UPI / QR</option>
+                  <option value="cheque">Account Payee Cheque</option>
+                  <option value="cash">Petty Cash Counterfoil</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-0.5">Bank Ref / UTR #</label>
+                <input
+                  type="text"
+                  value={bankRef}
+                  onChange={(e) => setBankRef(e.target.value)}
+                  className="w-full text-xs p-2 rounded-xl border border-slate-200 font-mono text-slate-900 focus:outline-none"
+                  placeholder="e.g. UTR-998822"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-0.5">Deposit Account</label>
+                <select
+                  value={selectedBankAccountId}
+                  onChange={(e) => setSelectedBankAccountId(e.target.value)}
+                  className="w-full text-xs p-2 rounded-xl border border-slate-200 bg-white focus:outline-none cursor-pointer"
+                >
+                  <option value="cba-01">HDFC Operating A/C (•••• 9921)</option>
+                  <option value="cba-02">ICICI Collections A/C (•••• 4411)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Invoices Allocation Section */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="font-bold text-slate-900 block text-xs">
+                    Allocate to Outstanding Invoices ({targetCustomerInvoices.length} Pending)
+                  </span>
+                  <span className="text-[10px] text-slate-400">
+                    Allocated: {formatINR(totalAllocatedAmount)} • Advance Remaining: {formatINR(unallocatedAdvance)}
+                  </span>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleAutoAllocateFIFO}
+                  className="h-6 text-[10px] px-2 text-indigo-700 border-indigo-200"
+                >
+                  <Sparkles className="w-3 h-3 mr-1" />
+                  Auto-Allocate FIFO
+                </Button>
+              </div>
+
+              {targetCustomerInvoices.length === 0 ? (
+                <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-800 text-[11px]">
+                  No unpaid invoices found for this customer. Entire amount of {formatINR(Number(receivedAmount) || 0)} will be credited as an On-Account Advance.
+                </div>
+              ) : (
+                <div className="overflow-x-auto border border-slate-200 rounded-2xl max-h-48">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="bg-slate-100/70 border-b border-slate-200 text-slate-500 font-semibold text-[10px]">
+                        <th className="py-2 px-3">Invoice #</th>
+                        <th className="py-2 px-3">Due Date</th>
+                        <th className="py-2 px-3 text-right">Balance Due</th>
+                        <th className="py-2 px-3 text-right">Allocate Amount (₹)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {targetCustomerInvoices.map((inv) => (
+                        <tr key={inv.id}>
+                          <td className="py-2 px-3 font-mono font-bold text-indigo-700">{inv.invoiceNumber}</td>
+                          <td className="py-2 px-3 text-[11px] text-slate-500">{inv.dueDate}</td>
+                          <td className="py-2 px-3 text-right font-mono font-bold text-rose-700">
+                            {formatINR(inv.outstandingBalance)}
+                          </td>
+                          <td className="py-2 px-3 text-right">
+                            <input
+                              type="number"
+                              value={allocations[inv.id] || ''}
+                              onChange={(e) => handleAllocationChange(inv.id, e.target.value)}
+                              max={inv.outstandingBalance}
+                              className="w-28 text-right p-1 rounded-lg border border-slate-200 font-mono text-xs focus:outline-none"
+                              placeholder="0.00"
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700 block">Remarks / Reference Notes</label>
+              <input
+                type="text"
+                value={receiptRemarks}
+                onChange={(e) => setReceiptRemarks(e.target.value)}
+                className="w-full text-xs p-2 rounded-xl border border-slate-200 text-slate-800 focus:outline-none"
+                placeholder="Optional banking notes or drawer endorsement"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
+              <Button variant="outline" size="sm" onClick={() => setRecordReceiptModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleConfirmSaveReceipt}
+                disabled={isSubmitting}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white"
+              >
+                <Check className="w-4 h-4 mr-1" />
+                {isSubmitting ? 'Posting Receipt...' : 'Post Customer Receipt'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ─── RECEIPT DETAIL MODAL ─── */}
+      {selectedReceiptDetail && (
+        <Modal
+          isOpen={!!selectedReceiptDetail}
+          onClose={() => setSelectedReceiptDetail(null)}
+          title={`Customer Receipt: ${selectedReceiptDetail.receiptNumber}`}
+          maxWidth="md"
+        >
+          <div className="space-y-4 text-xs text-slate-800">
+            <div className="p-3 bg-emerald-50/80 border border-emerald-200 rounded-2xl">
+              <div className="flex justify-between items-center">
+                <span className="font-mono font-bold text-emerald-950 text-base">
+                  {selectedReceiptDetail.receiptNumber}
+                </span>
+                <Badge variant="success" size="sm">{selectedReceiptDetail.status.toUpperCase()}</Badge>
+              </div>
+              <p className="text-[11px] text-emerald-800 mt-1">
+                Receipt Date: {selectedReceiptDetail.receiptDate} • Mode: {selectedReceiptDetail.paymentMode.toUpperCase()}
+              </p>
+            </div>
+
+            <div className="space-y-1.5 p-3 bg-slate-50 rounded-2xl border border-slate-200">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Customer:</span>
+                <span className="font-bold text-slate-900">{selectedReceiptDetail.customerName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Bank Reference (UTR):</span>
+                <span className="font-mono font-bold text-indigo-700">{selectedReceiptDetail.bankReference}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Amount Received:</span>
+                <span className="font-mono font-bold text-emerald-800">{formatINR(selectedReceiptDetail.amountReceived)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">On-Account Advance:</span>
+                <span className="font-mono font-bold text-indigo-900">{formatINR(selectedReceiptDetail.unallocatedAdvance)}</span>
+              </div>
+            </div>
+
+            <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-[11px]">
+              <span className="font-bold text-slate-500 uppercase text-[9px] block">Amount in Words:</span>
+              <span className="italic text-slate-800">{selectedReceiptDetail.amountInWords}</span>
+            </div>
+
+            {/* Allocations breakdown */}
+            <div>
+              <span className="font-bold block text-slate-700 text-xs mb-1">Invoice Allocations</span>
+              <div className="border border-slate-200 rounded-xl divide-y divide-slate-100">
+                {selectedReceiptDetail.allocations?.map((a) => (
+                  <div key={a.invoiceId} className="p-2 flex justify-between items-center">
+                    <span className="font-mono font-bold text-indigo-700">{a.invoiceNumber}</span>
+                    <span className="font-mono font-bold text-emerald-800">{formatINR(a.allocatedAmount)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="flex justify-end pt-3 border-t border-slate-200">
-              <Button variant="outline" size="sm" onClick={() => setSelectedCustomer(null)}>
-                Close Ledger
+              <Button variant="outline" size="sm" onClick={() => setSelectedReceiptDetail(null)}>
+                Close
               </Button>
             </div>
           </div>

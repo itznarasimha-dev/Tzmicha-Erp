@@ -56,17 +56,6 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
     bgGradient: 'from-purple-50 to-indigo-50 border-purple-200',
   },
   {
-    name: 'Pooja Hegde',
-    roleTitle: 'General Operations Manager',
-    email: 'pooja.h@apexflow-erp.com',
-    passwordHint: 'manager@2026',
-    roleBadge: 'Operations Manager',
-    teamId: 'APEX-2026',
-    teamName: 'Tzmicha ERP & Manufacturing Ltd',
-    icon: <Compass className="w-4 h-4 text-indigo-600" />,
-    bgGradient: 'from-blue-50 to-indigo-50 border-indigo-200',
-  },
-  {
     name: 'Ananya Roy',
     roleTitle: 'Head of Commercial Sales & Distribution',
     email: 'ananya.roy@apexflow-erp.com',
@@ -273,8 +262,6 @@ export const SignInPage: React.FC = () => {
       // Authoritative server-determined role redirection
       if (res.role === 'admin') {
         navigate('/admin/dashboard');
-      } else if (res.role === 'manager') {
-        navigate('/manager/dashboard');
       } else if (res.role === 'sales') {
         navigate('/sales/dashboard');
       } else if (res.role === 'store_manager') {
