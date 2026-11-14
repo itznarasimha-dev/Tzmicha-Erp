@@ -29,7 +29,6 @@ import { AdminCustomerCreditLedger } from './features/admin/AdminCustomerCreditL
 import { AdminSalesPerformanceCommissions } from './features/admin/AdminSalesPerformanceCommissions';
 import { AdminOrganizationsOverview } from './features/admin/AdminOrganizationsOverview';
 import { SubscriptionBillingView } from './features/admin/SubscriptionBillingView';
-import { ManagerDashboard } from './features/manager/ManagerDashboard';
 import { AdminAttendanceLeaveView } from './features/admin/AdminAttendanceLeaveView';
 import { AdminInvoicesView } from './features/admin/AdminInvoicesView';
 import { CustomersDirectoryView } from './features/shared/CustomersDirectoryView';
@@ -50,6 +49,7 @@ import { FinanceDeliveryCostsView } from './features/finance/FinanceDeliveryCost
 import { FinanceBudgetRequestsView } from './features/finance/FinanceBudgetRequestsView';
 import { FinanceGeneralLedgerView } from './features/finance/FinanceGeneralLedgerView';
 import { FinanceReportsAuditView } from './features/finance/FinanceReportsAuditView';
+import { FinanceCompanyProfilesView } from './features/finance/FinanceCompanyProfilesView';
 import { useErpStore } from './store/useErpStore';
 
 import { RoleGuard } from './components/auth/RoleGuard';
@@ -68,7 +68,6 @@ import { HRPortalLayout } from './features/hr/HRPortalLayout';
 
 const RoleBasedRedirect: React.FC = () => {
   const { currentRole } = useErpStore();
-  if (currentRole === 'manager') return <Navigate to="/manager/dashboard" replace />;
   if (currentRole === 'sales') return <Navigate to="/sales/dashboard" replace />;
   if (currentRole === 'store_manager') return <Navigate to="/store-manager/overview" replace />;
   if (currentRole === 'marketing') return <Navigate to="/marketing" replace />;
@@ -91,26 +90,22 @@ export const App: React.FC = () => {
         <Route path="/create-team" element={<RegisterOrganizationPage />} />
         <Route path="/access-denied" element={<AccessDeniedPage />} />
 
-        {/* Authenticated Application Shell (All Roles: Admin, Manager, Sales, Store Keeper, Marketing, Finance, Service) */}
+        {/* Authenticated Application Shell (All Roles: Admin, Sales, Store Keeper, Marketing, Finance, Service, HR) */}
         <Route
           path="/"
           element={
-            <RoleGuard allowedRoles={['admin', 'manager', 'sales', 'store_manager', 'marketing', 'finance', 'service', 'hr']}>
+            <RoleGuard allowedRoles={['admin', 'sales', 'store_manager', 'marketing', 'finance', 'service', 'hr']}>
               <AppLayout />
             </RoleGuard>
           }
         >
           <Route index element={<RoleBasedRedirect />} />
 
-          {/* Manager Operations Workspaces */}
-          <Route path="manager/dashboard" element={<ManagerDashboard />} />
-          <Route path="manager" element={<Navigate to="/manager/dashboard" replace />} />
-
           {/* Sales Role Workspaces */}
           <Route
             path="sales/*"
             element={
-              <RoleGuard allowedRoles={['sales', 'admin', 'manager']}>
+              <RoleGuard allowedRoles={['sales', 'admin']}>
                 <SalesPortalLayout />
               </RoleGuard>
             }
@@ -118,7 +113,7 @@ export const App: React.FC = () => {
           <Route
             path="sales"
             element={
-              <RoleGuard allowedRoles={['sales', 'admin', 'manager']}>
+              <RoleGuard allowedRoles={['sales', 'admin']}>
                 <SalesPortalLayout />
               </RoleGuard>
             }
@@ -128,7 +123,7 @@ export const App: React.FC = () => {
           <Route
             path="store-manager/*"
             element={
-              <RoleGuard allowedRoles={['store_manager', 'admin', 'manager']}>
+              <RoleGuard allowedRoles={['store_manager', 'admin']}>
                 <StoreKeeperPortalLayout />
               </RoleGuard>
             }
@@ -137,7 +132,7 @@ export const App: React.FC = () => {
           <Route
             path="store/*"
             element={
-              <RoleGuard allowedRoles={['store_manager', 'admin', 'manager']}>
+              <RoleGuard allowedRoles={['store_manager', 'admin']}>
                 <StoreKeeperPortalLayout />
               </RoleGuard>
             }
@@ -148,7 +143,7 @@ export const App: React.FC = () => {
           <Route
             path="marketing/*"
             element={
-              <RoleGuard allowedRoles={['marketing', 'admin', 'manager']}>
+              <RoleGuard allowedRoles={['marketing', 'admin']}>
                 <MarketingPortalLayout />
               </RoleGuard>
             }
@@ -156,7 +151,7 @@ export const App: React.FC = () => {
           <Route
             path="marketing"
             element={
-              <RoleGuard allowedRoles={['marketing', 'admin', 'manager']}>
+              <RoleGuard allowedRoles={['marketing', 'admin']}>
                 <MarketingPortalLayout />
               </RoleGuard>
             }
@@ -165,6 +160,9 @@ export const App: React.FC = () => {
           {/* Finance Role Dedicated Portal */}
           <Route path="finance" element={<FinanceDashboard />} />
           <Route path="finance/dashboard" element={<FinanceDashboard />} />
+          <Route path="finance/companies" element={<FinanceCompanyProfilesView />} />
+          <Route path="finance/templates" element={<Navigate to="/finance/companies" replace />} />
+          <Route path="finance/profiles" element={<Navigate to="/finance/companies" replace />} />
           <Route path="finance/receivables" element={<FinanceReceivablesPaymentsView />} />
           <Route path="finance/payments" element={<Navigate to="/finance/receivables" replace />} />
           <Route path="finance/invoices" element={<FinanceInvoicesQuotationsView />} />
@@ -190,7 +188,7 @@ export const App: React.FC = () => {
           <Route
             path="service/*"
             element={
-              <RoleGuard allowedRoles={['service', 'admin', 'manager']}>
+              <RoleGuard allowedRoles={['service', 'admin']}>
                 <ServicePortalLayout />
               </RoleGuard>
             }
@@ -198,7 +196,7 @@ export const App: React.FC = () => {
           <Route
             path="service"
             element={
-              <RoleGuard allowedRoles={['service', 'admin', 'manager']}>
+              <RoleGuard allowedRoles={['service', 'admin']}>
                 <ServicePortalLayout />
               </RoleGuard>
             }
@@ -219,7 +217,7 @@ export const App: React.FC = () => {
           <Route
             path="hr/*"
             element={
-              <RoleGuard allowedRoles={['hr', 'admin', 'manager']}>
+              <RoleGuard allowedRoles={['hr', 'admin']}>
                 <HRPortalLayout />
               </RoleGuard>
             }
@@ -227,7 +225,7 @@ export const App: React.FC = () => {
           <Route
             path="hr"
             element={
-              <RoleGuard allowedRoles={['hr', 'admin', 'manager']}>
+              <RoleGuard allowedRoles={['hr', 'admin']}>
                 <HRPortalLayout />
               </RoleGuard>
             }
@@ -299,8 +297,6 @@ export const App: React.FC = () => {
           <Route path="chat" element={<RoleQueriesChatView />} />
           <Route path="admin/queries" element={<RoleQueriesChatView roleContext="admin" />} />
           <Route path="admin/chat" element={<Navigate to="/admin/queries" replace />} />
-          <Route path="manager/queries" element={<RoleQueriesChatView roleContext="manager" />} />
-          <Route path="manager/chat" element={<Navigate to="/manager/queries" replace />} />
           <Route path="service/queries" element={<RoleQueriesChatView roleContext="service" />} />
           <Route path="service/chat" element={<Navigate to="/service/queries" replace />} />
           <Route path="finance/queries" element={<RoleQueriesChatView roleContext="finance" />} />

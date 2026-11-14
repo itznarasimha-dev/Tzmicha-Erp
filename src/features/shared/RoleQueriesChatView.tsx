@@ -84,7 +84,7 @@ export const RoleQueriesChatView: React.FC<RoleQueriesChatViewProps> = ({ roleCo
   } = useErpStore();
 
   const effectiveRole = roleContext || storeRole || currentUser?.role || 'admin';
-  const isAdminOrManager = effectiveRole === 'admin' || effectiveRole === 'manager';
+  const isAdminOrManager = effectiveRole === 'admin';
 
   // Filters & Search State
   const [searchQuery, setSearchQuery] = useState('');
@@ -218,16 +218,16 @@ export const RoleQueriesChatView: React.FC<RoleQueriesChatViewProps> = ({ roleCo
         ];
         const randomResp = automatedResponses[Math.floor(Math.random() * automatedResponses.length)];
         
-        // Add response from Pooja Hegde (Operations Manager)
+        // Add response from Rajesh Verma (Executive Admin)
         const timeFormatted = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ', Today';
         const updated = (useErpStore.getState().roleQueries || []).map((t) => {
           if (t.id === ticketId) {
             const respMsg: ChatMessage = {
               id: `sim-${Date.now()}`,
-              senderId: 'usr-mgr-01',
-              senderName: 'Pooja Hegde',
-              senderRole: 'manager',
-              senderAvatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
+              senderId: 'usr-admin-01',
+              senderName: 'Rajesh Verma',
+              senderRole: 'admin',
+              senderAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
               message: randomResp,
               timestamp: timeFormatted,
             };
@@ -340,8 +340,6 @@ export const RoleQueriesChatView: React.FC<RoleQueriesChatViewProps> = ({ roleCo
     switch (role) {
       case 'admin':
         return <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-900 text-white">Admin</span>;
-      case 'manager':
-        return <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-600 text-white">Operations Manager</span>;
       case 'sales':
         return <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-600 text-white">Sales Rep</span>;
       case 'store_manager':

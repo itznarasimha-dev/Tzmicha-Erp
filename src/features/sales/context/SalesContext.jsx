@@ -5031,6 +5031,8 @@ export function SalesProvider({ children }) {
         updateDispatchStatus,
 
         // Invoicing & Payment Actions
+        invoices,
+        payments,
         paymentReminders,
         addInvoice,
         approveInvoice,

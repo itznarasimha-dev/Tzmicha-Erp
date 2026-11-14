@@ -22,53 +22,136 @@ import {
   DollarSign,
   Users,
   Truck,
+  HelpCircle,
+  Scale,
+  Receipt,
+  Sparkles,
 } from 'lucide-react';
+import { formatINR, numberToIndianWords } from '../../services/formatters';
 
 export const FinanceReportsAuditView: React.FC = () => {
   const {
     auditLogs,
     invoices,
-    salesRemittances,
+    supplierBills,
+    creditNotes,
+    chartOfAccounts,
     customers,
     suppliers,
-    payrollRecords,
     expenseClaims,
-    customerDispatches,
-    budgetRequests,
-    incentiveSettlements,
-    batches,
   } = useErpStore();
 
-  const [activeTab, setActiveTab] = useState<'reports' | 'audit'>('reports');
-  const [selectedReportType, setSelectedReportType] = useState<string>('receivables_aging');
-  const [periodFilter, setPeriodFilter] = useState<string>('q3_fy26');
+  const [activeTab, setActiveTab] = useState<'financial_statements' | 'gst_tax_center' | 'audit_trail'>('financial_statements');
+  const [statementType, setStatementType] = useState<'pnl' | 'balance_sheet' | 'trial_balance'>('pnl');
   const [searchTerm, setSearchTerm] = useState('');
   const [exportNotice, setExportNotice] = useState<string | null>(null);
 
-  // ─── Filtered Financial Audit Logs ───
-  const financialAuditLogs = useMemo(() => {
-    return auditLogs
-      .filter((log) => {
-        const isFin =
-          log.entityType === 'invoice' ||
-          log.entityType === 'remittance' ||
-          log.entityType === 'finance_claim' ||
-          log.entityType === 'payroll' ||
-          log.entityType === 'incentive' ||
-          log.entityType === 'journal_entry' ||
-          log.entityType === 'budget_request' ||
-          log.entityType === 'expense' ||
-          log.entityType === 'supplier' ||
-          log.entityType === 'wallet';
-        if (!isFin) return false;
+  // ─── P&L Math ───
+  const pnlData = useMemo(() => {
+    const revenues = chartOfAccounts.filter((a) => a.type === 'revenue');
+    const totalRevenue = revenues.reduce((s, a) => s + a.currentBalance, 0);
 
+    const cogs = chartOfAccounts.filter((a) => a.category === 'COGS');
+    const totalCogs = cogs.reduce((s, a) => s + a.currentBalance, 0);
+    const grossProfit = totalRevenue - totalCogs;
+
+    const opex = chartOfAccounts.filter((a) => a.type === 'expense' && a.category !== 'COGS');
+    const totalOpex = opex.reduce((s, a) => s + a.currentBalance, 0);
+    const netProfit = grossProfit - totalOpex;
+
+    return { revenues, totalRevenue, cogs, totalCogs, grossProfit, opex, totalOpex, netProfit };
+  }, [chartOfAccounts]);
+
+  // ─── Balance Sheet Math ───
+  const balanceSheetData = useMemo(() => {
+    const assets = chartOfAccounts.filter((a) => a.type === 'asset');
+    const totalAssets = assets.reduce((s, a) => s + a.currentBalance, 0);
+
+    const liabilities = chartOfAccounts.filter((a) => a.type === 'liability');
+    const totalLiabilities = liabilities.reduce((s, a) => s + a.currentBalance, 0);
+
+    const equities = chartOfAccounts.filter((a) => a.type === 'equity');
+    const totalEquity = equities.reduce((s, a) => s + a.currentBalance, 0) + pnlData.netProfit;
+
+    return {
+      assets,
+      totalAssets,
+      liabilities,
+      totalLiabilities,
+      equities,
+      totalEquity,
+      totalLiabilitiesAndEquity: totalLiabilities + totalEquity,
+      isBalanced: Math.round(totalAssets) === Math.round(totalLiabilities + totalEquity),
+    };
+  }, [chartOfAccounts, pnlData]);
+
+  // ─── Trial Balance Math ───
+  const trialBalanceData = useMemo(() => {
+    let totalDebit = 0;
+    let totalCredit = 0;
+
+    const rows = chartOfAccounts.map((acc) => {
+      let debit = 0;
+      let credit = 0;
+      if (acc.type === 'asset' || acc.type === 'expense') {
+        debit = acc.currentBalance;
+        totalDebit += debit;
+      } else {
+        credit = acc.currentBalance;
+        totalCredit += credit;
+      }
+      return { ...acc, debit, credit };
+    });
+
+    return { rows, totalDebit, totalCredit, isBalanced: totalDebit === totalCredit };
+  }, [chartOfAccounts]);
+
+  // ─── GST Center Aggregate Data ───
+  const gstCenterData = useMemo(() => {
+    const totalOutwardTaxable = (invoices || []).reduce((s, i) => s + i.subtotal, 0);
+    const totalCgstOutput = (invoices || []).reduce((s, i) => s + (i.cgstAmount || 0), 0);
+    const totalSgstOutput = (invoices || []).reduce((s, i) => s + (i.sgstAmount || 0), 0);
+    const totalIgstOutput = (invoices || []).reduce((s, i) => s + (i.igstAmount || 0), 0);
+    const totalTaxLiability = totalCgstOutput + totalSgstOutput + totalIgstOutput;
+
+    // Table 9B Credit Notes
+    const totalCreditNotesValue = (creditNotes || []).reduce((s, c) => s + c.totalAmount, 0);
+    const totalCreditNotesGstReversed = (creditNotes || []).reduce(
+      (s, c) => s + (c.cgstAmount + c.sgstAmount + c.igstAmount),
+      0
+    );
+
+    // Inward Eligible ITC from Supplier Bills
+    const eligibleItcTotal = (supplierBills || []).reduce((s, b) => s + b.taxAmount, 0);
+    const netGstPayable = Math.max(0, totalTaxLiability - totalCreditNotesGstReversed - eligibleItcTotal);
+
+    // TDS deductions
+    const totalTdsDeducted = (supplierBills || []).reduce((s, b) => s + (b.tdsAmount || 0), 0);
+
+    return {
+      totalOutwardTaxable,
+      totalCgstOutput,
+      totalSgstOutput,
+      totalIgstOutput,
+      totalTaxLiability,
+      totalCreditNotesValue,
+      totalCreditNotesGstReversed,
+      eligibleItcTotal,
+      netGstPayable,
+      totalTdsDeducted,
+    };
+  }, [invoices, creditNotes, supplierBills]);
+
+  // Filtered Audit Logs
+  const financialAuditLogs = useMemo(() => {
+    return (auditLogs || [])
+      .filter((log) => {
         if (searchTerm) {
           const q = searchTerm.toLowerCase();
           return (
             log.action.toLowerCase().includes(q) ||
             log.userName.toLowerCase().includes(q) ||
-            log.details.toLowerCase().includes(q) ||
-            log.entityId.toLowerCase().includes(q)
+            log.details.toLowerCase().includes(q)
           );
         }
         return true;
@@ -76,406 +159,463 @@ export const FinanceReportsAuditView: React.FC = () => {
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }, [auditLogs, searchTerm]);
 
-  // ─── Report Generator Datasets ───
-  const reportData = useMemo(() => {
-    switch (selectedReportType) {
-      case 'receivables_aging':
-        return customers.map((c) => ({
-          id: c.id,
-          name: c.name,
-          contact: c.phone,
-          terms: c.paymentTerms || 'Net 30',
-          creditLimit: c.creditLimit,
-          outstanding: c.currentOutstanding,
-          current: Math.max(0, c.currentOutstanding * 0.4),
-          days30: Math.max(0, c.currentOutstanding * 0.35),
-          days60: Math.max(0, c.currentOutstanding * 0.15),
-          days90Plus: Math.max(0, c.currentOutstanding * 0.1),
-        }));
+  // CSV Exporter
+  const handleExportCsv = () => {
+    let headers: string[] = [];
+    let rows: string[][] = [];
+    let filename = 'Financial_Report.csv';
 
-      case 'supplier_payables':
-        return suppliers.map((s) => ({
-          id: s.id,
-          name: s.name,
-          gstin: s.gstin || 'Unregistered',
-          terms: s.paymentTerms,
-          totalPurchases: s.totalPurchasesAmount || 0,
-          outstanding: s.outstandingPayable ?? s.outstandingBalance ?? 0,
-        }));
-
-      case 'product_profitability':
-        return batches.map((b) => {
-          const sellingPrice = (b.actualUnitCost || 1200) * 1.35;
-          const grossMargin = sellingPrice - (b.actualUnitCost || 1200);
-          const marginPercent = ((grossMargin / sellingPrice) * 100).toFixed(1);
-          return {
-            id: b.id,
-            batchNumber: b.batchNumber,
-            productName: b.productName,
-            sku: b.productSku,
-            landedCost: b.actualUnitCost,
-            sellingPrice,
-            grossMargin,
-            marginPercent,
-            availableUnits: b.availableQuantity,
-          };
+    if (activeTab === 'financial_statements') {
+      if (statementType === 'pnl') {
+        filename = 'Profit_and_Loss_Statement.csv';
+        headers = ['Account_Classification', 'Account_Head', 'Amount_INR'];
+        pnlData.revenues.forEach((r) => rows.push(['Revenue', r.name, r.currentBalance.toString()]));
+        rows.push(['Total Revenue', 'Gross Sales Turnover', pnlData.totalRevenue.toString()]);
+        pnlData.cogs.forEach((c) => rows.push(['COGS', c.name, c.currentBalance.toString()]));
+        rows.push(['Gross Profit', 'Revenue minus COGS', pnlData.grossProfit.toString()]);
+        pnlData.opex.forEach((o) => rows.push(['Operating Expense', o.name, o.currentBalance.toString()]));
+        rows.push(['Net Profit', 'Final Accounting Profit', pnlData.netProfit.toString()]);
+      } else if (statementType === 'trial_balance') {
+        filename = 'Trial_Balance.csv';
+        headers = ['Code', 'Account_Head', 'Classification', 'Debit_INR', 'Credit_INR'];
+        trialBalanceData.rows.forEach((r) => {
+          rows.push([r.code, r.name, r.type, r.debit.toString(), r.credit.toString()]);
         });
-
-      case 'payroll_monthly':
-        return payrollRecords.map((p) => ({
-          id: p.id,
-          employee: p.employeeName,
-          role: p.roleTitle,
-          dept: p.department,
-          gross: p.grossSalary,
-          deductions: p.totalDeductions,
-          incentives: p.earnedIncentives,
-          net: p.netPayableSalary,
-          status: p.status,
-        }));
-
-      default:
-        return [];
+      } else {
+        filename = 'Balance_Sheet.csv';
+        headers = ['Category', 'Account_Head', 'Balance_INR'];
+        balanceSheetData.assets.forEach((a) => rows.push(['Asset', a.name, a.currentBalance.toString()]));
+        balanceSheetData.liabilities.forEach((l) => rows.push(['Liability', l.name, l.currentBalance.toString()]));
+        balanceSheetData.equities.forEach((e) => rows.push(['Equity', e.name, e.currentBalance.toString()]));
+        rows.push(['Retained Earnings', 'Net Current Period Profit', pnlData.netProfit.toString()]);
+      }
+    } else if (activeTab === 'gst_tax_center') {
+      filename = 'GST_GSTR1_GSTR3B_Report.csv';
+      headers = ['Tax_Section', 'Metric', 'Amount_INR'];
+      rows.push(['GSTR-1 Outward', 'Total Taxable Turnover', gstCenterData.totalOutwardTaxable.toString()]);
+      rows.push(['GSTR-1 Outward', 'CGST Output', gstCenterData.totalCgstOutput.toString()]);
+      rows.push(['GSTR-1 Outward', 'SGST Output', gstCenterData.totalSgstOutput.toString()]);
+      rows.push(['GSTR-1 Outward', 'IGST Output', gstCenterData.totalIgstOutput.toString()]);
+      rows.push(['Table 9B', 'Credit Notes Reversals', gstCenterData.totalCreditNotesGstReversed.toString()]);
+      rows.push(['GSTR-3B Inward', 'Eligible Input Tax Credit (ITC)', gstCenterData.eligibleItcTotal.toString()]);
+      rows.push(['Net Liability', 'Cash GST Payable to Government', gstCenterData.netGstPayable.toString()]);
+      rows.push(['TDS Sec 194', 'Total TDS Withheld on Payables', gstCenterData.totalTdsDeducted.toString()]);
+    } else {
+      filename = 'Financial_Audit_Trail.csv';
+      headers = ['Timestamp', 'User', 'Role', 'Action', 'Entity', 'Details'];
+      financialAuditLogs.forEach((l) => {
+        rows.push([l.timestamp, l.userName, l.userRole, l.action, l.entityType, `"${l.details}"`]);
+      });
     }
-  }, [selectedReportType, customers, suppliers, batches, payrollRecords]);
 
-  const handleExportCSV = () => {
-    setExportNotice(`Exported ${selectedReportType}_${periodFilter}.csv with frontend formatting.`);
-    setTimeout(() => setExportNotice(null), 3500);
-  };
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 
-  const handlePrint = () => {
-    window.print();
+    setExportNotice(`Exported ${filename} successfully.`);
+    setTimeout(() => setExportNotice(null), 4000);
   };
 
   return (
     <div className="space-y-5">
       {exportNotice && (
-        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl flex items-center justify-between animate-in fade-in">
+        <div className="p-3.5 bg-emerald-50/90 backdrop-blur-md border border-emerald-200 text-emerald-900 text-xs rounded-2xl flex items-center justify-between shadow-xs animate-in fade-in">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <span className="font-semibold">{exportNotice}</span>
           </div>
           <Badge variant="success" size="sm">Downloaded</Badge>
         </div>
       )}
 
-      {/* ─── HEADER ─── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      {/* ─── HEADER & TAB SWITCHER ─── */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-4 rounded-3xl backdrop-blur-xl bg-white/70 border border-slate-200/80 shadow-xs">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-            Financial Analytics, Reports &amp; Audit Trail
-          </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Exportable business statements, trade receivables aging, product gross margin analytics, and complete financial audit log.
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+              Statutory Reports, GST Center &amp; Audit Trail
+            </h1>
+            <Badge variant="neutral" size="sm" className="font-mono text-[10px]">
+              MCA &amp; GST Ready
+            </Badge>
+          </div>
+          <p className="text-xs text-slate-500 mt-1">
+            Official financial statements (P&amp;L, Balance Sheet, Trial Balance), GSTR-1/3B summary with eligible ITC, and immutable audit logs.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Sub-tab Switcher */}
-          <div className="flex items-center p-1 bg-slate-100 rounded-2xl border border-slate-200 text-xs">
+          <Button size="sm" variant="outline" onClick={() => window.print()} className="text-xs">
+            <Printer className="w-4 h-4 mr-1" />
+            Print
+          </Button>
+          <Button
+            size="sm"
+            variant="primary"
+            onClick={handleExportCsv}
+            className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
+          >
+            <Download className="w-4 h-4 mr-1" />
+            Export CSV
+          </Button>
+
+          <div className="flex items-center p-1 bg-slate-100/80 rounded-2xl border border-slate-200 text-xs shrink-0">
             <button
               type="button"
-              onClick={() => setActiveTab('reports')}
+              onClick={() => setActiveTab('financial_statements')}
               className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
-                activeTab === 'reports' ? 'bg-white text-indigo-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                activeTab === 'financial_statements' ? 'bg-white text-indigo-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Financial Statements &amp; Reports
+              Financial Statements
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab('audit')}
+              onClick={() => setActiveTab('gst_tax_center')}
               className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
-                activeTab === 'audit' ? 'bg-white text-indigo-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                activeTab === 'gst_tax_center' ? 'bg-white text-indigo-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Financial Audit Trail ({financialAuditLogs.length})
+              GST &amp; TDS Center
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('audit_trail')}
+              className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
+                activeTab === 'audit_trail' ? 'bg-white text-indigo-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Audit Trail ({auditLogs?.length || 0})
             </button>
           </div>
         </div>
       </div>
 
-      {/* ─── TAB 1: REPORTS ─── */}
-      {activeTab === 'reports' && (
+      {/* ─── FINANCIAL STATEMENTS TAB ─── */}
+      {activeTab === 'financial_statements' && (
         <div className="space-y-4">
-          {/* Controls Bar */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200">
-            <div className="flex items-center gap-2 flex-wrap">
-              <select
-                value={selectedReportType}
-                onChange={(e) => setSelectedReportType(e.target.value)}
-                className="text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 font-bold focus:outline-none cursor-pointer"
-              >
-                <option value="receivables_aging">Trade Receivables Aging Analysis</option>
-                <option value="supplier_payables">Supplier Payables &amp; Creditors Ledger</option>
-                <option value="product_profitability">Product SKU Landed Margins &amp; Profitability</option>
-                <option value="payroll_monthly">Monthly Payroll Liabilities &amp; Tax Deductions</option>
-              </select>
-
-              <select
-                value={periodFilter}
-                onChange={(e) => setPeriodFilter(e.target.value)}
-                className="text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-700 font-medium focus:outline-none cursor-pointer"
-              >
-                <option value="current_month">Current Month (Oct 2026)</option>
-                <option value="q3_fy26">Q3 FY 2026–27</option>
-                <option value="full_fy26">Full Year FY 2026–27</option>
-              </select>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={handlePrint}>
-                <Printer className="w-3.5 h-3.5 mr-1" />
-                Print Statement
-              </Button>
-              <Button variant="primary" size="sm" onClick={handleExportCSV}>
-                <Download className="w-3.5 h-3.5 mr-1" />
-                Export CSV
-              </Button>
-            </div>
+          {/* Sub-Tabs: P&L vs Balance Sheet vs Trial Balance */}
+          <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+            <button
+              type="button"
+              onClick={() => setStatementType('pnl')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                statementType === 'pnl' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              Profit &amp; Loss Statement (P&amp;L)
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatementType('balance_sheet')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                statementType === 'balance_sheet' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              Balance Sheet
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatementType('trial_balance')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                statementType === 'trial_balance' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              Trial Balance
+            </button>
           </div>
 
-          {/* Report Rendering */}
-          <Card>
-            {selectedReportType === 'receivables_aging' && (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-slate-100 text-slate-400 font-semibold uppercase text-[10px] bg-slate-50/60">
-                      <th className="py-3 px-4">Customer</th>
-                      <th className="py-3 px-4 text-right">Credit Limit</th>
-                      <th className="py-3 px-4 text-right">Total Due</th>
-                      <th className="py-3 px-4 text-right">Current (&lt;30d)</th>
-                      <th className="py-3 px-4 text-right">31-60 Days</th>
-                      <th className="py-3 px-4 text-right">61-90 Days</th>
-                      <th className="py-3 px-4 text-right">90+ Days (Overdue)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
-                    {reportData.map((row: any) => (
-                      <tr key={row.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="py-3 px-4">
-                          <span className="font-bold text-slate-900 block">{row.name}</span>
-                          <span className="text-[10px] text-slate-400">{row.id} • Terms: {row.terms}</span>
-                        </td>
-                        <td className="py-3 px-4 text-right font-mono text-slate-600">
-                          ₹{row.creditLimit.toLocaleString('en-IN')}
-                        </td>
-                        <td className="py-3 px-4 text-right font-mono font-bold text-slate-900 text-sm">
-                          ₹{row.outstanding.toLocaleString('en-IN')}
-                        </td>
-                        <td className="py-3 px-4 text-right font-mono text-emerald-700">
-                          ₹{row.current.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                        </td>
-                        <td className="py-3 px-4 text-right font-mono text-slate-700">
-                          ₹{row.days30.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                        </td>
-                        <td className="py-3 px-4 text-right font-mono text-amber-700 font-semibold">
-                          ₹{row.days60.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                        </td>
-                        <td className="py-3 px-4 text-right font-mono text-rose-600 font-bold">
-                          ₹{row.days90Plus.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+          {/* P&L VIEW */}
+          {statementType === 'pnl' && (
+            <Card className="backdrop-blur-md bg-white/90 border border-slate-200/80 shadow-xs p-5 space-y-4">
+              <div className="border-b border-slate-200 pb-3 flex justify-between items-center">
+                <div>
+                  <h3 className="font-bold text-slate-900 text-sm">Statement of Profit &amp; Loss</h3>
+                  <p className="text-xs text-slate-500">For the period ended 31st October 2026 (Figures in INR)</p>
+                </div>
+                <Badge variant="success" size="md">Net Margin: {((pnlData.netProfit / pnlData.totalRevenue) * 100).toFixed(1)}%</Badge>
               </div>
-            )}
 
-            {selectedReportType === 'supplier_payables' && (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-slate-100 text-slate-400 font-semibold uppercase text-[10px] bg-slate-50/60">
-                      <th className="py-3 px-4">Supplier Name</th>
-                      <th className="py-3 px-4">GSTIN</th>
-                      <th className="py-3 px-4">Payment Terms</th>
-                      <th className="py-3 px-4 text-right">Lifetime Purchases (₹)</th>
-                      <th className="py-3 px-4 text-right">Current Payable Balance (₹)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
-                    {reportData.map((row: any) => (
-                      <tr key={row.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="py-3 px-4 font-bold text-slate-900">{row.name}</td>
-                        <td className="py-3 px-4 font-mono text-[11px] text-slate-600">{row.gstin}</td>
-                        <td className="py-3 px-4 text-[11px] text-slate-600">{row.terms}</td>
-                        <td className="py-3 px-4 text-right font-mono font-bold text-slate-700">
-                          ₹{row.totalPurchases.toLocaleString('en-IN')}
-                        </td>
-                        <td className="py-3 px-4 text-right font-mono font-bold text-rose-700 text-sm">
-                          ₹{row.outstanding.toLocaleString('en-IN')}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+              <div className="space-y-3 text-xs">
+                {/* Revenue Section */}
+                <div className="space-y-1">
+                  <span className="font-bold uppercase text-[10px] text-slate-400 block tracking-wider">I. Revenue from Operations</span>
+                  {pnlData.revenues.map((r) => (
+                    <div key={r.code} className="flex justify-between py-1 border-b border-slate-100">
+                      <span className="text-slate-700">{r.name}</span>
+                      <span className="font-mono font-bold text-slate-900">{formatINR(r.currentBalance)}</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between py-1.5 font-bold text-slate-900 bg-slate-50 px-2 rounded-lg">
+                    <span>Total Revenue (A)</span>
+                    <span className="font-mono">{formatINR(pnlData.totalRevenue)}</span>
+                  </div>
+                </div>
 
-            {selectedReportType === 'product_profitability' && (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-slate-100 text-slate-400 font-semibold uppercase text-[10px] bg-slate-50/60">
-                      <th className="py-3 px-4">Product &amp; Batch</th>
-                      <th className="py-3 px-4">SKU Code</th>
-                      <th className="py-3 px-4 text-right">Actual Landed Cost (₹)</th>
-                      <th className="py-3 px-4 text-right">Standard Selling Price (₹)</th>
-                      <th className="py-3 px-4 text-right">Unit Gross Margin (₹)</th>
-                      <th className="py-3 px-4 text-center">Gross Margin %</th>
-                      <th className="py-3 px-4 text-center">Available Stock</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
-                    {reportData.map((row: any) => (
-                      <tr key={row.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="py-3 px-4">
-                          <span className="font-bold text-slate-900 block">{row.productName}</span>
-                          <span className="text-[10px] text-indigo-600 font-mono block">Batch: {row.batchNumber}</span>
-                        </td>
-                        <td className="py-3 px-4 font-mono text-slate-600">{row.sku}</td>
-                        <td className="py-3 px-4 text-right font-mono font-semibold text-slate-700">
-                          ₹{(row.landedCost || 0).toLocaleString('en-IN')}
-                        </td>
-                        <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">
-                          ₹{row.sellingPrice.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                        </td>
-                        <td className="py-3 px-4 text-right font-mono font-bold text-emerald-800">
-                          ₹{row.grossMargin.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <Badge size="sm" variant="success">{row.marginPercent}%</Badge>
-                        </td>
-                        <td className="py-3 px-4 text-center font-bold text-slate-800">
-                          {row.availableUnits} units
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                {/* COGS Section */}
+                <div className="space-y-1 pt-2">
+                  <span className="font-bold uppercase text-[10px] text-slate-400 block tracking-wider">II. Cost of Goods Sold (Raw Materials &amp; Procurement)</span>
+                  {pnlData.cogs.map((c) => (
+                    <div key={c.code} className="flex justify-between py-1 border-b border-slate-100">
+                      <span className="text-slate-700">{c.name}</span>
+                      <span className="font-mono font-bold text-slate-900">{formatINR(c.currentBalance)}</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between py-1.5 font-bold text-slate-900 bg-slate-50 px-2 rounded-lg">
+                    <span>Total Cost of Sales (B)</span>
+                    <span className="font-mono">{formatINR(pnlData.totalCogs)}</span>
+                  </div>
+                </div>
 
-            {selectedReportType === 'payroll_monthly' && (
+                {/* Gross Profit */}
+                <div className="flex justify-between py-2 border-y-2 border-slate-300 font-bold text-indigo-950 text-sm bg-indigo-50/50 px-2 rounded-lg">
+                  <span>Gross Profit (A &minus; B)</span>
+                  <span className="font-mono">{formatINR(pnlData.grossProfit)}</span>
+                </div>
+
+                {/* OPEX Section */}
+                <div className="space-y-1 pt-2">
+                  <span className="font-bold uppercase text-[10px] text-slate-400 block tracking-wider">III. Operating &amp; Administrative Expenses</span>
+                  {pnlData.opex.map((o) => (
+                    <div key={o.code} className="flex justify-between py-1 border-b border-slate-100">
+                      <span className="text-slate-700">{o.name}</span>
+                      <span className="font-mono font-bold text-slate-900">{formatINR(o.currentBalance)}</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between py-1.5 font-bold text-slate-900 bg-slate-50 px-2 rounded-lg">
+                    <span>Total Operating Expenses (C)</span>
+                    <span className="font-mono">{formatINR(pnlData.totalOpex)}</span>
+                  </div>
+                </div>
+
+                {/* Net Profit */}
+                <div className="flex justify-between py-3 border-t-2 border-emerald-500 font-bold text-base text-emerald-950 bg-emerald-50 px-3 rounded-xl mt-3">
+                  <span>Net Profit for the Period</span>
+                  <span className="font-mono">{formatINR(pnlData.netProfit)}</span>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* BALANCE SHEET VIEW */}
+          {statementType === 'balance_sheet' && (
+            <Card className="backdrop-blur-md bg-white/90 border border-slate-200/80 shadow-xs p-5 space-y-4">
+              <div className="border-b border-slate-200 pb-3 flex justify-between items-center">
+                <div>
+                  <h3 className="font-bold text-slate-900 text-sm">Balance Sheet</h3>
+                  <p className="text-xs text-slate-500">As at 31st October 2026 • Accounting Equation: Assets = Liabilities + Equity</p>
+                </div>
+                <Badge variant={balanceSheetData.isBalanced ? 'success' : 'danger'} size="md">
+                  {balanceSheetData.isBalanced ? 'Equation Balanced (Δ=0)' : 'Equation Variance'}
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+                {/* Left: Assets */}
+                <div className="space-y-3">
+                  <h4 className="font-bold uppercase text-[11px] text-emerald-800 bg-emerald-50 p-2 rounded-lg">
+                    Assets (Applications of Funds)
+                  </h4>
+                  <div className="space-y-1.5">
+                    {balanceSheetData.assets.map((a) => (
+                      <div key={a.code} className="flex justify-between py-1 border-b border-slate-100">
+                        <span className="text-slate-700">{a.name}</span>
+                        <span className="font-mono font-bold text-slate-900">{formatINR(a.currentBalance)}</span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between py-2 border-t-2 border-slate-300 font-bold text-slate-900 text-sm bg-slate-50 px-2 rounded-lg mt-2">
+                      <span>Total Assets</span>
+                      <span className="font-mono">{formatINR(balanceSheetData.totalAssets)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right: Liabilities & Equity */}
+                <div className="space-y-3">
+                  <h4 className="font-bold uppercase text-[11px] text-indigo-900 bg-indigo-50 p-2 rounded-lg">
+                    Liabilities &amp; Equity (Sources of Funds)
+                  </h4>
+                  <div className="space-y-1.5">
+                    <span className="font-bold text-[10px] text-slate-400 uppercase block">Liabilities</span>
+                    {balanceSheetData.liabilities.map((l) => (
+                      <div key={l.code} className="flex justify-between py-1 border-b border-slate-100">
+                        <span className="text-slate-700">{l.name}</span>
+                        <span className="font-mono font-bold text-slate-900">{formatINR(l.currentBalance)}</span>
+                      </div>
+                    ))}
+
+                    <span className="font-bold text-[10px] text-slate-400 uppercase block pt-2">Equity &amp; Reserves</span>
+                    {balanceSheetData.equities.map((e) => (
+                      <div key={e.code} className="flex justify-between py-1 border-b border-slate-100">
+                        <span className="text-slate-700">{e.name}</span>
+                        <span className="font-mono font-bold text-slate-900">{formatINR(e.currentBalance)}</span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between py-1 border-b border-slate-100 text-emerald-700">
+                      <span>Retained Current Period Profit</span>
+                      <span className="font-mono font-bold">{formatINR(pnlData.netProfit)}</span>
+                    </div>
+
+                    <div className="flex justify-between py-2 border-t-2 border-slate-300 font-bold text-slate-900 text-sm bg-slate-50 px-2 rounded-lg mt-2">
+                      <span>Total Liabilities &amp; Equity</span>
+                      <span className="font-mono">{formatINR(balanceSheetData.totalLiabilitiesAndEquity)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* TRIAL BALANCE VIEW */}
+          {statementType === 'trial_balance' && (
+            <Card className="backdrop-blur-md bg-white/90 border border-slate-200/80 shadow-xs p-4">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="border-b border-slate-100 text-slate-400 font-semibold uppercase text-[10px] bg-slate-50/60">
-                      <th className="py-3 px-4">Employee</th>
-                      <th className="py-3 px-4">Department &amp; Designation</th>
-                      <th className="py-3 px-4 text-right">Gross Salary (₹)</th>
-                      <th className="py-3 px-4 text-right">Statutory Deductions (₹)</th>
-                      <th className="py-3 px-4 text-right">Incentives Earned (₹)</th>
-                      <th className="py-3 px-4 text-right">Net Payable Salary (₹)</th>
-                      <th className="py-3 px-4 text-center">Status</th>
+                    <tr className="border-b border-slate-200 text-slate-500 font-semibold uppercase text-[10px] bg-slate-50/70">
+                      <th className="py-2.5 px-3">Account Code</th>
+                      <th className="py-2.5 px-3">Account Head</th>
+                      <th className="py-2.5 px-3">Classification</th>
+                      <th className="py-2.5 px-3 text-right">Debit Balance (₹)</th>
+                      <th className="py-2.5 px-3 text-right">Credit Balance (₹)</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
-                    {reportData.map((row: any) => (
-                      <tr key={row.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="py-3 px-4 font-bold text-slate-900">{row.employee}</td>
-                        <td className="py-3 px-4">
-                          <span className="text-slate-800 block">{row.dept}</span>
-                          <span className="text-[10px] text-slate-400">{row.role}</span>
+                  <tbody className="divide-y divide-slate-100 font-medium">
+                    {trialBalanceData.rows.map((r) => (
+                      <tr key={r.code} className="hover:bg-slate-50/70">
+                        <td className="py-2.5 px-3 font-mono font-bold text-indigo-700">{r.code}</td>
+                        <td className="py-2.5 px-3 font-bold text-slate-900">{r.name}</td>
+                        <td className="py-2.5 px-3 uppercase text-slate-500">{r.type}</td>
+                        <td className="py-2.5 px-3 text-right font-mono text-emerald-800">
+                          {r.debit > 0 ? formatINR(r.debit) : '—'}
                         </td>
-                        <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">
-                          ₹{row.gross.toLocaleString('en-IN')}
-                        </td>
-                        <td className="py-3 px-4 text-right font-mono text-rose-600 font-semibold">
-                          -₹{row.deductions.toLocaleString('en-IN')}
-                        </td>
-                        <td className="py-3 px-4 text-right font-mono text-emerald-700 font-semibold">
-                          +₹{row.incentives.toLocaleString('en-IN')}
-                        </td>
-                        <td className="py-3 px-4 text-right font-mono font-bold text-indigo-950 text-sm">
-                          ₹{row.net.toLocaleString('en-IN')}
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <Badge size="sm" variant={row.status === 'paid' ? 'success' : 'primary'}>
-                            {row.status}
-                          </Badge>
+                        <td className="py-2.5 px-3 text-right font-mono text-indigo-900">
+                          {r.credit > 0 ? formatINR(r.credit) : '—'}
                         </td>
                       </tr>
                     ))}
+                    <tr className="border-t-2 border-slate-300 bg-slate-50 font-bold text-slate-900 text-sm">
+                      <td colSpan={3} className="py-3 px-3">Grand Total Trial Balance</td>
+                      <td className="py-3 px-3 text-right font-mono text-emerald-950">{formatINR(trialBalanceData.totalDebit)}</td>
+                      <td className="py-3 px-3 text-right font-mono text-indigo-950">{formatINR(trialBalanceData.totalCredit)}</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
-            )}
-          </Card>
+            </Card>
+          )}
         </div>
       )}
 
-      {/* ─── TAB 2: AUDIT TRAIL ─── */}
-      {activeTab === 'audit' && (
-        <Card>
-          <CardHeader>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div>
-                <CardTitle>Financial Audit Trail Ledger</CardTitle>
-                <CardDescription>
-                  Immutable chronological event logs recording every invoice issuance, payment entry, refund authorization, expense reimbursement, and payroll disbursement.
-                </CardDescription>
-              </div>
-              <div className="w-64">
-                <SearchInput
-                  value={searchTerm}
-                  onChange={(val) => setSearchTerm(val)}
-                  placeholder="Filter audit logs..."
-                  className="text-xs"
-                />
+      {/* ─── GST & TDS CENTER TAB ─── */}
+      {activeTab === 'gst_tax_center' && (
+        <Card className="backdrop-blur-md bg-white/90 border border-slate-200/80 shadow-xs p-5 space-y-5">
+          <div className="border-b border-slate-200 pb-3 flex justify-between items-center">
+            <div>
+              <h3 className="font-bold text-slate-900 text-sm">Indian GST &amp; TDS Statutory Tax Center</h3>
+              <p className="text-xs text-slate-500">GSTR-1 Outward Register • GSTR-3B Input Tax Credit • TDS Deductions</p>
+            </div>
+            <Badge variant="purple" size="md">GST Rule 46 / 53 Compliant</Badge>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 rounded-2xl bg-indigo-50/60 border border-indigo-200 space-y-2">
+              <span className="text-[10px] font-bold uppercase text-indigo-900 block">GSTR-1 Outward Supplies</span>
+              <div className="text-xl font-bold font-mono text-indigo-950">{formatINR(gstCenterData.totalOutwardTaxable)}</div>
+              <div className="space-y-1 text-xs text-indigo-900 pt-2 border-t border-indigo-200">
+                <div className="flex justify-between">
+                  <span>CGST Output:</span>
+                  <span className="font-mono">{formatINR(gstCenterData.totalCgstOutput)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>SGST Output:</span>
+                  <span className="font-mono">{formatINR(gstCenterData.totalSgstOutput)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>IGST Output:</span>
+                  <span className="font-mono">{formatINR(gstCenterData.totalIgstOutput)}</span>
+                </div>
               </div>
             </div>
-          </CardHeader>
-          <div className="overflow-x-auto">
+
+            <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200 space-y-2">
+              <span className="text-[10px] font-bold uppercase text-emerald-900 block">GSTR-3B Eligible ITC</span>
+              <div className="text-xl font-bold font-mono text-emerald-950">{formatINR(gstCenterData.eligibleItcTotal)}</div>
+              <p className="text-xs text-emerald-800 pt-2 border-t border-emerald-200">
+                Input Tax Credit accrued on verified supplier bills (Reliance Petrochem, Gati Freight, Packaging).
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-purple-50/60 border border-purple-200 space-y-2">
+              <span className="text-[10px] font-bold uppercase text-purple-900 block">TDS Withheld Cumulative</span>
+              <div className="text-xl font-bold font-mono text-purple-950">{formatINR(gstCenterData.totalTdsDeducted)}</div>
+              <p className="text-xs text-purple-800 pt-2 border-t border-purple-200">
+                Withheld under Sections 194C (Contractors), 194J (Technical Fees), and 194Q.
+              </p>
+            </div>
+          </div>
+
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+            <div>
+              <span className="font-bold text-slate-900 text-xs block">Net Cash GST Payable to Tax Authority</span>
+              <span className="text-[11px] text-slate-500">
+                Output Liability ({formatINR(gstCenterData.totalTaxLiability)}) &minus; Credit Notes ({formatINR(gstCenterData.totalCreditNotesGstReversed)}) &minus; ITC ({formatINR(gstCenterData.eligibleItcTotal)})
+              </span>
+            </div>
+            <div className="text-right">
+              <span className="text-lg font-bold font-mono text-emerald-900 block">{formatINR(gstCenterData.netGstPayable)}</span>
+              <span className="text-[10px] text-emerald-700">Challan PMT-06 Ready</span>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* ─── FINANCIAL AUDIT TRAIL TAB ─── */}
+      {activeTab === 'audit_trail' && (
+        <Card className="backdrop-blur-md bg-white/90 border border-slate-200/80 shadow-xs space-y-3 p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <h3 className="font-bold text-slate-900 text-sm">Append-Only Financial Mutation Audit Trail</h3>
+              <p className="text-xs text-slate-500">Tamper-evident logs of every invoice created, payment allocated, note issued, and voucher posted.</p>
+            </div>
+            <div className="w-72">
+              <SearchInput
+                value={searchTerm}
+                onChange={(val) => setSearchTerm(val)}
+                placeholder="Search audit actions, users..."
+                className="text-xs"
+              />
+            </div>
+          </div>
+
+          <div className="overflow-x-auto border border-slate-200 rounded-2xl">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-slate-100 text-slate-400 font-semibold uppercase text-[10px] bg-slate-50/60">
-                  <th className="py-3 px-4">Timestamp</th>
-                  <th className="py-3 px-4">Authorized User</th>
-                  <th className="py-3 px-4">Action Event</th>
-                  <th className="py-3 px-4">Entity &amp; Ref ID</th>
-                  <th className="py-3 px-4">Audit Details &amp; State Mutation</th>
+                <tr className="bg-slate-100/70 border-b border-slate-200 text-slate-500 font-semibold text-[10px]">
+                  <th className="py-2.5 px-3">Timestamp</th>
+                  <th className="py-2.5 px-3">Authorized User</th>
+                  <th className="py-2.5 px-3">Role</th>
+                  <th className="py-2.5 px-3">Action</th>
+                  <th className="py-2.5 px-3">Audit Details</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
-                {financialAuditLogs.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="py-8 text-center text-slate-400 italic">
-                      No financial audit records matching search.
+                {financialAuditLogs.map((log) => (
+                  <tr key={log.id} className="hover:bg-slate-50/70">
+                    <td className="py-2.5 px-3 font-mono text-[11px] text-slate-500">{log.timestamp.replace('T', ' ').slice(0, 19)}</td>
+                    <td className="py-2.5 px-3 font-bold text-slate-900">{log.userName}</td>
+                    <td className="py-2.5 px-3 uppercase text-[10px]">
+                      <Badge size="sm" variant="neutral">{log.userRole}</Badge>
                     </td>
+                    <td className="py-2.5 px-3 uppercase font-mono font-bold text-indigo-700">{log.action}</td>
+                    <td className="py-2.5 px-3 text-slate-600 max-w-md truncate">{log.details}</td>
                   </tr>
-                ) : (
-                  financialAuditLogs.map((log) => (
-                    <tr key={log.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-3 px-4 text-[11px] font-mono text-slate-500 whitespace-nowrap">
-                        {new Date(log.timestamp).toLocaleString('en-IN', {
-                          month: 'short',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="font-bold text-slate-900 block">{log.userName}</span>
-                        <span className="text-[10px] text-slate-400 capitalize">{log.userRole?.replace('_', ' ')}</span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <Badge size="sm" variant="purple">
-                          {log.action}
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-4 font-mono text-indigo-700 font-bold">
-                        {log.entityId}
-                      </td>
-                      <td className="py-3 px-4 text-slate-700">
-                        {log.details}
-                      </td>
-                    </tr>
-                  ))
-                )}
+                ))}
               </tbody>
             </table>
           </div>

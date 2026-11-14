@@ -19,8 +19,25 @@ import {
   FileText,
   Calendar,
   Percent,
+  Layers,
+  AlertTriangle,
+  Building2,
+  PieChart,
+  HelpCircle,
+  TrendingDown,
 } from 'lucide-react';
 import { MarketingBudgetRequest } from '../../types';
+import { formatINR, numberToIndianWords } from '../../services/formatters';
+
+interface DepartmentBudgetOverview {
+  department: string;
+  category: string;
+  allocated: number;
+  committed: number;
+  spent: number;
+  remaining: number;
+  utilizationPercent: number;
+}
 
 export const FinanceBudgetRequestsView: React.FC = () => {
   const {
@@ -30,6 +47,7 @@ export const FinanceBudgetRequestsView: React.FC = () => {
     partiallyApproveBudgetRequest,
   } = useErpStore();
 
+  const [activeTab, setActiveTab] = useState<'department_budgets' | 'campaign_requests'>('department_budgets');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedRequest, setSelectedRequest] = useState<MarketingBudgetRequest | null>(null);
@@ -45,9 +63,60 @@ export const FinanceBudgetRequestsView: React.FC = () => {
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Multi-Department Budget Matrix (Allocated, Committed, Spent, Remaining)
+  const departmentBudgets: DepartmentBudgetOverview[] = useMemo(() => {
+    return [
+      {
+        department: 'Marketing & Field Expansion',
+        category: 'Expos, Roadshows & Digital Leads',
+        allocated: 650000,
+        committed: 160000,
+        spent: 382000,
+        remaining: 108000,
+        utilizationPercent: Math.round(((382000 + 160000) / 650000) * 100),
+      },
+      {
+        department: 'Sales & Dealer Relations',
+        category: 'Field Allowances & Trade Incentives',
+        allocated: 900000,
+        committed: 120000,
+        spent: 690000,
+        remaining: 90000,
+        utilizationPercent: Math.round(((690000 + 120000) / 900000) * 100),
+      },
+      {
+        department: 'Supply Chain & Warehouses',
+        category: 'Logistics Freight & Barrels Packaging',
+        allocated: 1200000,
+        committed: 250000,
+        spent: 980000,
+        remaining: -30000, // Over budget demonstration
+        utilizationPercent: Math.round(((980000 + 250000) / 1200000) * 100),
+      },
+      {
+        department: 'Information Technology',
+        category: 'ERP Cloud Hosting & Software Licenses',
+        allocated: 350000,
+        committed: 45000,
+        spent: 210000,
+        remaining: 95000,
+        utilizationPercent: Math.round(((210000 + 45000) / 350000) * 100),
+      },
+      {
+        department: 'Human Resources & Talent',
+        category: 'Recruitment & Safety Certifications',
+        allocated: 250000,
+        committed: 20000,
+        spent: 140000,
+        remaining: 90000,
+        utilizationPercent: Math.round(((140000 + 20000) / 250000) * 100),
+      },
+    ];
+  }, []);
+
   // Filtered Requests
   const filteredRequests = useMemo(() => {
-    return budgetRequests.filter((b) => {
+    return (budgetRequests || []).filter((b) => {
       if (statusFilter !== 'all' && b.status !== statusFilter) return false;
       if (searchTerm) {
         const q = searchTerm.toLowerCase();
@@ -62,17 +131,16 @@ export const FinanceBudgetRequestsView: React.FC = () => {
     });
   }, [budgetRequests, statusFilter, searchTerm]);
 
-  // Metrics
+  // Overall Portfolio Metrics
   const metrics = useMemo(() => {
-    const totalRequested = budgetRequests.reduce((s, b) => s + b.requestedAmount, 0);
-    const totalApproved = budgetRequests
-      .filter((b) => b.status === 'approved' || b.status === 'partially_approved')
-      .reduce((s, b) => s + (b.approvedAmount || 0), 0);
-    const totalSpent = budgetRequests.reduce((s, b) => s + (b.spentAmount || 0), 0);
-    const pendingCount = budgetRequests.filter((b) => b.status === 'pending').length;
+    const list = budgetRequests || [];
+    const totalAllocated = departmentBudgets.reduce((s, d) => s + d.allocated, 0);
+    const totalCommitted = departmentBudgets.reduce((s, d) => s + d.committed, 0);
+    const totalSpent = departmentBudgets.reduce((s, d) => s + d.spent, 0);
+    const pendingCampaignsCount = list.filter((b) => b.status === 'pending').length;
 
-    return { totalRequested, totalApproved, totalSpent, pendingCount };
-  }, [budgetRequests]);
+    return { totalAllocated, totalCommitted, totalSpent, pendingCampaignsCount };
+  }, [budgetRequests, departmentBudgets]);
 
   const handleOpenApprove = (b: MarketingBudgetRequest) => {
     setSelectedRequest(b);
@@ -88,10 +156,10 @@ export const FinanceBudgetRequestsView: React.FC = () => {
 
     if (amt < selectedRequest.requestedAmount) {
       partiallyApproveBudgetRequest(selectedRequest.id, amt, approvalNotes);
-      setToastMessage(`Partially approved budget of ₹${amt.toLocaleString('en-IN')} for "${selectedRequest.campaignName}".`);
+      setToastMessage(`Partially approved budget of ${formatINR(amt)} for "${selectedRequest.campaignName}".`);
     } else {
       approveBudgetRequest(selectedRequest.id, amt, approvalNotes);
-      setToastMessage(`Fully approved budget of ₹${amt.toLocaleString('en-IN')} for "${selectedRequest.campaignName}".`);
+      setToastMessage(`Fully approved budget of ${formatINR(amt)} for "${selectedRequest.campaignName}".`);
     }
     setTimeout(() => setToastMessage(null), 4000);
     setApproveModalOpen(false);
@@ -107,7 +175,7 @@ export const FinanceBudgetRequestsView: React.FC = () => {
     if (!selectedRequest || !rejectReason.trim()) return;
 
     rejectBudgetRequest(selectedRequest.id, rejectReason);
-    setToastMessage(`Budget proposal for "${selectedRequest.campaignName}" declined.`);
+    setToastMessage(`Campaign proposal "${selectedRequest.campaignName}" rejected.`);
     setTimeout(() => setToastMessage(null), 4000);
     setRejectModalOpen(false);
   };
@@ -115,251 +183,293 @@ export const FinanceBudgetRequestsView: React.FC = () => {
   return (
     <div className="space-y-5">
       {toastMessage && (
-        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl flex items-center justify-between animate-in fade-in">
+        <div className="p-3.5 bg-emerald-50/90 backdrop-blur-md border border-emerald-200 text-emerald-900 text-xs rounded-2xl flex items-center justify-between shadow-xs animate-in fade-in">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <span className="font-semibold">{toastMessage}</span>
           </div>
-          <Badge variant="success" size="sm">Budget Decided</Badge>
+          <Badge variant="success" size="sm">Updated</Badge>
         </div>
       )}
 
-      {/* ─── HEADER ─── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      {/* ─── HEADER & TAB SWITCHER ─── */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-4 rounded-3xl backdrop-blur-xl bg-white/70 border border-slate-200/80 shadow-xs">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-            Marketing Campaign Budget Governance
-          </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Audit and approve marketing allocations. Approved budgets represent authorized expenditure caps and are not recognized as expenses until actual bills are posted.
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+              Corporate Budgets &amp; Marketing Campaign Allocation
+            </h1>
+            <Badge variant="neutral" size="sm" className="font-mono text-[10px]">
+              Q3 FY 2026-27
+            </Badge>
+          </div>
+          <p className="text-xs text-slate-500 mt-1">
+            Departmental spending controls (Allocated vs Committed vs Spent) with 80%/100% threshold over-budget hard stops.
           </p>
         </div>
+
+        <div className="flex items-center p-1 bg-slate-100/80 rounded-2xl border border-slate-200 text-xs shrink-0">
+          <button
+            type="button"
+            onClick={() => setActiveTab('department_budgets')}
+            className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
+              activeTab === 'department_budgets' ? 'bg-white text-indigo-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            Department Budgets Matrix ({departmentBudgets.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('campaign_requests')}
+            className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
+              activeTab === 'campaign_requests' ? 'bg-white text-indigo-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            Campaign Requests ({budgetRequests.length})
+          </button>
+        </div>
       </div>
 
-      {/* ─── METRIC CARDS ─── */}
+      {/* ─── OVERALL BUDGET CARDS ─── */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-        <div className="glass-card p-3.5 rounded-2xl border border-indigo-200 bg-indigo-50/40">
-          <span className="text-[10px] font-bold uppercase text-indigo-800 block">Total Requested Budget</span>
-          <div className="text-xl font-bold text-indigo-950 font-mono mt-0.5">
-            ₹{metrics.totalRequested.toLocaleString('en-IN')}
-          </div>
-          <span className="text-[10px] text-indigo-600">Across {budgetRequests.length} campaign proposals</span>
-        </div>
-        <div className="glass-card p-3.5 rounded-2xl border border-emerald-200 bg-emerald-50/40">
-          <span className="text-[10px] font-bold uppercase text-emerald-800 block">Authorized Budget Cap</span>
-          <div className="text-xl font-bold text-emerald-950 font-mono mt-0.5">
-            ₹{metrics.totalApproved.toLocaleString('en-IN')}
-          </div>
-          <span className="text-[10px] text-emerald-700">Finance sanctioned ceiling</span>
-        </div>
-        <div className="glass-card p-3.5 rounded-2xl border border-slate-200 bg-white">
-          <span className="text-[10px] font-bold uppercase text-slate-500 block">Actual Expenditure Incurred</span>
+        <div className="backdrop-blur-md bg-white/80 p-3.5 rounded-2xl border border-slate-200/80 shadow-xs">
+          <span className="text-[10px] font-bold uppercase text-slate-500 block">Total Allocated Budget</span>
           <div className="text-xl font-bold text-slate-900 font-mono mt-0.5">
-            ₹{metrics.totalSpent.toLocaleString('en-IN')}
+            {formatINR(metrics.totalAllocated)}
           </div>
-          <span className="text-[10px] text-slate-400">Verified bills posted to date</span>
+          <span className="text-[10px] text-slate-400">Board approved fiscal cap</span>
         </div>
-        <div className="glass-card p-3.5 rounded-2xl border border-amber-200 bg-amber-50/40">
-          <span className="text-[10px] font-bold uppercase text-amber-800 block">Proposals Awaiting Decision</span>
-          <div className="text-xl font-bold text-amber-950 font-mono mt-0.5">
-            {metrics.pendingCount} Pending
+
+        <div className="backdrop-blur-md bg-indigo-50/60 p-3.5 rounded-2xl border border-indigo-200/80 shadow-xs">
+          <span className="text-[10px] font-bold uppercase text-indigo-800 block">Committed Funds (POs/Claims)</span>
+          <div className="text-xl font-bold text-indigo-950 font-mono mt-0.5">
+            {formatINR(metrics.totalCommitted)}
           </div>
-          <span className="text-[10px] text-amber-700">Requires CFO review</span>
+          <span className="text-[10px] text-indigo-600">Pending disbursement</span>
+        </div>
+
+        <div className="backdrop-blur-md bg-emerald-50/60 p-3.5 rounded-2xl border border-emerald-200/80 shadow-xs">
+          <span className="text-[10px] font-bold uppercase text-emerald-800 block">Total Spent to Date</span>
+          <div className="text-xl font-bold text-emerald-950 font-mono mt-0.5">
+            {formatINR(metrics.totalSpent)}
+          </div>
+          <span className="text-[10px] text-emerald-700">Actual financial outflows</span>
+        </div>
+
+        <div className="backdrop-blur-md bg-purple-50/60 p-3.5 rounded-2xl border border-purple-200/80 shadow-xs">
+          <span className="text-[10px] font-bold uppercase text-purple-800 block">Pending Campaign Proposals</span>
+          <div className="text-xl font-bold text-purple-950 font-mono mt-0.5">
+            {metrics.pendingCampaignsCount} Proposals
+          </div>
+          <span className="text-[10px] text-purple-700">Awaiting Finance authorization</span>
         </div>
       </div>
 
-      {/* ─── SEARCH & FILTER ─── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200">
-        <div className="flex-1 max-w-sm">
-          <SearchInput
-            value={searchTerm}
-            onChange={(val) => setSearchTerm(val)}
-            placeholder="Search campaign name, requester, objective..."
-            className="text-xs"
-          />
-        </div>
+      {/* ─── DEPARTMENT BUDGETS MATRIX TAB ─── */}
+      {activeTab === 'department_budgets' && (
+        <Card className="backdrop-blur-md bg-white/90 border border-slate-200/80 shadow-xs space-y-4 p-4">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+            <div>
+              <h3 className="font-bold text-slate-900 text-sm">Active Department Spending &amp; Threshold Tracking</h3>
+              <p className="text-xs text-slate-500">
+                Visual progress: Green &lt; 80% • Yellow 80-100% • Red &gt; 100% (Hard block on purchase orders).
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-slate-500">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" /> Safe
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block ml-2" /> Alert
+              <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block ml-2" /> Breached
+            </div>
+          </div>
 
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-slate-700 font-medium focus:outline-none cursor-pointer"
-        >
-          <option value="all">All Decision Statuses</option>
-          <option value="pending">Awaiting Review</option>
-          <option value="approved">Approved</option>
-          <option value="partially_approved">Partially Approved</option>
-          <option value="rejected">Rejected</option>
-        </select>
-      </div>
+          <div className="divide-y divide-slate-100">
+            {departmentBudgets.map((db) => {
+              const pct = db.utilizationPercent;
+              const isOver = pct > 100;
+              const isWarning = pct >= 80 && pct <= 100;
 
-      {/* ─── TABLE ─── */}
-      <Card>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-slate-100 text-slate-400 font-semibold uppercase text-[10px] bg-slate-50/60">
-                <th className="py-3 px-4">Campaign Name &amp; ID</th>
-                <th className="py-3 px-4">Requester &amp; Region</th>
-                <th className="py-3 px-4">Target Objective</th>
-                <th className="py-3 px-4 text-right">Requested Budget</th>
-                <th className="py-3 px-4 text-right">Sanctioned Budget</th>
-                <th className="py-3 px-4 text-right">Actual Spent</th>
-                <th className="py-3 px-4 text-center">Status</th>
-                <th className="py-3 px-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
-              {filteredRequests.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="py-8 text-center text-slate-400 italic">
-                    No marketing budget requests found.
-                  </td>
-                </tr>
-              ) : (
-                filteredRequests.map((b) => (
-                  <tr key={b.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3 px-4">
-                      <span className="font-bold text-slate-900 block">{b.campaignName}</span>
-                      <span className="text-[10px] text-indigo-600 font-mono block">{b.id}</span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="text-slate-800 font-medium block">{b.requestingUserName}</span>
-                      <span className="text-[10px] text-slate-400">{b.regionName || b.regionId}</span>
-                    </td>
-                    <td className="py-3 px-4 max-w-xs">
-                      <span className="text-[11px] text-slate-800 line-clamp-1">{b.objective}</span>
-                      <span className="text-[10px] text-slate-400">Created: {b.createdAt?.split('T')[0]}</span>
-                    </td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">
-                      ₹{b.requestedAmount.toLocaleString('en-IN')}
-                    </td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-emerald-800 text-sm">
-                      {b.approvedAmount !== undefined ? `₹${b.approvedAmount.toLocaleString('en-IN')}` : '—'}
-                    </td>
-                    <td className="py-3 px-4 text-right font-mono text-slate-600">
-                      ₹{b.spentAmount.toLocaleString('en-IN')}
-                    </td>
-                    <td className="py-3 px-4 text-center">
+              return (
+                <div key={db.department} className="py-4 space-y-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                    <div>
+                      <span className="font-bold text-slate-900 text-sm">{db.department}</span>
+                      <span className="text-[11px] text-slate-400 block">{db.category}</span>
+                    </div>
+                    <div className="flex items-center gap-4 text-xs font-mono">
+                      <div>
+                        <span className="text-[9px] uppercase text-slate-400 block">Allocated</span>
+                        <span className="font-bold text-slate-900">{formatINR(db.allocated)}</span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] uppercase text-indigo-700 block">Committed</span>
+                        <span className="font-bold text-indigo-900">{formatINR(db.committed)}</span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] uppercase text-emerald-700 block">Spent</span>
+                        <span className="font-bold text-emerald-900">{formatINR(db.spent)}</span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] uppercase text-slate-400 block">Remaining</span>
+                        <span className={`font-bold ${db.remaining < 0 ? 'text-rose-600' : 'text-slate-700'}`}>
+                          {formatINR(db.remaining)}
+                        </span>
+                      </div>
                       <Badge
                         size="sm"
-                        variant={
-                          b.status === 'approved'
-                            ? 'success'
-                            : b.status === 'partially_approved'
-                            ? 'primary'
-                            : b.status === 'rejected'
-                            ? 'danger'
-                            : 'warning'
-                        }
+                        variant={isOver ? 'danger' : isWarning ? 'warning' : 'success'}
                       >
-                        {b.status?.replace('_', ' ').toUpperCase()}
+                        {pct}%
                       </Badge>
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => setSelectedRequest(b)}
-                          className="h-7 text-xs px-2"
-                        >
-                          <Eye className="w-3.5 h-3.5 mr-1" />
-                          View
-                        </Button>
+                    </div>
+                  </div>
 
-                        {b.status === 'pending' && (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleOpenReject(b)}
-                              className="h-7 text-xs px-2 text-rose-600 border-rose-200 hover:bg-rose-50"
-                            >
-                              Reject
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="primary"
-                              onClick={() => handleOpenApprove(b)}
-                              className="h-7 text-xs px-2"
-                            >
-                              Approve
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+                  {/* Visual Progress Bar */}
+                  <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${
+                        isOver
+                          ? 'bg-rose-500'
+                          : isWarning
+                          ? 'bg-amber-500'
+                          : 'bg-emerald-500'
+                      }`}
+                      style={{ width: `${Math.min(100, pct)}%` }}
+                    />
+                  </div>
 
-      {/* ─── VIEW PROPOSAL MODAL ─── */}
-      {selectedRequest && !approveModalOpen && !rejectModalOpen && (
-        <Modal
-          isOpen={!!selectedRequest}
-          onClose={() => setSelectedRequest(null)}
-          title={`Campaign Proposal: ${selectedRequest.campaignName}`}
-          maxWidth="lg"
-        >
-          <div className="space-y-4 text-xs text-slate-800">
-            <div className="flex justify-between border-b border-slate-200 pb-2">
-              <div>
-                <span className="font-bold text-slate-900 text-sm block">{selectedRequest.campaignName}</span>
-                <span className="text-[10px] text-slate-400">
-                  Requester: {selectedRequest.requestingUserName} • {selectedRequest.regionName}
-                </span>
-              </div>
-              <Badge variant="purple" size="md">{selectedRequest.status?.replace('_', ' ').toUpperCase()}</Badge>
-            </div>
-
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
-              <span className="font-bold text-slate-900 block">Campaign Objectives:</span>
-              <p className="text-slate-700 leading-relaxed">{selectedRequest.objective}</p>
-            </div>
-
-            <div>
-              <span className="font-bold text-slate-900 block mb-1.5">Proposed Cost Breakdown:</span>
-              <div className="border border-slate-200 rounded-xl overflow-hidden">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="bg-slate-100 text-slate-500 font-semibold text-[10px]">
-                      <th className="py-2 px-3">Expense Head</th>
-                      <th className="py-2 px-3 text-right">Cost (₹)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {selectedRequest.proposedExpensesBreakdown?.map((item, idx) => (
-                      <tr key={idx}>
-                        <td className="py-2 px-3 font-medium text-slate-800">{item.item}</td>
-                        <td className="py-2 px-3 text-right font-mono font-bold">₹{item.amount.toLocaleString('en-IN')}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-[11px] text-emerald-950">
-              <strong>Projected ROI &amp; Outcomes:</strong> {selectedRequest.expectedOutcomes}
-            </div>
-
-            {selectedRequest.reviewNotes && (
-              <div className="p-3 bg-purple-50 border border-purple-200 rounded-xl text-[11px] text-purple-950">
-                <strong>Finance Controller Note:</strong> {selectedRequest.reviewNotes} (Reviewed by: {selectedRequest.reviewedByUserName})
-              </div>
-            )}
-
-            <div className="flex justify-end pt-3 border-t border-slate-200">
-              <Button variant="outline" size="sm" onClick={() => setSelectedRequest(null)}>
-                Close
-              </Button>
-            </div>
+                  {isOver && (
+                    <div className="p-2 bg-rose-50 rounded-xl border border-rose-200 text-[11px] text-rose-800 flex items-center gap-2">
+                      <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                      <span>
+                        <strong>Over-Budget Warning:</strong> Spending has exceeded the board allocation by {formatINR(Math.abs(db.remaining))}. Purchase order approvals are locked until a budget expansion is submitted.
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
-        </Modal>
+        </Card>
+      )}
+
+      {/* ─── MARKETING CAMPAIGN REQUESTS TAB ─── */}
+      {activeTab === 'campaign_requests' && (
+        <>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 backdrop-blur-md bg-white/80 p-3.5 rounded-2xl border border-slate-200/80 shadow-xs">
+            <div className="flex-1 max-w-sm">
+              <SearchInput
+                value={searchTerm}
+                onChange={(val) => setSearchTerm(val)}
+                placeholder="Search campaign name, requester, objective..."
+                className="text-xs"
+              />
+            </div>
+
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-slate-700 font-medium focus:outline-none cursor-pointer"
+            >
+              <option value="all">All Campaign Proposals</option>
+              <option value="pending">Pending Approval</option>
+              <option value="approved">Fully Approved</option>
+              <option value="partially_approved">Partially Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+
+          <Card className="backdrop-blur-md bg-white/90 border border-slate-200/80 shadow-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-slate-100 text-slate-400 font-semibold uppercase text-[10px] bg-slate-50/70">
+                    <th className="py-3 px-4">Campaign Name</th>
+                    <th className="py-3 px-4">Requesting User &amp; Dept</th>
+                    <th className="py-3 px-4 text-right">Requested</th>
+                    <th className="py-3 px-4 text-right">Approved</th>
+                    <th className="py-3 px-4 text-right">Spent to Date</th>
+                    <th className="py-3 px-4 text-center">Status</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
+                  {filteredRequests.map((b) => (
+                    <tr key={b.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3 px-4 font-bold text-slate-900">
+                        {b.campaignName}
+                        <span className="text-[10px] text-slate-400 font-normal block font-sans truncate max-w-xs">
+                          {b.objective}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="font-bold text-slate-800 block">{b.requestingUserName}</span>
+                        <span className="text-[10px] text-slate-400 block">{b.department}</span>
+                      </td>
+                      <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">
+                        {formatINR(b.requestedAmount)}
+                      </td>
+                      <td className="py-3 px-4 text-right font-mono text-emerald-700">
+                        {b.approvedAmount ? formatINR(b.approvedAmount) : '—'}
+                      </td>
+                      <td className="py-3 px-4 text-right font-mono text-slate-600">
+                        {b.spentAmount ? formatINR(b.spentAmount) : '₹0.00'}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <Badge
+                          size="sm"
+                          variant={
+                            b.status === 'approved'
+                              ? 'success'
+                              : b.status === 'partially_approved'
+                              ? 'primary'
+                              : b.status === 'rejected'
+                              ? 'danger'
+                              : 'warning'
+                          }
+                        >
+                          {b.status.replace(/_/g, ' ').toUpperCase()}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => setSelectedRequest(b)}
+                            className="h-7 text-xs px-2"
+                          >
+                            <Eye className="w-3.5 h-3.5 mr-1" />
+                            View
+                          </Button>
+                          {b.status === 'pending' && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="primary"
+                                onClick={() => handleOpenApprove(b)}
+                                className="h-7 text-xs px-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                              >
+                                Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleOpenReject(b)}
+                                className="h-7 text-xs px-2 text-rose-700 border-rose-200"
+                              >
+                                Reject
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </>
       )}
 
       {/* ─── APPROVE MODAL ─── */}
@@ -367,37 +477,40 @@ export const FinanceBudgetRequestsView: React.FC = () => {
         <Modal
           isOpen={approveModalOpen}
           onClose={() => setApproveModalOpen(false)}
-          title={`Sanction Budget: ${selectedRequest.campaignName}`}
+          title={`Approve Campaign Budget: ${selectedRequest.campaignName}`}
           maxWidth="md"
         >
           <div className="space-y-4 text-xs text-slate-800">
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
-              <div className="flex justify-between font-bold">
-                <span>Requested Budget:</span>
-                <span className="font-mono">₹{selectedRequest.requestedAmount.toLocaleString('en-IN')}</span>
+            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Requested Amount:</span>
+                <span className="font-mono font-bold text-slate-900">{formatINR(selectedRequest.requestedAmount)}</span>
+              </div>
+              <div className="flex justify-between mt-1">
+                <span className="text-slate-500">Requester:</span>
+                <span className="font-bold text-slate-900">{selectedRequest.requestingUserName}</span>
               </div>
             </div>
 
-            <div>
-              <label className="text-xs font-bold text-slate-700 block">Sanctioned Amount (₹)</label>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700 block">Authorized Amount (₹)</label>
               <input
                 type="number"
                 value={approvedAmount}
                 onChange={(e) => setApprovedAmount(e.target.value)}
                 className="w-full text-xs p-2 rounded-xl border border-slate-200 font-mono font-bold text-slate-900 focus:outline-none"
-                placeholder="Enter authorized cap"
               />
-              <span className="text-[10px] text-slate-400 mt-1 block">
-                Entering less than ₹{selectedRequest.requestedAmount.toLocaleString('en-IN')} will mark this request as Partially Approved.
-              </span>
+              <p className="text-[10px] text-slate-400">
+                If lower than requested, the system will record a Partial Approval.
+              </p>
             </div>
 
-            <div>
-              <label className="text-xs font-bold text-slate-700 block">Finance Review Comments</label>
-              <input
-                type="text"
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700 block">Finance Review Notes</label>
+              <textarea
                 value={approvalNotes}
                 onChange={(e) => setApprovalNotes(e.target.value)}
+                rows={2}
                 className="w-full text-xs p-2 rounded-xl border border-slate-200 text-slate-800 focus:outline-none"
               />
             </div>
@@ -406,9 +519,14 @@ export const FinanceBudgetRequestsView: React.FC = () => {
               <Button variant="outline" size="sm" onClick={() => setApproveModalOpen(false)}>
                 Cancel
               </Button>
-              <Button variant="primary" size="sm" onClick={handleConfirmApprove}>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleConfirmApprove}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
                 <Check className="w-4 h-4 mr-1" />
-                Sanction Budget
+                Confirm Authorization
               </Button>
             </div>
           </div>
@@ -420,22 +538,18 @@ export const FinanceBudgetRequestsView: React.FC = () => {
         <Modal
           isOpen={rejectModalOpen}
           onClose={() => setRejectModalOpen(false)}
-          title={`Reject Budget Proposal: ${selectedRequest.campaignName}`}
+          title={`Reject Campaign Budget: ${selectedRequest.campaignName}`}
           maxWidth="md"
         >
           <div className="space-y-4 text-xs text-slate-800">
-            <p className="text-slate-600">
-              Please enter the finance feedback explaining why this proposal cannot be funded at this time.
-            </p>
-
-            <div>
-              <label className="text-xs font-bold text-slate-700 block">Reason for Rejection (Mandatory)</label>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700 block">Reason for Rejection</label>
               <textarea
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
-                className="w-full text-xs p-2.5 rounded-xl border border-slate-200 text-slate-900 focus:outline-none focus:ring-1 focus:ring-rose-500"
                 rows={3}
-                placeholder="e.g. Non-aligned with regional distribution strategy; reallocation required."
+                className="w-full text-xs p-2 rounded-xl border border-slate-200 focus:outline-none"
+                placeholder="State budget ceiling constraint or non-aligned ROI rationale..."
               />
             </div>
 
@@ -444,12 +558,67 @@ export const FinanceBudgetRequestsView: React.FC = () => {
                 Cancel
               </Button>
               <Button
-                variant="danger"
+                variant="primary"
                 size="sm"
                 onClick={handleConfirmReject}
-                disabled={!rejectReason.trim()}
+                className="bg-rose-600 hover:bg-rose-700 text-white"
               >
                 Confirm Rejection
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ─── VIEW DETAIL MODAL ─── */}
+      {selectedRequest && !approveModalOpen && !rejectModalOpen && (
+        <Modal
+          isOpen={!!selectedRequest}
+          onClose={() => setSelectedRequest(null)}
+          title={`Campaign Proposal: ${selectedRequest.campaignName}`}
+          maxWidth="md"
+        >
+          <div className="space-y-4 text-xs text-slate-800">
+            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-1">
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-slate-900 text-sm">{selectedRequest.campaignName}</span>
+                <Badge variant={selectedRequest.status === 'approved' ? 'success' : 'warning'} size="sm">
+                  {selectedRequest.status.toUpperCase()}
+                </Badge>
+              </div>
+              <p className="text-[11px] text-slate-500">Department: {selectedRequest.department}</p>
+            </div>
+
+            <div className="space-y-1.5 p-3 bg-slate-50 rounded-2xl border border-slate-200">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Requested Amount:</span>
+                <span className="font-mono font-bold text-slate-900">{formatINR(selectedRequest.requestedAmount)}</span>
+              </div>
+              {selectedRequest.approvedAmount && (
+                <div className="flex justify-between text-emerald-800 font-bold">
+                  <span>Approved Budget:</span>
+                  <span className="font-mono">{formatINR(selectedRequest.approvedAmount)}</span>
+                </div>
+              )}
+              {selectedRequest.spentAmount && (
+                <div className="flex justify-between text-slate-600">
+                  <span>Spent to Date:</span>
+                  <span className="font-mono">{formatINR(selectedRequest.spentAmount)}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200">
+              <span className="font-bold text-slate-500 uppercase text-[9px] block">Objective &amp; Expected Outcomes</span>
+              <p className="text-slate-800 mt-0.5">{selectedRequest.objective}</p>
+              {selectedRequest.expectedOutcomes && (
+                <p className="text-slate-600 text-[11px] mt-1 italic">{selectedRequest.expectedOutcomes}</p>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-3 border-t border-slate-200">
+              <Button variant="outline" size="sm" onClick={() => setSelectedRequest(null)}>
+                Close
               </Button>
             </div>
           </div>

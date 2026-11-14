@@ -150,58 +150,7 @@ const SalesPortalInner: React.FC = () => {
   const activeSubRoleInfo = SUB_ROLES.find((r) => r.id === userRole) || SUB_ROLES[2];
 
   return (
-    <div className="sales-portal-workspace w-full max-w-[1600px] mx-auto pb-16 space-y-4 font-sans">
-      {/* ─── Sales Role & Hierarchy Indicator Banner ─── */}
-      <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-4 sm:p-6 transition-all">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="flex items-start sm:items-center gap-3.5">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 text-white flex items-center justify-center shadow-sm shrink-0">
-              <Briefcase className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
-                  Commercial Sales & Distribution Department
-                </h2>
-                <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${activeSubRoleInfo.badgeClass}`}>
-                  {activeSubRoleInfo.level}: {activeSubRoleInfo.title}
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-2 flex-wrap">
-                <span>Active Persona: <strong className="text-slate-800 font-semibold">{userProfile?.fullName || activeSubRoleInfo.person}</strong></span>
-                <span>•</span>
-                <span>Role Scope: <span className="font-mono text-indigo-700 font-semibold">{activeSubRoleInfo.badge}</span></span>
-                <span>•</span>
-                <span className="text-slate-400">{activeSubRoleInfo.desc}</span>
-              </p>
-            </div>
-          </div>
-
-          {/* Sub-role Selector Buttons */}
-          <div className="flex items-center gap-1.5 p-1 bg-slate-100/80 rounded-xl border border-slate-200/70 overflow-x-auto shrink-0">
-            {SUB_ROLES.map((r) => {
-              const isActive = userRole === r.id;
-              return (
-                <button
-                  key={r.id}
-                  type="button"
-                  onClick={() => handleSubRoleSwitch(r.id, r.userId)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
-                    isActive
-                      ? 'bg-white text-indigo-700 shadow-xs border border-slate-200 font-bold'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
-                  }`}
-                  title={`${r.level}: ${r.title} (${r.person}) - ${r.desc}`}
-                >
-                  <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-indigo-600' : 'bg-slate-300'}`} />
-                  <span>{r.title}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
+    <div className="sales-portal-workspace w-full max-w-[1600px] mx-auto pb-16 font-sans">
       {/* ─── Sales Route Outlet ─── */}
       <div className="sales-content-viewport">
         <Routes>
