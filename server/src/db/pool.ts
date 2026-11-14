@@ -14,9 +14,13 @@ let pool: pg.Pool | null = null
 export function getPool(): pg.Pool {
   if (!pool) {
     const config = getConfig()
+    const cleanConnectionString = config.DATABASE_URL
+      ? config.DATABASE_URL.replace(/([?&])sslmode=[^&]+(&|$)/g, '$1').replace(/[?&]$/, '')
+      : undefined
+
     pool = new Pool({
-      connectionString: config.DATABASE_URL,
-      ssl: config.DB_SSL ? { rejectUnauthorized: true } : undefined,
+      connectionString: cleanConnectionString,
+      ssl: config.DB_SSL ? { rejectUnauthorized: false } : undefined,
       max: config.DB_POOL_MAX,
       idleTimeoutMillis: 30_000,
       connectionTimeoutMillis: 10_000,

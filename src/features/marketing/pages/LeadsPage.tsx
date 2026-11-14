@@ -440,6 +440,7 @@ export function LeadsPage({ tab }: { tab: string }) {
   const { pushToast } = useToast()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
+  const chartAnim = useChartAnimation()
 
   const [createOpen, setCreateOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
@@ -2342,7 +2343,7 @@ export function LeadsPage({ tab }: { tab: string }) {
                 <XAxis type="number" {...axisProps} />
                 <YAxis type="category" dataKey="source" {...axisProps} width={108} tick={{ fill: 'var(--muted)', fontSize: 9.5 }} />
                 <Tooltip content={<ChartTooltip valueFormatter={(value) => `${value} leads`} />} cursor={{ fill: 'var(--surface-2)' }} />
-                <Bar dataKey="leads" name="Leads" radius={[0, 4, 4, 0]} isAnimationActive={useChartAnimation()}>
+                <Bar dataKey="leads" name="Leads" radius={[0, 4, 4, 0]} isAnimationActive={chartAnim}>
                   {sources.map((entry, index) => (
                     <Cell key={entry.source} fill={chartColors[index % chartColors.length]} />
                   ))}
@@ -2774,7 +2775,7 @@ export function LeadsPage({ tab }: { tab: string }) {
                 <XAxis type="number" {...axisProps} tickFormatter={(value: number) => `${value}%`} />
                 <YAxis type="category" dataKey="name" {...axisProps} width={108} tick={{ fill: 'var(--muted)', fontSize: 9.5 }} />
                 <Tooltip content={<ChartTooltip valueFormatter={(value) => `${value.toFixed(1)}%`} />} cursor={{ fill: 'var(--surface-2)' }} />
-                <Bar dataKey="roi" name="ROI" radius={[0, 4, 4, 0]} isAnimationActive={useChartAnimation()}>
+                <Bar dataKey="roi" name="ROI" radius={[0, 4, 4, 0]} isAnimationActive={chartAnim}>
                   {rows.map((campaign) => <Cell key={campaign.id} fill={(campaignRoi(campaign) ?? 0) >= 100 ? 'var(--chart-2)' : 'var(--chart-1)'} />)}
                 </Bar>
               </BarChart>

@@ -76,73 +76,6 @@ export default function MarketingLeadsPage() {
   // Multi-match resolution modal
   const [verificationData, setVerificationData] = useState(null); // { lead, matches }
 
-  // Strict role-based access control: Junior Sales Employees are blocked
-  if (userRole === 'junior_sales') {
-    return (
-      <div className="page-container">
-        <CustomersSubNav currentTab="marketing-leads" />
-
-        <div
-          style={{
-            maxWidth: '650px',
-            margin: '40px auto',
-            background: '#ffffff',
-            border: '1px solid #fecdd3',
-            borderRadius: '10px',
-            padding: '30px',
-            textAlign: 'center',
-            boxShadow: '0 4px 12px rgba(225, 29, 72, 0.08)',
-          }}
-        >
-          <div
-            style={{
-              width: '56px',
-              height: '56px',
-              background: '#ffe4e6',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 16px',
-            }}
-          >
-            <ShieldAlert size={28} className="text-rose-600" />
-          </div>
-
-          <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#9f1239', marginBottom: '8px' }}>
-            Access Restricted — Marketing Leads
-          </h2>
-
-          <p style={{ fontSize: '13px', color: '#475569', lineHeight: '1.6', marginBottom: '16px' }}>
-            Inbound Marketing Leads are reserved for <strong>Sales Managers</strong>,{' '}
-            <strong>Sales Coordinators</strong>, and <strong>Sales Representatives</strong>. Per ApexERP Sales
-            Governance policy, Junior Sales Employees do not have authorization to view or process inbound marketing
-            referrals.
-          </p>
-
-          <div
-            style={{
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              borderRadius: '6px',
-              padding: '12px',
-              fontSize: '12px',
-              color: '#64748b',
-              textAlign: 'left',
-            }}
-          >
-            <strong>Your Assigned Access Scope:</strong>
-            <ul style={{ margin: '6px 0 0', paddingLeft: '18px' }}>
-              <li>Sales Customers directory (Read & update existing assigned customer accounts)</li>
-              <li>Dual-level Quotation drafting with approval workflows</li>
-              <li>Daily Schedule, Attendance, and Work Updates</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   // Summary Metrics Calculation (based on scoped leads)
   const metrics = useMemo(() => {
     const total = scopedMarketingLeads.length;
@@ -234,6 +167,73 @@ export default function MarketingLeadsPage() {
       return true;
     });
   }, [scopedMarketingLeads, search, statusFilter, locationFilter, assignedFilter, dateFilter]);
+
+  // Strict role-based access control: Junior Sales Employees are blocked
+  if (userRole === 'junior_sales') {
+    return (
+      <div className="page-container">
+        <CustomersSubNav currentTab="marketing-leads" />
+
+        <div
+          style={{
+            maxWidth: '650px',
+            margin: '40px auto',
+            background: '#ffffff',
+            border: '1px solid #fecdd3',
+            borderRadius: '10px',
+            padding: '30px',
+            textAlign: 'center',
+            boxShadow: '0 4px 12px rgba(225, 29, 72, 0.08)',
+          }}
+        >
+          <div
+            style={{
+              width: '56px',
+              height: '56px',
+              background: '#ffe4e6',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px',
+            }}
+          >
+            <ShieldAlert size={28} className="text-rose-600" />
+          </div>
+
+          <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#9f1239', marginBottom: '8px' }}>
+            Access Restricted — Marketing Leads
+          </h2>
+
+          <p style={{ fontSize: '13px', color: '#475569', lineHeight: '1.6', marginBottom: '16px' }}>
+            Inbound Marketing Leads are reserved for <strong>Sales Managers</strong>,{' '}
+            <strong>Sales Coordinators</strong>, and <strong>Sales Representatives</strong>. Per ApexERP Sales
+            Governance policy, Junior Sales Employees do not have authorization to view or process inbound marketing
+            referrals.
+          </p>
+
+          <div
+            style={{
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '6px',
+              padding: '12px',
+              fontSize: '12px',
+              color: '#64748b',
+              textAlign: 'left',
+            }}
+          >
+            <strong>Your Assigned Access Scope:</strong>
+            <ul style={{ margin: '6px 0 0', paddingLeft: '18px' }}>
+              <li>Sales Customers directory (Read & update existing assigned customer accounts)</li>
+              <li>Dual-level Quotation drafting with approval workflows</li>
+              <li>Daily Schedule, Attendance, and Work Updates</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Handle lead acceptance with multi-match resolution
   const handleAcceptLead = (lead) => {

@@ -34,6 +34,12 @@ export default function EmployeeProfile() {
   const reviews = useMemo(() => db.reviews.filter((r) => r.employeeId === id), [db.reviews, id])
   const requests = useMemo(() => db.requests.filter((r) => r.employeeId === id).sort((a, b) => b.createdAt.localeCompare(a.createdAt)), [db.requests, id])
 
+  const completeness = useMemo(() => {
+    if (!employee) return 0
+    const fields = [employee.phone, employee.email, employee.address, employee.emergencyContact, employee.dob, employee.bio, employee.bankAccount, employee.photo, employee.skills.length ? 'yes' : '', employee.documents.length ? 'yes' : '']
+    return Math.round((fields.filter(Boolean).length / fields.length) * 100)
+  }, [employee])
+
   if (!employee) {
     return (
       <div>
@@ -51,11 +57,6 @@ export default function EmployeeProfile() {
   const attendanceBase = attendance.slice(0, 30)
   const attendanceRate = attendanceBase.length ? Math.round((attendanceBase.filter((a) => ['Present', 'Late', 'Remote', 'Half Day'].includes(a.status)).length / attendanceBase.length) * 100) : 0
   const totalDocs = employee.documents.length
-
-  const completeness = useMemo(() => {
-    const fields = [employee.phone, employee.email, employee.address, employee.emergencyContact, employee.dob, employee.bio, employee.bankAccount, employee.photo, employee.skills.length ? 'yes' : '', employee.documents.length ? 'yes' : '']
-    return Math.round((fields.filter(Boolean).length / fields.length) * 100)
-  }, [employee])
 
   const balances = db.settings.leaveTypes.map((t) => {
     const used = leaves.filter((l) => l.leaveType === t.name && l.status === 'Approved').reduce((a, l) => a + l.days, 0)

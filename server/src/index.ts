@@ -1,7 +1,12 @@
+import dns from 'node:dns'
 import { createApp } from './app.js'
 import { getConfig } from './config.js'
 import { assertRlsRoleAvailable, closePool } from './db/pool.js'
 import { logger } from './logger.js'
+
+try {
+  dns.setDefaultResultOrder('ipv4first')
+} catch {}
 
 async function main() {
   const config = getConfig()
