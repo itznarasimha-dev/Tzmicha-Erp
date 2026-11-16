@@ -1,0 +1,39 @@
+# Git Attributes Configuration for ERP System
+# Enforce LF endings across all text files on Windows, macOS, and Linux
+* text=auto eol=lf
+
+# Explicit text file types
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.json text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.sql text eol=lf
+*.sh text eol=lf
+*.env.example text eol=lf
+
+# Binary file types - prevent corruption and merge attempts
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg text eol=lf
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.dump binary
+*.tar binary
+*.gz binary
+*.zip binary
+
+# Database migration files: never auto-merge, require human resolution
+supabase/migrations/*.sql merge=union
+prisma/migrations/*/*.sql merge=union

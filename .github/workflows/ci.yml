@@ -1,0 +1,52 @@
+name: CI Quality & Safety Gate
+
+on:
+  push:
+    branches: [ develop, main ]
+  pull_request:
+    branches: [ develop, main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Lint, Build, and Route Verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Root Dependencies
+        run: npm ci || npm install
+
+      - name: Install Backend Dependencies
+        run: npm ci --prefix server || npm install --prefix server
+
+      - name: Linter Check (Oxlint)
+        run: npm run lint
+
+      - name: Typecheck and Build Frontend
+        run: npm run build
+
+      - name: Build Backend TypeScript
+        run: npm run build --prefix server
+
+      - name: Run Frontend Tests
+        run: npm test
+
+      - name: Run Backend Tests & API Route Coverage
+        env:
+          NODE_ENV: test
+          LOG_LEVEL: silent
+          DB_ENFORCE_RLS: 'false'
+          SUPABASE_JWT_SECRET: 'test-secret-value-that-is-long-enough-1234567890'
+        run: npm test --prefix server

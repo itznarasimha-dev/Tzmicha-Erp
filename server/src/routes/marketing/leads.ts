@@ -477,7 +477,7 @@ const LEAD_UPDATE_COLUMNS = {
 
 leadsRouter.patch(
   '/leads/:id',
-  requirePermission('marketing.lead.update'),
+  requirePermission('marketing.lead.update', 'sales.lead.update'),
   validateBody(leadUpdateSchema),
   async (req, res) => {
     const auth = req.auth!
@@ -586,7 +586,7 @@ const assignSchema = z.object({
 
 leadsRouter.post(
   '/leads/:id/assign',
-  requirePermission('marketing.lead.assign'),
+  requirePermission('marketing.lead.assign', 'sales.lead.assign', 'sales.lead.update'),
   validateBody(assignSchema),
   async (req, res) => {
     const auth = req.auth!
@@ -683,7 +683,7 @@ const followUpCreateSchema = z.object({
 
 leadsRouter.post(
   '/leads/:id/follow-ups',
-  requirePermission('marketing.lead.followup'),
+  requirePermission('marketing.lead.followup', 'sales.lead.followup', 'sales.lead.update'),
   validateBody(followUpCreateSchema),
   async (req, res) => {
     const auth = req.auth!
@@ -750,7 +750,7 @@ const followUpCompleteSchema = z.object({
 
 leadsRouter.post(
   '/leads/:id/follow-ups/:followUpId/complete',
-  requirePermission('marketing.lead.followup'),
+  requirePermission('marketing.lead.followup', 'sales.lead.followup', 'sales.lead.update'),
   validateBody(followUpCompleteSchema),
   async (req, res) => {
     const auth = req.auth!
@@ -883,7 +883,7 @@ leadsRouter.get('/leads/:id/activities', async (req, res) => {
 
 leadsRouter.post(
   '/leads/:id/activities',
-  requirePermission('marketing.lead.update'),
+  requirePermission('marketing.lead.update', 'sales.lead.update'),
   validateBody(
     z.object({
       type: z.string().trim().min(1).max(80).default('Note'),
@@ -923,7 +923,7 @@ leadsRouter.post(
 // ---------------------------------------------------------------------------
 leadsRouter.post(
   '/leads/:id/reject',
-  requirePermission('marketing.lead.reject'),
+  requirePermission('marketing.lead.reject', 'sales.lead.reject', 'sales.lead.update'),
   validateBody(
     z.object({
       reason: z.string().trim().min(3).max(500),
@@ -1012,7 +1012,7 @@ const convertSchema = z.object({
 
 leadsRouter.post(
   '/leads/:id/convert',
-  requirePermission('marketing.lead.convert'),
+  requirePermission('marketing.lead.convert', 'sales.lead.convert', 'sales.lead.update'),
   validateBody(convertSchema),
   async (req, res) => {
     const auth = req.auth!
