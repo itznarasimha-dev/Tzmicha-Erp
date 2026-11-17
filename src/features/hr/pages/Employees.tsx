@@ -262,7 +262,7 @@ export default function Employees() {
             </thead>
             <tbody>
               {rows.map((e) => (
-                <tr key={e.id} className="table-row cursor-pointer" onClick={() => navigate(`/employees/${e.id}`)}>
+                <tr key={e.id} className="table-row cursor-pointer" onClick={() => navigate(`/hr/employees/${e.id}`)}>
                   <td className="table-cell">
                     <div className="flex items-center gap-3">
                       <Avatar name={fullName(e)} src={e.photo} size="md" />
@@ -283,7 +283,7 @@ export default function Employees() {
                   <td className="table-cell tabular">{fmtDate(e.joiningDate)}</td>
                   <td className="table-cell">
                     <div className="flex items-center justify-end gap-0.5" onClick={(ev) => ev.stopPropagation()}>
-                      <IconButton aria-label={`View ${fullName(e)}`} onClick={() => navigate(`/employees/${e.id}`)} title="View profile"><Eye className="h-4 w-4" /></IconButton>
+                      <IconButton aria-label={`View ${fullName(e)}`} onClick={() => navigate(`/hr/employees/${e.id}`)} title="View profile"><Eye className="h-4 w-4" /></IconButton>
                       {access.can('employee.update') && (
                         <IconButton aria-label={`Edit ${fullName(e)}`} onClick={() => { setEditing(e as Employee); setModalOpen(true) }} title="Edit employee"><Pencil className="h-3.5 w-3.5" /></IconButton>
                       )}

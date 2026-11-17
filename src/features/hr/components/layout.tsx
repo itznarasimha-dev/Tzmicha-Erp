@@ -19,41 +19,41 @@ const navSections: { title: string; items: NavItem[] }[] = [
   {
     title: 'Workspace',
     items: [
-      { label: 'My Dashboard', to: '/', icon: LayoutDashboard, accessId: 'dashboard' },
-      { label: 'Employees', to: '/employees', icon: Users, accessId: 'employees' },
-      { label: 'Attendance', to: '/attendance', icon: CalendarCheck, accessId: 'attendance' },
-      { label: 'Leave Management', to: '/leave', icon: CalendarDays, accessId: 'leave' },
+      { label: 'My Dashboard', to: '/hr', icon: LayoutDashboard, accessId: 'dashboard' },
+      { label: 'Employees', to: '/hr/employees', icon: Users, accessId: 'employees' },
+      { label: 'Attendance', to: '/hr/attendance', icon: CalendarCheck, accessId: 'attendance' },
+      { label: 'Leave Management', to: '/hr/leave', icon: CalendarDays, accessId: 'leave' },
     ],
   },
   {
     title: 'Talent',
     items: [
-      { label: 'Recruitment', to: '/recruitment', icon: BriefcaseBusiness, accessId: 'recruitment' },
-      { label: 'Onboarding', to: '/onboarding', icon: UserPlus, accessId: 'onboarding' },
-      { label: 'Performance', to: '/performance', icon: Target, accessId: 'performance' },
+      { label: 'Recruitment', to: '/hr/recruitment', icon: BriefcaseBusiness, accessId: 'recruitment' },
+      { label: 'Onboarding', to: '/hr/onboarding', icon: UserPlus, accessId: 'onboarding' },
+      { label: 'Performance', to: '/hr/performance', icon: Target, accessId: 'performance' },
     ],
   },
   {
     title: 'Finance & Legal',
     items: [
-      { label: 'Payroll', to: '/payroll', icon: Wallet, accessId: 'payroll' },
-      { label: 'Contracts', to: '/contracts', icon: FileSignature, accessId: 'contracts' },
-      { label: 'Daily Payments', to: '/payments', icon: Wallet, accessId: 'payments' },
-      { label: 'HR Expenses', to: '/expenses', icon: Receipt, accessId: 'expenses' },
+      { label: 'Payroll', to: '/hr/payroll', icon: Wallet, accessId: 'payroll' },
+      { label: 'Contracts', to: '/hr/contracts', icon: FileSignature, accessId: 'contracts' },
+      { label: 'Daily Payments', to: '/hr/payments', icon: Wallet, accessId: 'payments' },
+      { label: 'HR Expenses', to: '/hr/expenses', icon: Receipt, accessId: 'expenses' },
     ],
   },
   {
     title: 'People Ops',
     items: [
-      { label: 'Employee Requests', to: '/requests', icon: MessageSquareText, accessId: 'requests' },
-      { label: 'Offboarding', to: '/offboarding', icon: UserMinus, accessId: 'offboarding' },
+      { label: 'Employee Requests', to: '/hr/requests', icon: MessageSquareText, accessId: 'requests' },
+      { label: 'Offboarding', to: '/hr/offboarding', icon: UserMinus, accessId: 'offboarding' },
     ],
   },
   {
     title: 'Insights',
     items: [
-      { label: 'Reports & Analytics', to: '/reports', icon: BarChart3, accessId: 'reports' },
-      { label: 'HR Settings', to: '/settings', icon: Settings2, accessId: 'settings' },
+      { label: 'Reports & Analytics', to: '/hr/reports', icon: BarChart3, accessId: 'reports' },
+      { label: 'HR Settings', to: '/hr/settings', icon: Settings2, accessId: 'settings' },
     ],
   },
 ]
@@ -353,7 +353,7 @@ export function AppLayout() {
                       </div>
                       <div className="max-h-[340px] overflow-y-auto">
                         {db.notifications.map((n) => (
-                          <button key={n.id} onClick={() => { setNotifOpen(false); navigate('/') }} className={cn('flex w-full gap-3 border-b border-slate-50 px-4 py-3 text-left transition last:border-0 hover:bg-slate-50 dark:border-white/[0.04] dark:hover:bg-white/[0.03]', !n.read && 'bg-brand-50/40 dark:bg-brand-500/[0.05]')}>
+                          <button key={n.id} onClick={() => { setNotifOpen(false); navigate('/hr') }} className={cn('flex w-full gap-3 border-b border-slate-50 px-4 py-3 text-left transition last:border-0 hover:bg-slate-50 dark:border-white/[0.04] dark:hover:bg-white/[0.03]', !n.read && 'bg-brand-50/40 dark:bg-brand-500/[0.05]')}>
                             <span className={cn('mt-1.5 h-2 w-2 shrink-0 rounded-full', n.type === 'danger' ? 'bg-rose-500' : n.type === 'warning' ? 'bg-amber-500' : n.type === 'success' ? 'bg-emerald-500' : 'bg-sky-500')} />
                             <span className="min-w-0 flex-1">
                               <span className="block text-[12.5px] font-medium text-slate-800 dark:text-slate-100">{n.title}</span>
@@ -364,7 +364,7 @@ export function AppLayout() {
                         ))}
                       </div>
                       <div className="border-t border-slate-100 p-2 dark:border-white/[0.06]">
-                        <button onClick={() => { setNotifOpen(false); navigate('/') }} className="w-full rounded-lg py-2 text-xs font-semibold text-brand-600 hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-brand-500/10">View all activity</button>
+                        <button onClick={() => { setNotifOpen(false); navigate('/hr') }} className="w-full rounded-lg py-2 text-xs font-semibold text-brand-600 hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-brand-500/10">View all activity</button>
                       </div>
                     </motion.div>
                   )}
@@ -393,8 +393,8 @@ export function AppLayout() {
                         </div>
                       </div>
                       <div className="my-1 h-px bg-slate-100 dark:bg-white/[0.06]" />
-                      <button onClick={() => { setProfileOpen(false); navigate('/employees/EMP-001') }} className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-slate-600 transition hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-white/[0.05]"><User className="h-4 w-4 text-slate-400" /> My profile</button>
-                      <button onClick={() => { setProfileOpen(false); navigate('/settings') }} className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-slate-600 transition hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-white/[0.05]"><Settings2 className="h-4 w-4 text-slate-400" /> HR settings</button>
+                      <button onClick={() => { setProfileOpen(false); navigate('/hr/employees/EMP-001') }} className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-slate-600 transition hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-white/[0.05]"><User className="h-4 w-4 text-slate-400" /> My profile</button>
+                      <button onClick={() => { setProfileOpen(false); navigate('/hr/settings') }} className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-slate-600 transition hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-white/[0.05]"><Settings2 className="h-4 w-4 text-slate-400" /> HR settings</button>
                       <button onClick={() => { setProfileOpen(false); setResetOpen(true) }} className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-slate-600 transition hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-white/[0.05]"><RotateCcw className="h-4 w-4 text-slate-400" /> Reset demo data</button>
                       <div className="my-1 h-px bg-slate-100 dark:bg-white/[0.06]" />
                       <button onClick={() => { setProfileOpen(false); toast('Demo session ended', 'info', 'This is a frontend-only demo — there is no authentication.') }} className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-rose-600 transition hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-500/10"><LogOut className="h-4 w-4" /> Sign out</button>

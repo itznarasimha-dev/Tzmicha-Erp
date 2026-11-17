@@ -180,12 +180,12 @@ export default function Dashboard() {
   }, [activeEmployees, db.candidates, db.onboarding, today])
 
   const pendingTasks = [
-    { label: 'Leave requests awaiting review', count: pendingLeaves, to: '/leave', tone: 'amber' as const, capability: 'leave.approve' as const },
-    { label: 'Contracts awaiting signature', count: db.contracts.filter((c) => c.status === 'Pending Signature').length, to: '/contracts', tone: 'violet' as const, capability: 'contract.read' as const },
-    { label: 'Payroll entries in review', count: db.payroll.filter((p) => p.status === 'HR Review' || p.status === 'Finance Approval').length, to: '/payroll', tone: 'blue' as const, capability: 'payroll.read' as const },
-    { label: 'Payments pending approval', count: db.payments.filter((p) => p.approvalStatus === 'Pending').length, to: '/payments', tone: 'green' as const, capability: 'payment.read' as const },
-    { label: 'Onboarding documents to verify', count: db.onboarding.flatMap((o) => o.documents).filter((d) => d.status === 'Pending').length, to: '/onboarding', tone: 'orange' as const, capability: 'onboarding.read' as const },
-    { label: 'Performance reviews in progress', count: db.reviews.filter((r) => r.status !== 'Completed').length, to: '/performance', tone: 'rose' as const, capability: 'performance.read' as const },
+    { label: 'Leave requests awaiting review', count: pendingLeaves, to: '/hr/leave', tone: 'amber' as const, capability: 'leave.approve' as const },
+    { label: 'Contracts awaiting signature', count: db.contracts.filter((c) => c.status === 'Pending Signature').length, to: '/hr/contracts', tone: 'violet' as const, capability: 'contract.read' as const },
+    { label: 'Payroll entries in review', count: db.payroll.filter((p) => p.status === 'HR Review' || p.status === 'Finance Approval').length, to: '/hr/payroll', tone: 'blue' as const, capability: 'payroll.read' as const },
+    { label: 'Payments pending approval', count: db.payments.filter((p) => p.approvalStatus === 'Pending').length, to: '/hr/payments', tone: 'green' as const, capability: 'payment.read' as const },
+    { label: 'Onboarding documents to verify', count: db.onboarding.flatMap((o) => o.documents).filter((d) => d.status === 'Pending').length, to: '/hr/onboarding', tone: 'orange' as const, capability: 'onboarding.read' as const },
+    { label: 'Performance reviews in progress', count: db.reviews.filter((r) => r.status !== 'Completed').length, to: '/hr/performance', tone: 'rose' as const, capability: 'performance.read' as const },
   ].filter((task) => access.can(task.capability))
 
   const exportSnapshot = () => {
@@ -242,7 +242,7 @@ export default function Dashboard() {
           <>
             <Button variant="secondary" onClick={exportSnapshot}><Download className="h-4 w-4" /> Export snapshot</Button>
             {access.can('employee.create') && (
-              <Button onClick={() => navigate('/employees?new=1')}><Plus className="h-4 w-4" /> Add employee</Button>
+              <Button onClick={() => navigate('/hr/employees?new=1')}><Plus className="h-4 w-4" /> Add employee</Button>
             )}
           </>
         }
@@ -255,28 +255,28 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {access.can('employee.read') && (
-          <StatCard index={0} label="Total employees" value={activeEmployees.length} icon={Users} tone="brand" hint={`${probationCount} in probation`} onClick={() => navigate('/employees')} />
+          <StatCard index={0} label="Total employees" value={activeEmployees.length} icon={Users} tone="brand" hint={`${probationCount} in probation`} onClick={() => navigate('/hr/employees')} />
         )}
         {access.can('attendance.read') && (
-          <StatCard index={1} label="Present today" value={present} icon={UserCheck} tone="green" hint={`${late} arrived late`} onClick={() => navigate('/attendance')} />
+          <StatCard index={1} label="Present today" value={present} icon={UserCheck} tone="green" hint={`${late} arrived late`} onClick={() => navigate('/hr/attendance')} />
         )}
         {access.can('attendance.read') && (
-          <StatCard index={2} label="Absent today" value={absent} icon={UserX} tone="red" hint="unplanned absence" onClick={() => navigate('/attendance')} />
+          <StatCard index={2} label="Absent today" value={absent} icon={UserX} tone="red" hint="unplanned absence" onClick={() => navigate('/hr/attendance')} />
         )}
         {access.can('attendance.read') && (
-          <StatCard index={3} label="On leave today" value={onLeave} icon={CalendarDays} tone="amber" hint="approved absences" onClick={() => navigate('/leave')} />
+          <StatCard index={3} label="On leave today" value={onLeave} icon={CalendarDays} tone="amber" hint="approved absences" onClick={() => navigate('/hr/leave')} />
         )}
         {access.can('leave.read') && (
-          <StatCard index={4} label="Pending leave" value={pendingLeaves} icon={ClipboardList} tone="violet" hint="awaiting review" onClick={() => navigate('/leave')} />
+          <StatCard index={4} label="Pending leave" value={pendingLeaves} icon={ClipboardList} tone="violet" hint="awaiting review" onClick={() => navigate('/hr/leave')} />
         )}
         {access.can('contract.read') && (
-          <StatCard index={5} label="Active contracts" value={activeContracts} icon={FileSignature} tone="teal" hint={`${db.contracts.filter((c) => c.status === 'Expiring Soon').length} expiring soon`} onClick={() => navigate('/contracts')} />
+          <StatCard index={5} label="Active contracts" value={activeContracts} icon={FileSignature} tone="teal" hint={`${db.contracts.filter((c) => c.status === 'Expiring Soon').length} expiring soon`} onClick={() => navigate('/hr/contracts')} />
         )}
         {access.can('payment.read') && (
-          <StatCard index={6} label="Pending payments" value={pendingPayments.length} icon={Wallet} tone="orange" hint={`${fmtMoney(pendingPayments.reduce((a, p) => a + p.amount, 0), true)} awaiting action`} onClick={() => navigate('/payments')} />
+          <StatCard index={6} label="Pending payments" value={pendingPayments.length} icon={Wallet} tone="orange" hint={`${fmtMoney(pendingPayments.reduce((a, p) => a + p.amount, 0), true)} awaiting action`} onClick={() => navigate('/hr/payments')} />
         )}
         {access.can('recruitment.read') && (
-          <StatCard index={7} label="Open positions" value={openPositions} icon={BriefcaseBusiness} tone="blue" hint={`across ${openJobs.length} job openings`} onClick={() => navigate('/recruitment')} />
+          <StatCard index={7} label="Open positions" value={openPositions} icon={BriefcaseBusiness} tone="blue" hint={`across ${openJobs.length} job openings`} onClick={() => navigate('/hr/recruitment')} />
         )}
       </div>
 
@@ -297,7 +297,7 @@ export default function Dashboard() {
             <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-brand-500" /> Present <b className="text-slate-700 dark:text-slate-200">{sum(attendanceSeries.map((d) => d.present))}</b></span>
             <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-rose-500" /> Absent <b className="text-slate-700 dark:text-slate-200">{sum(attendanceSeries.map((d) => d.absent))}</b></span>
             <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-amber-500" /> On leave <b className="text-slate-700 dark:text-slate-200">{sum(attendanceSeries.map((d) => d.leave))}</b></span>
-            <button onClick={() => navigate('/attendance')} className="ml-auto flex items-center gap-1 font-semibold text-brand-600 hover:underline dark:text-brand-400">View attendance <ArrowUpRight className="h-3 w-3" /></button>
+            <button onClick={() => navigate('/hr/attendance')} className="ml-auto flex items-center gap-1 font-semibold text-brand-600 hover:underline dark:text-brand-400">View attendance <ArrowUpRight className="h-3 w-3" /></button>
           </div>
           <div className="px-2 pb-4 pt-2">
             <AreaTrend data={attendanceSeries} series={[{ key: 'present', name: 'Present', color: '#6366f1' }, { key: 'absent', name: 'Absent', color: '#f43f5e' }, { key: 'leave', name: 'On leave', color: '#f59e0b' }]} height={262} />
@@ -323,7 +323,7 @@ export default function Dashboard() {
                 <span className="font-semibold tabular text-slate-800 dark:text-slate-200">{d.value}</span>
               </div>
             ))}
-            {deptData.length > 6 && <button onClick={() => navigate('/employees')} className="col-span-2 text-left text-[11px] font-semibold text-brand-600 hover:underline dark:text-brand-400">+{deptData.length - 6} more teams</button>}
+            {deptData.length > 6 && <button onClick={() => navigate('/hr/employees')} className="col-span-2 text-left text-[11px] font-semibold text-brand-600 hover:underline dark:text-brand-400">+{deptData.length - 6} more teams</button>}
           </div>
         </Card>
 
@@ -344,7 +344,7 @@ export default function Dashboard() {
               </div>
             ))}
           </div>
-          <button onClick={() => navigate('/contracts')} className="mt-4 flex w-full items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-[11px] font-semibold text-slate-600 hover:bg-slate-100 dark:bg-white/[0.03] dark:text-slate-300 dark:hover:bg-white/[0.06]">Contract directory <ArrowUpRight className="h-3.5 w-3.5" /></button>
+          <button onClick={() => navigate('/hr/contracts')} className="mt-4 flex w-full items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-[11px] font-semibold text-slate-600 hover:bg-slate-100 dark:bg-white/[0.03] dark:text-slate-300 dark:hover:bg-white/[0.06]">Contract directory <ArrowUpRight className="h-3.5 w-3.5" /></button>
         </Card>
 
         <Card className="p-5">
@@ -370,7 +370,7 @@ export default function Dashboard() {
             <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400"><TrendingUp className="h-3.5 w-3.5 text-emerald-500" /> {fmtMoney(paymentSummary.paidAmount, true)} total paid</span>
             {paymentSummary.failed > 0 && <span className="font-semibold text-rose-500">{paymentSummary.failed} need attention</span>}
           </div>
-          <button onClick={() => navigate('/payments')} className="mt-2.5 flex w-full items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-[11px] font-semibold text-slate-600 hover:bg-slate-100 dark:bg-white/[0.03] dark:text-slate-300 dark:hover:bg-white/[0.06]">Payment workspace <ArrowUpRight className="h-3.5 w-3.5" /></button>
+          <button onClick={() => navigate('/hr/payments')} className="mt-2.5 flex w-full items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-[11px] font-semibold text-slate-600 hover:bg-slate-100 dark:bg-white/[0.03] dark:text-slate-300 dark:hover:bg-white/[0.06]">Payment workspace <ArrowUpRight className="h-3.5 w-3.5" /></button>
         </Card>
       </div>
 
@@ -384,10 +384,10 @@ export default function Dashboard() {
             <CalendarClock className="h-4 w-4 text-slate-400" />
           </div>
           <div className="grid gap-5 p-5 sm:grid-cols-2">
-            <MomentList title="Birthdays" icon={Cake} tone="bg-pink-50 text-pink-500 dark:bg-pink-500/10 dark:text-pink-400" items={upcoming.birthdays.map((b) => ({ key: b.employee.id, name: fullName(b.employee), photo: b.employee.photo, detail: `${fmtDate(b.date)} · turns ${new Date().getFullYear() - new Date(b.employee.dob).getFullYear()}`, tag: b.inDays === 0 ? 'Today' : `in ${b.inDays}d`, to: `/employees/${b.employee.id}` }))} empty="No birthdays in the next 30 days" />
-            <MomentList title="Work anniversaries" icon={PartyPopper} tone="bg-violet-50 text-violet-500 dark:bg-violet-500/10 dark:text-violet-400" items={upcoming.anniversaries.map((a) => ({ key: a.employee.id, name: fullName(a.employee), photo: a.employee.photo, detail: `${fmtDate(a.date)} · ${a.years} years`, tag: `in ${a.inDays}d`, to: `/employees/${a.employee.id}` }))} empty="No anniversaries in the next 30 days" />
-            <MomentList title="Interviews" icon={Video} tone="bg-sky-50 text-sky-500 dark:bg-sky-500/10 dark:text-sky-400" items={upcoming.interviews.map((c) => ({ key: c.id, name: c.name, detail: `${c.interview!.round} · ${c.interview!.time}`, tag: fmtDateShort(c.interview!.date), to: '/recruitment' }))} empty="No interviews scheduled" />
-            <MomentList title="New joiners" icon={UserPlus} tone="bg-emerald-50 text-emerald-500 dark:bg-emerald-500/10 dark:text-emerald-400" items={upcoming.joiners.map((j) => ({ key: j.id, name: j.name, detail: `${j.designation} · ${j.department}`, tag: j.joiningDate === today ? 'Today' : `in ${diffDays(today, j.joiningDate)}d`, to: `/onboarding/${j.id}` }))} empty="No upcoming joiners" />
+            <MomentList title="Birthdays" icon={Cake} tone="bg-pink-50 text-pink-500 dark:bg-pink-500/10 dark:text-pink-400" items={upcoming.birthdays.map((b) => ({ key: b.employee.id, name: fullName(b.employee), photo: b.employee.photo, detail: `${fmtDate(b.date)} · turns ${new Date().getFullYear() - new Date(b.employee.dob).getFullYear()}`, tag: b.inDays === 0 ? 'Today' : `in ${b.inDays}d`, to: `/hr/employees/${b.employee.id}` }))} empty="No birthdays in the next 30 days" />
+            <MomentList title="Work anniversaries" icon={PartyPopper} tone="bg-violet-50 text-violet-500 dark:bg-violet-500/10 dark:text-violet-400" items={upcoming.anniversaries.map((a) => ({ key: a.employee.id, name: fullName(a.employee), photo: a.employee.photo, detail: `${fmtDate(a.date)} · ${a.years} years`, tag: `in ${a.inDays}d`, to: `/hr/employees/${a.employee.id}` }))} empty="No anniversaries in the next 30 days" />
+            <MomentList title="Interviews" icon={Video} tone="bg-sky-50 text-sky-500 dark:bg-sky-500/10 dark:text-sky-400" items={upcoming.interviews.map((c) => ({ key: c.id, name: c.name, detail: `${c.interview!.round} · ${c.interview!.time}`, tag: fmtDateShort(c.interview!.date), to: '/hr/recruitment' }))} empty="No interviews scheduled" />
+            <MomentList title="New joiners" icon={UserPlus} tone="bg-emerald-50 text-emerald-500 dark:bg-emerald-500/10 dark:text-emerald-400" items={upcoming.joiners.map((j) => ({ key: j.id, name: j.name, detail: `${j.designation} · ${j.department}`, tag: j.joiningDate === today ? 'Today' : `in ${diffDays(today, j.joiningDate)}d`, to: `/hr/onboarding` }))} empty="No upcoming joiners" />
           </div>
         </Card>
 
@@ -472,19 +472,19 @@ export default function Dashboard() {
                     <p className="text-[10px] text-brand-100">reviews completed</p>
                   </div>
                 </div>
-                <button onClick={() => navigate('/reports')} className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-lg bg-white/15 py-2 text-xs font-semibold backdrop-blur transition hover:bg-white/25">Open analytics <ArrowUpRight className="h-3 w-3" /></button>
+                <button onClick={() => navigate('/hr/reports')} className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-lg bg-white/15 py-2 text-xs font-semibold backdrop-blur transition hover:bg-white/25">Open analytics <ArrowUpRight className="h-3 w-3" /></button>
               </div>
             </Card>
 
             <SectionCard title="Quick actions" bodyClassName="p-3">
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { label: 'Add employee', icon: UserPlus, to: '/employees?new=1', capability: 'employee.create' as const },
-                  { label: 'Review leave', icon: CalendarDays, to: '/leave', capability: 'leave.approve' as const },
-                  { label: 'Record payment', icon: Wallet, to: '/payments?new=1', capability: 'payment.create' as const },
-                  { label: 'Post a job', icon: BriefcaseBusiness, to: '/recruitment?new=1', capability: 'recruitment.write' as const },
-                  { label: 'Run payroll', icon: Banknote, to: '/payroll', capability: 'payroll.prepare' as const },
-                  { label: 'Reports', icon: TrendingUp, to: '/reports', capability: 'analytics.read' as const },
+                  { label: 'Add employee', icon: UserPlus, to: '/hr/employees?new=1', capability: 'employee.create' as const },
+                  { label: 'Review leave', icon: CalendarDays, to: '/hr/leave', capability: 'leave.approve' as const },
+                  { label: 'Record payment', icon: Wallet, to: '/hr/payments?new=1', capability: 'payment.create' as const },
+                  { label: 'Post a job', icon: BriefcaseBusiness, to: '/hr/recruitment?new=1', capability: 'recruitment.write' as const },
+                  { label: 'Run payroll', icon: Banknote, to: '/hr/payroll', capability: 'payroll.prepare' as const },
+                  { label: 'Reports', icon: TrendingUp, to: '/hr/reports', capability: 'analytics.read' as const },
                 ]
                   .filter((a) => access.can(a.capability))
                   .map((a) => (

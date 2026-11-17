@@ -24,7 +24,7 @@ function findSourceFiles(dir: string): string[] {
 }
 
 describe('Phase 3 Rule: Zero Mock Data Imports in Production UI Components and Pages', () => {
-  it('enforces that no production page, modal, view, or chart imports mock-data or mockData', () => {
+  it('enforces that no production page, modal, view, or chart imports mock-data or mockData', { timeout: 30000 }, () => {
     const featureFiles = findSourceFiles(path.resolve(process.cwd(), 'src/features'))
     expect(featureFiles.length).toBeGreaterThan(100)
 

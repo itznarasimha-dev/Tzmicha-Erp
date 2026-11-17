@@ -44,7 +44,7 @@ export default function EmployeeProfile() {
     return (
       <div>
         <PageHeader title="Employee not found" subtitle="The employee record may have been deleted or the link is incorrect." crumbs={['People', 'Employees']} />
-        <Card><EmptyState icon={Users} title="We couldn't find that employee" description="Return to the directory to pick another employee." action={<Button onClick={() => navigate('/employees')}>Back to employees</Button>} /></Card>
+        <Card><EmptyState icon={Users} title="We couldn't find that employee" description="Return to the directory to pick another employee." action={<Button onClick={() => navigate('/hr/employees')}>Back to employees</Button>} /></Card>
       </div>
     )
   }
@@ -121,7 +121,7 @@ export default function EmployeeProfile() {
   return (
     <div>
       <div className="no-print mb-4 flex items-center justify-between gap-3">
-        <button onClick={() => navigate('/employees')} className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition hover:text-brand-600 dark:text-slate-400 dark:hover:text-brand-400"><ArrowLeft className="h-3.5 w-3.5" /> Back to employees</button>
+        <button onClick={() => navigate('/hr/employees')} className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition hover:text-brand-600 dark:text-slate-400 dark:hover:text-brand-400"><ArrowLeft className="h-3.5 w-3.5" /> Back to employees</button>
         <div className="flex gap-2">
           <Button variant="secondary" size="sm" onClick={exportProfile}><Download className="h-3.5 w-3.5" /> Export profile</Button>
           {access.can('employee.update') && (
@@ -301,7 +301,7 @@ export default function EmployeeProfile() {
               {tab === 'contracts' && (
                 <div className="space-y-3">
                   {contracts.map((c) => (
-                    <button key={c.id} onClick={() => navigate(`/contracts/${c.id}`)} className="flex w-full flex-wrap items-center gap-3 rounded-xl border border-slate-100 p-4 text-left transition hover:border-brand-200 hover:bg-slate-50/60 dark:border-white/[0.06] dark:hover:border-brand-500/30 dark:hover:bg-white/[0.02]">
+                    <button key={c.id} onClick={() => navigate(`/hr/contracts/${c.id}`)} className="flex w-full flex-wrap items-center gap-3 rounded-xl border border-slate-100 p-4 text-left transition hover:border-brand-200 hover:bg-slate-50/60 dark:border-white/[0.06] dark:hover:border-brand-500/30 dark:hover:bg-white/[0.02]">
                       <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400"><BriefcaseBusiness className="h-5 w-5" /></span>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">{c.title}</p>
@@ -314,7 +314,7 @@ export default function EmployeeProfile() {
                       <StatusBadge status={c.status} />
                     </button>
                   ))}
-                  {contracts.length === 0 && <EmptyState icon={BriefcaseBusiness} title="No contracts on file" description="Create a contract from the Contracts workspace." action={<Button onClick={() => navigate('/contracts')}>Open contracts</Button>} />}
+                  {contracts.length === 0 && <EmptyState icon={BriefcaseBusiness} title="No contracts on file" description="Create a contract from the Contracts workspace." action={<Button onClick={() => navigate('/hr/contracts')}>Open contracts</Button>} />}
                 </div>
               )}
 

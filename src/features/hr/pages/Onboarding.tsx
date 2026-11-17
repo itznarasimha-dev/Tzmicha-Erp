@@ -430,7 +430,7 @@ export default function Onboarding() {
             <Button variant="secondary" onClick={() => setSelectedId(null)}>Close</Button>
             {access.can('onboarding.write') && !selected.employeeId && <Button variant="secondary" onClick={() => generateId(selected)}><KeyRound className="h-4 w-4" /> Generate employee ID</Button>}
             {access.can('onboarding.write') && selected.status !== 'Completed' && <Button onClick={() => completeOnboarding(selected)}><CheckCircle2 className="h-4 w-4" /> Complete onboarding</Button>}
-            {selected.status === 'Completed' && selected.employeeId && <Button onClick={() => navigate(`/employees/${selected.employeeId}`)}>View employee <ArrowUpRight className="h-4 w-4" /></Button>}
+            {selected.status === 'Completed' && selected.employeeId && <Button onClick={() => navigate(`/hr/employees/${selected.employeeId}`)}>View employee <ArrowUpRight className="h-4 w-4" /></Button>}
           </>
         ) : null}
       >

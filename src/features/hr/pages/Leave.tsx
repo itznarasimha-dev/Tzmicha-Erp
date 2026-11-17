@@ -460,7 +460,7 @@ export default function Leave() {
                           return <td key={t.id} className="table-cell text-center"><span className={`tabular text-[12px] font-semibold ${remaining <= 2 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-700 dark:text-slate-200'}`}>{remaining}</span><span className="text-[10px] text-slate-400"> / {t.allocation}</span></td>
                         })}
                         <td className="table-cell tabular font-semibold">{used}d</td>
-                        <td className="table-cell text-right"><Button variant="ghost" size="sm" onClick={() => navigate(`/employees/${e.id}`)}>Profile <ArrowUpRight className="h-3 w-3" /></Button></td>
+                        <td className="table-cell text-right"><Button variant="ghost" size="sm" onClick={() => navigate(`/hr/employees/${e.id}`)}>Profile <ArrowUpRight className="h-3 w-3" /></Button></td>
                       </tr>
                     )
                   })}
@@ -545,7 +545,7 @@ export default function Leave() {
           <div className="p-4 sm:p-5">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-brand-50/60 p-3.5 dark:bg-brand-500/[0.06]">
               <p className="text-xs text-slate-600 dark:text-slate-300">These policies power leave balances and approval rules across the workspace. Edit thresholds directly or manage them in HR Settings.</p>
-              <Button variant="secondary" size="sm" onClick={() => navigate('/settings')} disabled={!access.can('settings.write')} title={access.can('settings.write') ? undefined : describeMissingPermission('settings.write')}><Settings2 className="h-3.5 w-3.5" /> HR Settings</Button>
+              <Button variant="secondary" size="sm" onClick={() => navigate('/hr/settings')} disabled={!access.can('settings.write')} title={access.can('settings.write') ? undefined : describeMissingPermission('settings.write')}><Settings2 className="h-3.5 w-3.5" /> HR Settings</Button>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {typeUsage.map((t) => (

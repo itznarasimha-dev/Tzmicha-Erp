@@ -114,7 +114,7 @@ export function SelfServiceDashboard({ view }: { view: HrDashboardView }) {
           <>
             <Button variant="secondary" onClick={exportMySummary}>Export my summary</Button>
             {access.can('leave.apply') && (
-              <Button onClick={() => navigate('/leave?new=1')}><Plane className="h-4 w-4" /> Apply for leave</Button>
+              <Button onClick={() => navigate('/hr/leave?new=1')}><Plane className="h-4 w-4" /> Apply for leave</Button>
             )}
           </>
         }
@@ -128,7 +128,7 @@ export function SelfServiceDashboard({ view }: { view: HrDashboardView }) {
           icon={UserCheck}
           tone="green"
           hint={`${weekRecords.length} records · 7 days`}
-          onClick={() => navigate('/attendance')}
+          onClick={() => navigate('/hr/attendance')}
         />
         <StatCard
           index={1}
@@ -137,7 +137,7 @@ export function SelfServiceDashboard({ view }: { view: HrDashboardView }) {
           icon={Clock}
           tone="brand"
           hint="last 7 days"
-          onClick={() => navigate('/attendance')}
+          onClick={() => navigate('/hr/attendance')}
         />
         <StatCard
           index={2}
@@ -146,7 +146,7 @@ export function SelfServiceDashboard({ view }: { view: HrDashboardView }) {
           icon={CalendarDays}
           tone="amber"
           hint={`${approvedLeaves.length} approved requests`}
-          onClick={() => navigate('/leave')}
+          onClick={() => navigate('/hr/leave')}
         />
         <StatCard
           index={3}
@@ -155,7 +155,7 @@ export function SelfServiceDashboard({ view }: { view: HrDashboardView }) {
           icon={MessageSquareText}
           tone="violet"
           hint={`${myRequests.length} raised in total`}
-          onClick={() => navigate('/requests')}
+          onClick={() => navigate('/hr/requests')}
         />
       </div>
 
@@ -168,7 +168,7 @@ export function SelfServiceDashboard({ view }: { view: HrDashboardView }) {
                 Only your own records — the ERP API scopes attendance to the signed-in employee.
               </p>
             </div>
-            <button onClick={() => navigate('/attendance')} className="flex items-center gap-1 text-[11px] font-semibold text-brand-600 hover:underline dark:text-brand-400">
+            <button onClick={() => navigate('/hr/attendance')} className="flex items-center gap-1 text-[11px] font-semibold text-brand-600 hover:underline dark:text-brand-400">
               View all <ArrowUpRight className="h-3 w-3" />
             </button>
           </div>
@@ -258,7 +258,7 @@ export function SelfServiceDashboard({ view }: { view: HrDashboardView }) {
               <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Requests you raised and their current status</p>
             </div>
             {access.can('request.write') && (
-              <Button size="sm" variant="secondary" onClick={() => navigate('/requests?new=1')}>New request</Button>
+              <Button size="sm" variant="secondary" onClick={() => navigate('/hr/requests?new=1')}>New request</Button>
             )}
           </div>
           {recentRequests.length === 0 ? (
@@ -402,7 +402,7 @@ export function ManagerDashboard() {
         crumbs={['Dashboard']}
         actions={
           access.can('leave.approve') ? (
-            <Button onClick={() => navigate('/leave')}>
+            <Button onClick={() => navigate('/hr/leave')}>
               <CheckCircle2 className="h-4 w-4" /> Review pending leave
             </Button>
           ) : undefined
@@ -421,10 +421,10 @@ export function ManagerDashboard() {
       ) : (
         <>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            <StatCard index={0} label="Team size" value={team.length} icon={UserCheck} tone="brand" hint="direct reports" onClick={() => navigate('/employees')} />
-            <StatCard index={1} label="Present today" value={present} icon={CheckCircle2} tone="green" hint={`${absent} absent · ${onLeave} on leave`} onClick={() => navigate('/attendance')} />
-            <StatCard index={2} label="Pending leave" value={pendingLeaves.length} icon={CalendarDays} tone="amber" hint="awaiting review" onClick={() => navigate('/leave')} />
-            <StatCard index={3} label="Open requests" value={openRequests.length} icon={MessageSquareText} tone="violet" hint={`${pendingReviews.length} reviews in progress`} onClick={() => navigate('/requests')} />
+            <StatCard index={0} label="Team size" value={team.length} icon={UserCheck} tone="brand" hint="direct reports" onClick={() => navigate('/hr/employees')} />
+            <StatCard index={1} label="Present today" value={present} icon={CheckCircle2} tone="green" hint={`${absent} absent · ${onLeave} on leave`} onClick={() => navigate('/hr/attendance')} />
+            <StatCard index={2} label="Pending leave" value={pendingLeaves.length} icon={CalendarDays} tone="amber" hint="awaiting review" onClick={() => navigate('/hr/leave')} />
+            <StatCard index={3} label="Open requests" value={openRequests.length} icon={MessageSquareText} tone="violet" hint={`${pendingReviews.length} reviews in progress`} onClick={() => navigate('/hr/requests')} />
           </div>
 
           <div className="mt-4 grid gap-4 lg:grid-cols-3">
@@ -461,14 +461,14 @@ export function ManagerDashboard() {
               ) : (
                 <div className="space-y-1">
                   {pendingLeaves.slice(0, 4).map((l) => (
-                    <button key={l.id} onClick={() => navigate('/leave')} className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-left transition hover:bg-slate-50 dark:hover:bg-white/[0.03]">
+                    <button key={l.id} onClick={() => navigate('/hr/leave')} className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-left transition hover:bg-slate-50 dark:hover:bg-white/[0.03]">
                       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400"><CalendarDays className="h-3.5 w-3.5" /></span>
                       <span className="min-w-0 flex-1 text-[12px] font-medium text-slate-600 dark:text-slate-300">{l.leaveType} · {l.days}d</span>
                       <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-600 dark:bg-white/[0.07] dark:text-slate-300">{pendingLeaves.length}</span>
                     </button>
                   ))}
                   {openRequests.slice(0, 4).map((r) => (
-                    <button key={r.id} onClick={() => navigate('/requests')} className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-left transition hover:bg-slate-50 dark:hover:bg-white/[0.03]">
+                    <button key={r.id} onClick={() => navigate('/hr/requests')} className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-left transition hover:bg-slate-50 dark:hover:bg-white/[0.03]">
                       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400"><MessageSquareText className="h-3.5 w-3.5" /></span>
                       <span className="min-w-0 flex-1 truncate text-[12px] font-medium text-slate-600 dark:text-slate-300">{r.subject}</span>
                     </button>
@@ -512,7 +512,7 @@ export function FinanceDashboard() {
         crumbs={['Dashboard']}
         actions={
           access.can('payment.approve') || access.can('expense.reimburse') ? (
-            <Button onClick={() => navigate('/payments')}>
+            <Button onClick={() => navigate('/hr/payments')}>
               <Wallet className="h-4 w-4" /> Review payments
             </Button>
           ) : undefined
@@ -520,10 +520,10 @@ export function FinanceDashboard() {
       />
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <StatCard index={0} label="Pending approvals" value={pendingPayments.length} icon={ClipboardList} tone="amber" hint="payment approvals" onClick={() => navigate('/payments')} />
+        <StatCard index={0} label="Pending approvals" value={pendingPayments.length} icon={ClipboardList} tone="amber" hint="payment approvals" onClick={() => navigate('/hr/payments')} />
         <StatCard index={1} label="Pending value" value={pendingAmount.toLocaleString()} icon={Wallet} tone="brand" hint="awaiting disbursement" />
         <StatCard index={2} label="Paid to date" value={paidThisPeriod.toLocaleString()} icon={CheckCircle2} tone="green" hint="settled payments" />
-        <StatCard index={3} label="Payslips" value={db.payroll.length} icon={FileText} tone="violet" hint="across all periods" onClick={() => navigate('/payroll')} />
+        <StatCard index={3} label="Payslips" value={db.payroll.length} icon={FileText} tone="violet" hint="across all periods" onClick={() => navigate('/hr/payroll')} />
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
@@ -553,7 +553,7 @@ export function FinanceDashboard() {
           ) : (
             <div className="space-y-1">
               {pendingPayments.slice(0, 8).map((p) => (
-                <button key={p.id} onClick={() => navigate('/payments')} className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-left transition hover:bg-slate-50 dark:hover:bg-white/[0.03]">
+                <button key={p.id} onClick={() => navigate('/hr/payments')} className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-left transition hover:bg-slate-50 dark:hover:bg-white/[0.03]">
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400"><Receipt className="h-3.5 w-3.5" /></span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[12px] font-medium text-slate-600 dark:text-slate-300">{p.payee}</span>

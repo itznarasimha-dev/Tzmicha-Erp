@@ -1024,6 +1024,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       path: '/hr/settings',
       icon: <ShieldCheck className="w-4 h-4" />,
     },
+    { group: 'Support & Queries' },
+    {
+      name: 'HR Queries & Helpdesk Chat',
+      path: '/hr/queries',
+      icon: <MessageSquare className="w-4 h-4" />,
+      badge: (roleQueries || []).filter((q) => (q.requesterRole === 'hr' || q.requesterId === currentUser?.id) && q.status === 'open').length || undefined,
+      badgeVariant: 'warning',
+    },
   ];
 
   const currentNavItems =

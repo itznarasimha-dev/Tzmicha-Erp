@@ -22,6 +22,7 @@ import Settings from './pages/Settings';
 import NotFound from './pages/NotFound';
 import { HrRouteGuard } from './components/hr-guard';
 import { useHrAccess } from './lib/access';
+import { RoleQueriesChatView } from '../shared/RoleQueriesChatView';
 import './hr.css';
 
 import {
@@ -37,6 +38,7 @@ import {
   Coins,
   Receipt,
   MessageSquareText,
+  MessageSquare,
   UserMinus,
   BarChart3,
   Settings2,
@@ -68,6 +70,7 @@ const HR_TABS: HRTabItem[] = [
   { id: 'expenses', path: '/hr/expenses', label: 'HR Expenses', icon: Receipt, group: 'finance' },
 
   { id: 'requests', path: '/hr/requests', label: 'Requests', icon: MessageSquareText, group: 'ops', badgeKey: 'requests' },
+  { id: 'queries', path: '/hr/queries', label: 'Queries & Chat', icon: MessageSquare, group: 'ops' },
   { id: 'offboarding', path: '/hr/offboarding', label: 'Offboarding', icon: UserMinus, group: 'ops' },
 
   { id: 'reports', path: '/hr/reports', label: 'Reports', icon: BarChart3, group: 'insights' },
@@ -113,6 +116,7 @@ function HRNavigationHeader() {
     if (p.includes('/payments')) return 'payments';
     if (p.includes('/performance')) return 'performance';
     if (p.includes('/requests')) return 'requests';
+    if (p.includes('/queries') || p.includes('/chat')) return 'queries';
     if (p.includes('/offboarding')) return 'offboarding';
     if (p.includes('/reports')) return 'reports';
     if (p.includes('/settings')) return 'settings';
@@ -209,6 +213,8 @@ export const HRPortalLayout: React.FC = () => {
             <Route path="expenses" element={<HrRouteGuard routeId="expenses"><Expenses /></HrRouteGuard>} />
             <Route path="performance" element={<HrRouteGuard routeId="performance"><Performance /></HrRouteGuard>} />
             <Route path="requests" element={<HrRouteGuard routeId="requests"><Requests /></HrRouteGuard>} />
+            <Route path="queries" element={<RoleQueriesChatView roleContext="hr" />} />
+            <Route path="chat" element={<RoleQueriesChatView roleContext="hr" />} />
             <Route path="offboarding" element={<HrRouteGuard routeId="offboarding"><Offboarding /></HrRouteGuard>} />
             <Route path="reports" element={<HrRouteGuard routeId="reports"><Reports /></HrRouteGuard>} />
             <Route path="settings" element={<HrRouteGuard routeId="settings"><Settings /></HrRouteGuard>} />

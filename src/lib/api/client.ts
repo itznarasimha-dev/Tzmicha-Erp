@@ -270,7 +270,14 @@ export function setAccessToken(token: string | null, storage: TokenStorage = 'lo
 
 export function getAccessToken(): string | null {
   try {
-    return localStorage.getItem(TOKEN_KEY) ?? sessionStorage.getItem(TOKEN_KEY)
+    return (
+      localStorage.getItem(TOKEN_KEY) ??
+      sessionStorage.getItem(TOKEN_KEY) ??
+      localStorage.getItem('supabase_access_token') ??
+      sessionStorage.getItem('supabase_access_token') ??
+      sessionStorage.getItem('apexflow_auth_token') ??
+      localStorage.getItem('apex_erp_token')
+    )
   } catch {
     return null
   }

@@ -416,7 +416,7 @@ export default function Recruitment() {
   const convertToEmployee = () => {
     if (!selected) return
     if (selected.convertedEmployeeId) {
-      navigate(`/employees/${selected.convertedEmployeeId}`)
+      navigate(`/hr/employees/${selected.convertedEmployeeId}`)
       return
     }
     const existing = db.employees.find((e) => e.email.toLowerCase() === selected.email.toLowerCase())
@@ -771,7 +771,7 @@ export default function Recruitment() {
         footer={selected ? (
           selected.stage === 'Hired' ? (
             selected.convertedEmployeeId
-              ? <><Button variant="secondary" onClick={() => navigate(`/employees/${selected.convertedEmployeeId}`)}>View employee</Button><Button onClick={() => setSelectedId(null)}>Close</Button></>
+              ? <><Button variant="secondary" onClick={() => navigate(`/hr/employees/${selected.convertedEmployeeId}`)}>View employee</Button><Button onClick={() => setSelectedId(null)}>Close</Button></>
               : <><Button variant="secondary" onClick={() => setSelectedId(null)}>Close</Button><Button onClick={convertToEmployee}><UserPlus className="h-4 w-4" /> Convert to employee</Button></>
           ) : selected.stage === 'Rejected' ? (
             <><Button variant="secondary" onClick={() => setSelectedId(null)}>Close</Button><Button onClick={() => { setSelectedId(null); setTab('pipeline') }}>Back to pipeline</Button></>

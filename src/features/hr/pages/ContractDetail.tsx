@@ -79,7 +79,7 @@ export default function ContractDetail() {
           icon={FileSignature}
           title="Contract not found"
           description="This contract may have been deleted or the link is out of date. Return to the register to continue."
-          action={<Button onClick={() => navigate('/contracts')}><ArrowLeft className="h-4 w-4" /> Back to contracts</Button>}
+          action={<Button onClick={() => navigate('/hr/contracts')}><ArrowLeft className="h-4 w-4" /> Back to contracts</Button>}
         />
       </Card>
     )
@@ -215,7 +215,7 @@ export default function ContractDetail() {
     update((d) => ({ ...d, contracts: d.contracts.filter((c) => c.id !== contract.id) }))
     logActivity('contract', 'Contract deleted', `${contract.title} · ${contract.id}`)
     toast('Contract deleted (demo)', 'success', `${contract.id} was removed from the register. Demo data is not saved to the database.`)
-    navigate('/contracts')
+    navigate('/hr/contracts')
   }
 
   const uploadDocs = (docs: DocFile[]) => {
@@ -312,7 +312,7 @@ export default function ContractDetail() {
         badge={<StatusBadge status={status} />}
         actions={
           <>
-            <Button variant="secondary" onClick={() => navigate('/contracts')}><ArrowLeft className="h-4 w-4" /> Register</Button>
+            <Button variant="secondary" onClick={() => navigate('/hr/contracts')}><ArrowLeft className="h-4 w-4" /> Register</Button>
             <Button variant="secondary" onClick={exportContract}><Download className="h-4 w-4" /> Export</Button>
             <Button onClick={() => setEditOpen(true)}><Pencil className="h-4 w-4" /> Edit</Button>
           </>
@@ -534,7 +534,7 @@ export default function ContractDetail() {
                             <td className="table-cell"><StatusBadge status={p.approvalStatus} /></td>
                             <td className="table-cell"><StatusBadge status={p.paymentStatus} /></td>
                             <td className="table-cell pr-0 text-right">
-                              <Button size="sm" variant="ghost" onClick={() => navigate('/payments')}>Open <ChevronRight className="h-3 w-3" /></Button>
+                              <Button size="sm" variant="ghost" onClick={() => navigate('/hr/payments')}>Open <ChevronRight className="h-3 w-3" /></Button>
                             </td>
                           </tr>
                         ))}
