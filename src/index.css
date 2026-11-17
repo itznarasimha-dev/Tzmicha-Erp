@@ -848,7 +848,12 @@ table {
 .metric-card,
 .sk-card,
 .content-card,
-.table-container-card {
+.glass-card,
+.section-card,
+.mms-card,
+.mms-panel,
+.table-container-card,
+.table-card-wrapper {
   background-color: #ffffff;
   border: 1px solid #f1f5f9;
   border-radius: 1.5rem;
@@ -885,11 +890,9 @@ table {
 }
 
 /* 2. Global Standardized Tables & Wrappers */
-.table-wrap,
-.table-responsive,
-.erp-table-wrapper,
-.ws-table-wrap,
-.table-container-card {
+/* Outer Card Container */
+.table-container-card,
+.table-card-wrapper {
   background-color: #ffffff;
   border: 1px solid #f1f5f9;
   border-radius: 1.5rem;
@@ -897,11 +900,114 @@ table {
   overflow: hidden;
 }
 
+/* Inner Horizontal Scroll Containers across all roles */
+.table-wrap,
+.table-responsive,
+.erp-table-wrapper,
+.ws-table-wrap,
+.mms-table-wrap,
+.overflow-x-auto {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto !important;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f8fafc;
+}
+
+/* Eliminate duplicate borders / nested box-shadows when inner wrapper is inside card */
+.table-container-card > .table-responsive,
+.table-container-card > .table-wrap,
+.table-container-card > .erp-table-wrapper,
+.table-card-wrapper > .table-responsive,
+.table-card-wrapper > .table-wrap,
+.card > .overflow-x-auto,
+.glass-card > .overflow-x-auto {
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+}
+
+/* Universal sleek horizontal scrollbar */
+.table-wrap::-webkit-scrollbar,
+.table-responsive::-webkit-scrollbar,
+.erp-table-wrapper::-webkit-scrollbar,
+.ws-table-wrap::-webkit-scrollbar,
+.mms-table-wrap::-webkit-scrollbar,
+.overflow-x-auto::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+
+.table-wrap::-webkit-scrollbar-track,
+.table-responsive::-webkit-scrollbar-track,
+.erp-table-wrapper::-webkit-scrollbar-track,
+.ws-table-wrap::-webkit-scrollbar-track,
+.mms-table-wrap::-webkit-scrollbar-track,
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: #f8fafc;
+  border-radius: 9999px;
+}
+
+.table-wrap::-webkit-scrollbar-thumb,
+.table-responsive::-webkit-scrollbar-thumb,
+.erp-table-wrapper::-webkit-scrollbar-thumb,
+.ws-table-wrap::-webkit-scrollbar-thumb,
+.mms-table-wrap::-webkit-scrollbar-thumb,
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+.table-wrap::-webkit-scrollbar-thumb:hover,
+.table-responsive::-webkit-scrollbar-thumb:hover,
+.erp-table-wrapper::-webkit-scrollbar-thumb:hover,
+.ws-table-wrap::-webkit-scrollbar-thumb:hover,
+.mms-table-wrap::-webkit-scrollbar-thumb:hover,
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Ensure all data tables maintain comfortable column spacing and never crush */
+.table-wrap > table,
+.table-responsive > table,
+.erp-table-wrapper > table,
+.ws-table-wrap > table,
+.mms-table-wrap > table,
+.table-container-card table,
+.overflow-x-auto > table:not(.mini-table):not(.inline-table):not(.calendar-table) {
+  width: 100%;
+  min-width: max(100%, 880px);
+  border-collapse: collapse;
+}
+
+/* High-column count tables (7+ columns) automatically expand so data is never squished */
+.enterprise-table,
+table.min-w-wide,
+.table-wrap > table:has(th:nth-child(7)),
+.table-responsive > table:has(th:nth-child(7)),
+.erp-table-wrapper > table:has(th:nth-child(7)),
+.overflow-x-auto > table:has(th:nth-child(7)) {
+  min-width: max(100%, 1020px);
+}
+
+/* Dense multi-column tables (9+ columns, e.g. Invoices, Orders, Receivings) */
+.table-wrap > table:has(th:nth-child(9)),
+.table-responsive > table:has(th:nth-child(9)),
+.erp-table-wrapper > table:has(th:nth-child(9)),
+.overflow-x-auto > table:has(th:nth-child(9)) {
+  min-width: max(100%, 1180px);
+}
+
 /* Table Column Headers across all roles */
 table th,
 .table th,
 .erp-table th,
 .enterprise-table th,
+.mms-table th,
 .table-head {
   background-color: rgba(248, 250, 252, 0.85) !important;
   color: #94a3b8 !important;
@@ -911,7 +1017,7 @@ table th,
   letter-spacing: 0.05em !important;
   padding: 12px 16px !important;
   border-bottom: 1px solid #f1f5f9 !important;
-  white-space: nowrap;
+  white-space: nowrap !important;
 }
 
 /* Table Rows & Cells across all roles */
@@ -919,6 +1025,7 @@ table td,
 .table td,
 .erp-table td,
 .enterprise-table td,
+.mms-table td,
 .table-cell {
   padding: 12px 16px !important;
   border-bottom: 1px solid #f1f5f9 !important;
@@ -928,18 +1035,43 @@ table td,
   vertical-align: middle;
 }
 
+/* Prevent awkward multi-line wrapping and cell overflow on status, currency, dates, and actions */
+table td .status-badge,
+table td .badge,
+table td .pill-badge,
+table td [class*="badge"],
+table td [class*="status-"],
+table td button,
+table td .btn,
+table td a,
+table td time,
+table td .tabular,
+table td .font-mono,
+table td.actions-cell,
+table td.cell-actions,
+table th.actions-col,
+table td:last-child:has(button),
+table td:last-child:has(a) {
+  white-space: nowrap !important;
+}
+
 table tbody tr:hover,
 .table tbody tr:hover,
 .erp-table tbody tr:hover,
 .enterprise-table tr:hover td,
+.mms-table tbody tr:hover,
 .table-row:hover {
   background-color: rgba(248, 250, 252, 0.75) !important;
+  transition: background-color 0.15s ease;
 }
 
 /* 3. Global Standardized Filter & Search Bars */
 .toolbar,
 .filter-bar,
-.search-filter-bar {
+.search-filter-bar,
+.mms-filter-bar,
+.table-filters,
+.filter-panel {
   background-color: #ffffff !important;
   border: 1px solid #f1f5f9 !important;
   border-radius: 1rem !important;
@@ -949,14 +1081,37 @@ table tbody tr:hover,
 .toolbar input,
 .filter-bar input,
 .search-filter-bar input,
+.mms-filter-bar input,
+.table-filters input,
+.filter-panel input,
 .toolbar select,
 .filter-bar select,
-.search-filter-bar select {
+.search-filter-bar select,
+.mms-filter-bar select,
+.table-filters select,
+.filter-panel select {
   background-color: #f8fafc !important;
   border: 1px solid #e2e8f0 !important;
   border-radius: 0.75rem !important;
   color: #0f172a !important;
   font-size: 13px !important;
+}
+
+.toolbar input:focus,
+.filter-bar input:focus,
+.search-filter-bar input:focus,
+.mms-filter-bar input:focus,
+.table-filters input:focus,
+.filter-panel input:focus,
+.toolbar select:focus,
+.filter-bar select:focus,
+.search-filter-bar select:focus,
+.mms-filter-bar select:focus,
+.table-filters select:focus,
+.filter-panel select:focus {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
+  outline: none !important;
 }
 
 /* 4. Global Standardized Status Badges */
@@ -1052,7 +1207,9 @@ table tbody tr:hover,
   .table-responsive,
   .erp-table-wrapper,
   .ws-table-wrap,
-  .table-container-card {
+  .mms-table-wrap,
+  .table-container-card,
+  .overflow-x-auto {
     border-radius: 1rem !important;
     margin-left: -0.25rem;
     margin-right: -0.25rem;
@@ -1065,6 +1222,7 @@ table tbody tr:hover,
   .table th,
   .erp-table th,
   .enterprise-table th,
+  .mms-table th,
   .table-head {
     padding: 9px 12px !important;
     font-size: 10px !important;
@@ -1074,6 +1232,7 @@ table tbody tr:hover,
   .table td,
   .erp-table td,
   .enterprise-table td,
+  .mms-table td,
   .table-cell {
     padding: 10px 12px !important;
     font-size: 12px !important;

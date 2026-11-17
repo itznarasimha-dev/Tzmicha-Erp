@@ -32,6 +32,7 @@ interface DataTableProps<T> {
   compact?: boolean
   footerNote?: ReactNode
   loading?: boolean
+  minWidth?: string
   className?: string
 }
 
@@ -54,8 +55,10 @@ export function DataTable<T>({
   compact = false,
   footerNote,
   loading = false,
+  minWidth,
   className = '',
 }: DataTableProps<T>) {
+  const tableMinWidth = minWidth || `${Math.max(840, columns.length * 125)}px`
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(0)
   const [sort, setSort] = useState<{ columnId: string; direction: 'asc' | 'desc' } | null>(
@@ -139,7 +142,10 @@ export function DataTable<T>({
       ) : (
         <>
           <div className="table-wrap table-wrap--desktop">
-            <table className={`table ${compact ? 'table--compact' : ''}`.trim()}>
+            <table
+              className={`table ${compact ? 'table--compact' : ''}`.trim()}
+              style={{ minWidth: tableMinWidth }}
+            >
               {caption ? <caption className="sr-only">{caption}</caption> : null}
               <thead>
                 <tr>

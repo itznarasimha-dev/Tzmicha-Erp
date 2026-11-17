@@ -15,6 +15,9 @@ export default function DataTable({
   const [sortField, setSortField] = useState(null);
   const [sortAsc, setSortAsc] = useState(true);
 
+  // Auto-calculated minimum table width based on column count so columns never crush
+  const tableMinWidth = minWidth || `${Math.max(880, columns.length * 130)}px`;
+
   // Sorting
   const sortedData = useMemo(() => {
     if (!sortField) return data;
@@ -54,7 +57,7 @@ export default function DataTable({
   return (
     <div className="table-container-card">
       <div className="table-responsive">
-        <table className="enterprise-table" style={minWidth ? { minWidth } : undefined}>
+        <table className="enterprise-table" style={{ minWidth: tableMinWidth }}>
           <thead>
             <tr>
               {columns.map((col) => {

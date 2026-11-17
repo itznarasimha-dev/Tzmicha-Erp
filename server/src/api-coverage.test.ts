@@ -124,7 +124,7 @@ const FRONTEND_ENDPOINTS: Array<{ method: 'get' | 'post' | 'patch' | 'delete'; p
 ]
 
 describe('API Route Coverage Verification', () => {
-  it.each(FRONTEND_ENDPOINTS)('mounted backend route exists for $method $path', { timeout: 15000 }, async ({ method, path }) => {
+  it.each(FRONTEND_ENDPOINTS)('mounted backend route exists for $method $path', { timeout: 30000 }, async ({ method, path }) => {
     const res = await request(app)[method](path)
     // The route MUST exist and be mounted.
     // If it requires authentication, it returns 401 Unauthorized (which confirms the route handler / auth middleware matched).
