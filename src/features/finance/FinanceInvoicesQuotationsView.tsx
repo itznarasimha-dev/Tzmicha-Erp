@@ -37,6 +37,7 @@ import {
 import { Invoice, Quotation, CreditNote, InvoiceStatus, InvoicePaymentStatus } from '../../types';
 import { formatINR, numberToIndianWords, maskAccountNumber } from '../../services/formatters';
 import { calculateGstTaxes } from '../../services/gstService';
+import { BulkImportModal } from './BulkImportModal';
 
 export const FinanceInvoicesQuotationsView: React.FC = () => {
   const {
@@ -61,6 +62,9 @@ export const FinanceInvoicesQuotationsView: React.FC = () => {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [selectedQuotation, setSelectedQuotation] = useState<Quotation | null>(null);
   const [selectedCreditNote, setSelectedCreditNote] = useState<CreditNote | null>(null);
+
+  // Bulk Import Modal
+  const [bulkImportModalOpen, setBulkImportModalOpen] = useState(false);
 
   // Modals
   const [recordPaymentModalOpen, setRecordPaymentModalOpen] = useState(false);
@@ -566,6 +570,16 @@ export const FinanceInvoicesQuotationsView: React.FC = () => {
               <option value="cancelled">Cancelled</option>
             </select>
           )}
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setBulkImportModalOpen(true)}
+            className="flex items-center gap-1.5 text-indigo-700 border-indigo-200 hover:bg-indigo-50 shrink-0 font-medium"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            Bulk Import CSV
+          </Button>
         </div>
       </div>
 
@@ -1563,6 +1577,17 @@ export const FinanceInvoicesQuotationsView: React.FC = () => {
           </div>
         </Modal>
       )}
+
+      {/* ─── BULK IMPORT MODAL ─── */}
+      <BulkImportModal
+        isOpen={bulkImportModalOpen}
+        onClose={() => setBulkImportModalOpen(false)}
+        defaultType={activeTab === 'quotations' ? 'quotation' : 'invoice'}
+        onSuccess={(batch) => {
+          setNoticeMessage(`Bulk Import ${batch.batchNumber} finished: ${batch.importedDocuments} documents created.`);
+          setTimeout(() => setNoticeMessage(null), 5000);
+        }}
+      />
     </div>
   );
 };

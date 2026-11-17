@@ -523,7 +523,7 @@ leadsRouter.patch(
       if (input.status === 'Lost' && !input.lostReason && !current.lost_reason) {
         throw AppError.badRequest('lostReason is required when marking a lead as Lost')
       }
-      if (input.status === 'Won') {
+      if ((input.status as string) === 'Won') {
         throw AppError.badRequest('Use POST /leads/:id/convert to convert a lead to Won')
       }
       if (input.assignedTo) await activeOrgUser(client, input.assignedTo, 'Assignee')

@@ -10,6 +10,8 @@ import {
 import { authenticate, requirePermission } from '../../middleware/auth.js'
 import { optionalText, optionalUuid, uuidSchema } from '../../lib/validation.js'
 import { findReplay, readIdempotencyKey } from '../../lib/idempotency.js'
+import { documentsRouter } from './documents.js'
+import { importsRouter } from './imports.js'
 
 export const financeRouter = Router()
 
@@ -30,6 +32,9 @@ async function logAudit(
 }
 
 financeRouter.use(authenticate)
+
+financeRouter.use('/documents', documentsRouter)
+financeRouter.use('/imports', importsRouter)
 
 // -----------------------------------------------------------------------------
 // Invoices
@@ -60,13 +65,13 @@ financeRouter.get('/invoices', async (req, res) => {
 const createInvoiceSchema = z.object({
   customerId: optionalUuid,
   salesOrderId: optionalUuid,
-  issueDate: optionalText,
-  dueDate: optionalText,
+  issueDate: optionalText(),
+  dueDate: optionalText(),
   subtotal: z.number().nonnegative().optional(),
   taxAmount: z.number().nonnegative().optional(),
   totalAmount: z.number().positive(),
-  notes: optionalText,
-  terms: optionalText,
+  notes: optionalText(),
+  terms: optionalText(),
 })
 
 financeRouter.post('/invoices', validateBody(createInvoiceSchema), async (req, res) => {
@@ -194,8 +199,8 @@ const recordPaymentSchema = z.object({
   invoiceId: optionalUuid,
   amount: z.number().positive(),
   method: z.string().default('Bank Transfer'),
-  reference: optionalText,
-  idempotencyKey: optionalText,
+  reference: optionalText(),
+  idempotencyKey: optionalText(),
 })
 
 financeRouter.post('/payments', validateBody(recordPaymentSchema), async (req, res) => {
@@ -218,7 +223,7 @@ financeRouter.post('/payments', validateBody(recordPaymentSchema), async (req, r
         body.amount,
         body.reference || null,
         body.idempotencyKey || null,
-        auth.id,
+        auth.userId,
       ]
     )
     if (!payment) throw new AppError(500, 'internal_error', 'Failed to record payment')

@@ -83,6 +83,7 @@ const FRONTEND_ENDPOINTS: Array<{ method: 'get' | 'post' | 'patch' | 'delete'; p
   { method: 'get', path: '/api/finance/invoices' },
   { method: 'get', path: '/api/finance/payments' },
   { method: 'get', path: '/api/finance/ledgers' },
+  { method: 'get', path: '/api/finance/imports/history' },
 
   // Notifications
   { method: 'get', path: '/api/notifications' },

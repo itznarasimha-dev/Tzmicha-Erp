@@ -19,7 +19,7 @@ notificationsRouter.get('/', async (req, res) => {
       `select * from erp.notifications
        where org_id = $1 and (user_id = $2 or user_id is null or recipient_role = 'all' or recipient_role = $3)
        order by created_at desc limit 50`,
-      [auth.orgId, auth.id, auth.role]
+      [auth.orgId, auth.userId, auth.role]
     )
   }, { readOnly: true })
 
@@ -28,11 +28,11 @@ notificationsRouter.get('/', async (req, res) => {
 
 const createNotificationSchema = z.object({
   userId: z.string().uuid().optional(),
-  recipientRole: optionalText,
+  recipientRole: optionalText(),
   title: z.string().min(1),
   message: z.string().min(1),
   type: z.enum(['info', 'warning', 'success', 'alert', 'error']).default('info'),
-  actionUrl: optionalText,
+  actionUrl: optionalText(),
   metadata: z.record(z.any()).optional(),
 })
 
@@ -93,7 +93,7 @@ notificationsRouter.patch('/read-all', async (req, res) => {
       `update erp.notifications
        set is_read = true, read_at = now()
        where org_id = $1 and (user_id = $2 or user_id is null) and is_read = false`,
-      [auth.orgId, auth.id]
+      [auth.orgId, auth.userId]
     )
   })
 
