@@ -38,7 +38,7 @@ salesRouter.use(authenticate)
 // -----------------------------------------------------------------------------
 // Customers
 // -----------------------------------------------------------------------------
-salesRouter.get('/customers', async (req, res) => {
+salesRouter.get('/customers', requirePermission('sales.customer.read', 'sales.read'), async (req, res) => {
   const auth = req.auth!
   const q = req.query.q ? String(req.query.q).trim() : ''
 
@@ -56,7 +56,7 @@ salesRouter.get('/customers', async (req, res) => {
   sendData(res, customers)
 })
 
-salesRouter.post('/customers', async (req, res) => {
+salesRouter.post('/customers', requirePermission('sales.customer.create', 'sales.create'), async (req, res) => {
   const auth = req.auth!
   const body = req.body || {}
 
@@ -95,7 +95,7 @@ salesRouter.post('/customers', async (req, res) => {
   sendData(res, created, 201)
 })
 
-salesRouter.patch('/customers/:id', async (req, res) => {
+salesRouter.patch('/customers/:id', requirePermission('sales.customer.update', 'sales.update'), async (req, res) => {
   const auth = req.auth!
   const id = uuidSchema.parse(req.params.id)
   const body = req.body || {}
@@ -134,7 +134,7 @@ salesRouter.patch('/customers/:id', async (req, res) => {
   sendData(res, updated)
 })
 
-salesRouter.patch('/customers/:id/credit', async (req, res) => {
+salesRouter.patch('/customers/:id/credit', requirePermission('sales.customer.update', 'sales.update'), async (req, res) => {
   const auth = req.auth!
   const id = uuidSchema.parse(req.params.id)
   const creditLimit = Number(req.body.creditLimit ?? 0)

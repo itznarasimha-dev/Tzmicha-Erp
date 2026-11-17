@@ -170,18 +170,23 @@ leadsRouter.get('/leads/:id', async (req, res) => {
         throw AppError.forbidden('You may only view leads assigned to you')
       }
 
+      const isSalesOrAdmin = auth.isAdmin || auth.permissions.has('sales.lead.read')
       const [activities, followUps, assignment, rejection, conversion] = await Promise.all([
         many(
           client,
           `select * from erp.mkt_lead_activities
-            where lead_id = $1 order by occurred_at desc limit 100`,
-          [id],
+            where lead_id = $1
+              and ($2::boolean or activity_type not in ('Sales Call','Demo','Commercial Meeting','Negotiation'))
+            order by occurred_at desc limit 100`,
+          [id, isSalesOrAdmin],
         ),
         many(
           client,
           `select * from erp.mkt_lead_follow_ups
-            where lead_id = $1 order by due_at desc limit 100`,
-          [id],
+            where lead_id = $1
+              and ($2::boolean or method not in ('Call','Meeting','Visit'))
+            order by due_at desc limit 100`,
+          [id, isSalesOrAdmin],
         ),
         one(
           client,
@@ -492,14 +497,34 @@ leadsRouter.patch(
     }
 
     const updated = await withRls(auth, async (client) => {
-      const current = await one<{ id: string; converted: boolean; status: string }>(
+      const current = await one<{
+        id: string
+        converted: boolean
+        status: string
+        assigned_to: string | null
+        lost_reason: string | null
+      }>(
         client,
-        'select id, converted, status from erp.mkt_leads where id = $1 for update',
+        'select id, converted, status, assigned_to, lost_reason from erp.mkt_leads where id = $1 for update',
         [id],
       )
       if (!current) throw AppError.notFound('Lead not found')
       if (current.converted) {
         throw AppError.conflict('Converted leads can no longer be edited')
+      }
+
+      // Ownership restriction: A sales rep may only update leads assigned to them or unassigned leads (claiming)
+      if (!auth.isAdmin && !auth.permissions.has('marketing.lead.update')) {
+        if (current.assigned_to && current.assigned_to !== auth.userId) {
+          throw AppError.forbidden('You can only update leads assigned to you')
+        }
+      }
+
+      if (input.status === 'Lost' && !input.lostReason && !current.lost_reason) {
+        throw AppError.badRequest('lostReason is required when marking a lead as Lost')
+      }
+      if (input.status === 'Won') {
+        throw AppError.badRequest('Use POST /leads/:id/convert to convert a lead to Won')
       }
       if (input.assignedTo) await activeOrgUser(client, input.assignedTo, 'Assignee')
 
@@ -691,13 +716,19 @@ leadsRouter.post(
     const input = validatedBody<z.infer<typeof followUpCreateSchema>>(req)
 
     const followUp = await withRls(auth, async (client) => {
-      const lead = await one<{ id: string; status: string; converted: boolean }>(
+      const lead = await one<{ id: string; status: string; converted: boolean; assigned_to: string | null }>(
         client,
-        'select id, status, converted from erp.mkt_leads where id = $1 for update',
+        'select id, status, converted, assigned_to from erp.mkt_leads where id = $1 for update',
         [id],
       )
       if (!lead) throw AppError.notFound('Lead not found')
       if (lead.converted) throw AppError.conflict('Converted leads do not need follow-ups')
+
+      if (!auth.isAdmin && !auth.permissions.has('marketing.lead.followup')) {
+        if (lead.assigned_to && lead.assigned_to !== auth.userId) {
+          throw AppError.forbidden('You can only schedule follow-ups for leads assigned to you')
+        }
+      }
 
       const row = await one<{ id: string }>(
         client,
@@ -941,14 +972,21 @@ leadsRouter.post(
         status: string
         converted: boolean
         next_follow_up: string | null
+        assigned_to: string | null
       }>(
         client,
-        'select id, status, converted, next_follow_up from erp.mkt_leads where id = $1 for update',
+        'select id, status, converted, next_follow_up, assigned_to from erp.mkt_leads where id = $1 for update',
         [id],
       )
       if (!current) throw AppError.notFound('Lead not found')
       if (current.converted) throw AppError.conflict('A converted lead cannot be rejected')
       if (current.status === 'Rejected') throw AppError.conflict('This lead was already rejected')
+
+      if (!auth.isAdmin && !auth.permissions.has('marketing.lead.reject')) {
+        if (current.assigned_to && current.assigned_to !== auth.userId) {
+          throw AppError.forbidden('You can only reject leads assigned to you')
+        }
+      }
 
       await client.query(
         `insert into erp.mkt_lead_rejections (
@@ -1045,6 +1083,12 @@ leadsRouter.post(
         [id],
       )
       if (!lead) throw AppError.notFound('Lead not found')
+
+      if (!auth.isAdmin && !auth.permissions.has('marketing.lead.convert')) {
+        if (lead.assigned_to && lead.assigned_to !== auth.userId) {
+          throw AppError.forbidden('You can only convert leads assigned to you')
+        }
+      }
 
       if (lead.converted && lead.customer_id) {
         const existing = await one(client, 'select * from erp.customers where id = $1', [
