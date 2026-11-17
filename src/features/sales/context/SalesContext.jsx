@@ -27,6 +27,7 @@ import {
 } from '../data/mockData';
 import { generateReference } from '../utils/formatters';
 import { downloadQuotationDocument } from '../utils/documentGenerator';
+import { fetchSalesBootstrapData } from './salesApiSync';
 
 const SalesContext = createContext(null);
 
@@ -518,6 +519,67 @@ export function SalesProvider({ children }) {
     apiEndpoint: import.meta.env?.VITE_EMAIL_API_ENDPOINT || '',
     isConfigured: Boolean(import.meta.env?.VITE_EMAIL_API_ENDPOINT || import.meta.env?.VITE_SMTP_HOST),
   }));
+
+  // Live Data & Loading State
+  const [isLoadingLive, setIsLoadingLive] = useState(false);
+  const [liveSyncError, setLiveSyncError] = useState(null);
+
+  // Read-only legacy localStorage preservation (retains all offline user records without deletion)
+  const [legacyLocalStorageData] = useState(() => {
+    try {
+      if (typeof window === 'undefined' || !window.localStorage) return {};
+      const keys = Object.keys(localStorage).filter(
+        (k) => k.startsWith('apex_erp_sales_state_') || k.startsWith('tzm_')
+      );
+      const snapshot = {};
+      keys.forEach((k) => {
+        try {
+          snapshot[k] = JSON.parse(localStorage.getItem(k));
+        } catch {
+          snapshot[k] = localStorage.getItem(k);
+        }
+      });
+      return snapshot;
+    } catch {
+      return {};
+    }
+  });
+
+  // Fetch live backend records when authenticated
+  useEffect(() => {
+    let active = true;
+    async function loadLiveBackendData() {
+      try {
+        setIsLoadingLive(true);
+        const data = await fetchSalesBootstrapData(true);
+        if (!active || !data) return;
+
+        if (Array.isArray(data.customers) && data.customers.length > 0) setCustomers(data.customers);
+        if (Array.isArray(data.products) && data.products.length > 0) setProducts(data.products);
+        if (Array.isArray(data.quotations) && data.quotations.length > 0) setQuotations(data.quotations);
+        if (Array.isArray(data.orders) && data.orders.length > 0) setOrders(data.orders);
+        if (Array.isArray(data.dispatches) && data.dispatches.length > 0) setDispatches(data.dispatches);
+        if (Array.isArray(data.returns) && data.returns.length > 0) setReturns(data.returns);
+        if (Array.isArray(data.invoices) && data.invoices.length > 0) setInvoices(data.invoices);
+        if (Array.isArray(data.payments) && data.payments.length > 0) setPayments(data.payments);
+        if (Array.isArray(data.followups) && data.followups.length > 0) setFollowups(data.followups);
+        if (Array.isArray(data.leads) && data.leads.length > 0) setMarketingLeads(data.leads);
+        if (Array.isArray(data.opportunities) && data.opportunities.length > 0) setOpportunities(data.opportunities);
+
+        setLiveSyncError(null);
+      } catch (err) {
+        if (!active) return;
+        setLiveSyncError(err instanceof Error ? err.message : 'Live backend data sync failed.');
+      } finally {
+        if (active) setIsLoadingLive(false);
+      }
+    }
+
+    loadLiveBackendData();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Navigation state (Sync with URL hash and browser history for Back/Forward navigation)
   const getInitialPage = () => {
@@ -5101,6 +5163,11 @@ export function SalesProvider({ children }) {
         dismissNotification,
         clearAllNotifications,
         resetDemoData,
+
+        // Live Backend Sync & Legacy LocalStorage Preservation
+        isLoadingLive,
+        liveSyncError,
+        legacyLocalStorageData,
       }}
     >
       {children}

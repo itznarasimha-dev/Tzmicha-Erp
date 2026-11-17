@@ -1,17 +1,77 @@
-import { useState } from 'react';
-import { SALES_TREND_DATA } from '../../data/mockData';
+import { useState, useMemo } from 'react';
 import { formatINR } from '../../utils/formatters';
+import { useSales } from '../../context/SalesContext';
 
 export default function SalesTrendChart({
   period = null,
   hideHeader = false,
   compact = true,
+  data: propData = null,
+  orders: propOrders = null,
 }) {
   const [internalPeriod, setInternalPeriod] = useState('This Month');
   const [hoveredIndex, setHoveredIndex] = useState(null);
+  const salesContext = useSales();
+  const contextOrders = salesContext?.orders || [];
 
   const activePeriod = period || internalPeriod;
-  const data = SALES_TREND_DATA[activePeriod] || SALES_TREND_DATA['This Month'] || [];
+  const rawOrders = propOrders || contextOrders || [];
+
+  // Dynamically aggregate real orders into period buckets (Zero mock data dependency)
+  const data = useMemo(() => {
+    if (Array.isArray(propData) && propData.length > 0) return propData;
+
+    const now = new Date();
+    if (activePeriod === 'This Week') {
+      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      return days.map((day, idx) => {
+        const dayOrders = rawOrders.filter((o) => {
+          if (!o.orderDate && !o.createdAt) return false;
+          const d = new Date(o.orderDate || o.createdAt);
+          const dayIdx = (d.getDay() + 6) % 7; // 0=Mon, 6=Sun
+          return dayIdx === idx;
+        });
+        const sales = dayOrders.reduce((sum, o) => sum + Number(o.totalAmount || o.subtotal || 0), 0);
+        return { label: day, sales, orders: dayOrders.length };
+      });
+    }
+
+    if (activePeriod === 'This Month') {
+      const weeks = ['Week 1 (1-7)', 'Week 2 (8-14)', 'Week 3 (15-21)', 'Week 4 (22-28)', 'Week 5 (29+)'];
+      return weeks.map((w, idx) => {
+        const weekOrders = rawOrders.filter((o) => {
+          if (!o.orderDate && !o.createdAt) return false;
+          const d = new Date(o.orderDate || o.createdAt);
+          const dateNum = d.getDate();
+          if (idx === 0) return dateNum <= 7;
+          if (idx === 1) return dateNum > 7 && dateNum <= 14;
+          if (idx === 2) return dateNum > 14 && dateNum <= 21;
+          if (idx === 3) return dateNum > 21 && dateNum <= 28;
+          return dateNum > 28;
+        });
+        const sales = weekOrders.reduce((sum, o) => sum + Number(o.totalAmount || o.subtotal || 0), 0);
+        return { label: w, sales, orders: weekOrders.length };
+      });
+    }
+
+    // Last 3 Months
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const currentMonth = now.getMonth();
+    const months = [
+      (currentMonth - 2 + 12) % 12,
+      (currentMonth - 1 + 12) % 12,
+      currentMonth,
+    ];
+    return months.map((mIdx) => {
+      const mOrders = rawOrders.filter((o) => {
+        if (!o.orderDate && !o.createdAt) return false;
+        const d = new Date(o.orderDate || o.createdAt);
+        return d.getMonth() === mIdx;
+      });
+      const sales = mOrders.reduce((sum, o) => sum + Number(o.totalAmount || o.subtotal || 0), 0);
+      return { label: monthNames[mIdx], sales, orders: mOrders.length };
+    });
+  }, [propData, rawOrders, activePeriod]);
 
   // Compact SVG chart sizing
   const width = 640;
@@ -50,7 +110,7 @@ export default function SalesTrendChart({
         <div className="chart-header" style={{ marginBottom: '8px' }}>
           <div>
             <h4 className="chart-title" style={{ fontSize: '13px', fontWeight: '700' }}>Sales Performance Trend</h4>
-            <p className="chart-subtitle" style={{ fontSize: '11px', color: '#64748b' }}>Revenue and order volume over time</p>
+            <p className="chart-subtitle" style={{ fontSize: '11px', color: '#64748b' }}>Live order revenue and volume</p>
           </div>
 
           {!period && (

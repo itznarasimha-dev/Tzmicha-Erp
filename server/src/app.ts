@@ -14,6 +14,8 @@ import { marketingRouter } from './routes/marketing/index.js'
 import { approvalsRouter } from './routes/approvals.js'
 import { salesRouter } from './routes/sales/index.js'
 import { serviceRouter } from './routes/service/index.js'
+import { financeRouter } from './routes/finance/index.js'
+import { notificationsRouter } from './routes/notifications.js'
 
 export function createApp() {
   const config = getConfig()
@@ -108,6 +110,8 @@ export function createApp() {
   app.use(`${config.API_PREFIX}/marketing`, marketingRouter)
   app.use(`${config.API_PREFIX}/sales`, salesRouter)
   app.use(`${config.API_PREFIX}/service`, serviceRouter)
+  app.use(`${config.API_PREFIX}/finance`, financeRouter)
+  app.use(`${config.API_PREFIX}/notifications`, notificationsRouter)
   app.use(`${config.API_PREFIX}/approvals`, approvalsRouter)
 
   app.use(notFoundHandler)

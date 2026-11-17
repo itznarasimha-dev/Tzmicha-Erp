@@ -7,7 +7,7 @@ import { formatINR, formatDate } from '../../utils/formatters';
 import { downloadInvoiceDocument } from '../../utils/documentGenerator';
 import InvoiceDocumentPreviewModal from './InvoiceDocumentPreviewModal';
 import { CreditCard, Calendar, Download, Eye, MessageSquare, CheckCircle, ShieldCheck, Building2, Mail } from 'lucide-react';
-import { DEFAULT_COMPANY_CONFIG } from '../../data/mockData';
+import { DEFAULT_COMPANY_CONFIG } from '../../config/companyConfig';
 
 export default function InvoiceDetailModal({
   isOpen,

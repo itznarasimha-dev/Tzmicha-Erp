@@ -78,6 +78,14 @@ const FRONTEND_ENDPOINTS: Array<{ method: 'get' | 'post' | 'patch' | 'delete'; p
   // Approvals Engine
   { method: 'get', path: '/api/approvals/pending' },
   { method: 'get', path: '/api/approvals/history' },
+
+  // Finance Module
+  { method: 'get', path: '/api/finance/invoices' },
+  { method: 'get', path: '/api/finance/payments' },
+  { method: 'get', path: '/api/finance/ledgers' },
+
+  // Notifications
+  { method: 'get', path: '/api/notifications' },
 ]
 
 describe('API Route Coverage Verification', () => {

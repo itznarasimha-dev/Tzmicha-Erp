@@ -4,7 +4,7 @@ import FormField from '../common/FormField';
 import { useSales } from '../../context/SalesContext';
 import { useToast } from '../../context/ToastContext';
 import { formatINR, formatDate } from '../../utils/formatters';
-import { DEFAULT_COMPANY_CONFIG } from '../../data/mockData';
+import { DEFAULT_COMPANY_CONFIG } from '../../config/companyConfig';
 import {
   Search,
   CheckCircle,
