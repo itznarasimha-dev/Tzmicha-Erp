@@ -203,7 +203,7 @@ export default function Employees() {
           </div>
         </div>
       )}
-      {!useApi || (!employeesQuery.loading && !employeesQuery.error) && (
+      {(!useApi || (!employeesQuery.loading && !employeesQuery.error)) && (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard index={0} label="Headcount" value={employeesList.length} icon={Users} tone="brand" hint="all records" />
           <StatCard index={1} label="Active" value={active} icon={UserCheck} tone="green" hint="currently working" />
@@ -320,7 +320,7 @@ export default function Employees() {
         )}
       </Card>
 
-      {!useApi || (!employeesQuery.loading && !employeesQuery.error) && (
+      {(!useApi || (!employeesQuery.loading && !employeesQuery.error)) && (
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
           {db.settings.departments.slice(0, 3).map((d) => {
             const count = employeesList.filter((e) => e.department === d.name && e.status !== 'Terminated').length

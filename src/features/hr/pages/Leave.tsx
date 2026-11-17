@@ -310,7 +310,7 @@ export default function Leave() {
           </div>
         </div>
       )}
-      {!useApi || (!apiLoading && !apiError) && (
+      {(!useApi || (!apiLoading && !apiError)) && (
         <>
         <PageHeader
         title="Leave Management"

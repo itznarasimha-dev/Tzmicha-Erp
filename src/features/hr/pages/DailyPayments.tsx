@@ -327,7 +327,7 @@ export default function DailyPayments() {
           </div>
         </div>
       )}
-      {!useApi || (!paymentsQuery.loading && !paymentsQuery.error) && (
+      {(!useApi || (!paymentsQuery.loading && !paymentsQuery.error)) && (
         <>
         <PageHeader
         title="Daily Payments"

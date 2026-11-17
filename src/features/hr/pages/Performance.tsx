@@ -353,7 +353,7 @@ export default function Performance() {
           </div>
         </div>
       )}
-      {!useApi || (!reviewsQuery.loading && !reviewsQuery.error) && (
+      {(!useApi || (!reviewsQuery.loading && !reviewsQuery.error)) && (
         <>
         <PageHeader
         title="Performance"

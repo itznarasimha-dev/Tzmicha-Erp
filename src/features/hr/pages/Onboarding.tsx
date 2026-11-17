@@ -315,7 +315,7 @@ export default function Onboarding() {
           </div>
         </div>
       )}
-      {!useApi || (!onboardingQuery.loading && !onboardingQuery.error) && (
+      {(!useApi || (!onboardingQuery.loading && !onboardingQuery.error)) && (
         <>
         <PageHeader
         title="Onboarding"

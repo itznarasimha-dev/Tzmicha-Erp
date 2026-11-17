@@ -423,7 +423,7 @@ export default function Attendance() {
           </div>
         </div>
       )}
-      {!useApi || (!attendanceQuery.loading && !attendanceQuery.error) && (
+      {(!useApi || (!attendanceQuery.loading && !attendanceQuery.error)) && (
         <>
         <PageHeader
         title="Attendance"

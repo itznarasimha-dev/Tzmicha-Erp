@@ -544,7 +544,7 @@ export default function Recruitment() {
           </div>
         </div>
       )}
-      {!useApi || (!(jobsQuery.loading || candidatesQuery.loading) && !(jobsQuery.error || candidatesQuery.error)) && (
+      {(!useApi || (!(jobsQuery.loading || candidatesQuery.loading) && !(jobsQuery.error || candidatesQuery.error))) && (
         <>
         <PageHeader
         title="Recruitment"

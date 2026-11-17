@@ -292,7 +292,7 @@ export default function Requests() {
           </div>
         </div>
       )}
-      {!useApi || (!requestsQuery.loading && !requestsQuery.error) && (
+      {(!useApi || (!requestsQuery.loading && !requestsQuery.error)) && (
         <>
         <PageHeader
         title="Employee Requests"

@@ -351,7 +351,7 @@ export default function Offboarding() {
           </div>
         </div>
       )}
-      {!useApi || (!offboardingQuery.loading && !offboardingQuery.error) && (
+      {(!useApi || (!offboardingQuery.loading && !offboardingQuery.error)) && (
         <>
         <PageHeader
         title="Offboarding"
