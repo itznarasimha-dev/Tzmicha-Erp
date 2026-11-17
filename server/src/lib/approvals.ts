@@ -15,6 +15,10 @@ export type ApprovalEntityType =
   | 'mkt_offer'
   | 'mkt_campaign'
   | 'mkt_contract'
+  | 'sales_incentive'
+  | 'sales_expense'
+  | 'store_charge'
+  | 'customer_refund'
 
 export type ApprovalDecision = 'Approved' | 'Rejected' | 'Changes Requested' | 'Cancelled'
 

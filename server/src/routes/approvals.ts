@@ -34,6 +34,10 @@ const approvalQuery = z.object({
       'mkt_offer',
       'mkt_campaign',
       'mkt_contract',
+      'sales_incentive',
+      'sales_expense',
+      'store_charge',
+      'customer_refund',
     ])
     .optional(),
   status: z
@@ -230,13 +234,25 @@ approvalsRouter.post(
       throw AppError.badRequest('A comment is required when rejecting')
     }
 
-    const decided = await withRls(auth, async (client) => decideApproval(
-      client,
-      id,
-      input.decision,
-      input.comments ?? null,
-      input.approvedPercent ?? null,
-    ))
+    const decided = await withRls(auth, async (client) => {
+      const existing = await one<{ requested_by: string; status: string }>(
+        client,
+        `select requested_by, status from erp.approval_requests where id = $1 and org_id = $2`,
+        [id, auth.orgId]
+      )
+      if (!existing) throw AppError.notFound('Approval request not found')
+      if (existing.requested_by === auth.userId) {
+        throw AppError.forbidden('Self-approval is not permitted: you cannot approve your own request')
+      }
+
+      return decideApproval(
+        client,
+        id,
+        input.decision,
+        input.comments ?? null,
+        input.approvedPercent ?? null,
+      )
+    })
 
     sendData(res, {
       id: decided.id,

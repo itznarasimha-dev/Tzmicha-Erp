@@ -12,6 +12,11 @@ import { optionalText, optionalUuid, uuidSchema } from '../../lib/validation.js'
 import { findReplay, readIdempotencyKey } from '../../lib/idempotency.js'
 import { documentsRouter } from './documents.js'
 import { importsRouter } from './imports.js'
+import { expensesRouter } from './expenses.js'
+import { payrollRouter } from './payroll.js'
+import { refundsRouter } from './refunds.js'
+import { financeStoreChargesRouter } from './store-charges.js'
+import { ledgerRouter } from './ledger.js'
 
 export const financeRouter = Router()
 
@@ -35,6 +40,11 @@ financeRouter.use(authenticate)
 
 financeRouter.use('/documents', documentsRouter)
 financeRouter.use('/imports', importsRouter)
+financeRouter.use('/expenses', expensesRouter)
+financeRouter.use('/payroll', payrollRouter)
+financeRouter.use('/refunds', refundsRouter)
+financeRouter.use('/store-charges', financeStoreChargesRouter)
+financeRouter.use('/ledger', ledgerRouter)
 
 // -----------------------------------------------------------------------------
 // Invoices

@@ -5,10 +5,12 @@ import { AppError } from '../../errors.js'
 import { sendData, validateBody, validatedBody } from '../../http.js'
 import { authenticate } from '../../middleware/auth.js'
 import { optionalText, uuidSchema, dateOnlySchema } from '../../lib/validation.js'
+import { storeChargesRouter } from './charges.js'
 
 export const storeRouter = Router()
 
 storeRouter.use(authenticate)
+storeRouter.use('/charges', storeChargesRouter)
 
 /**
  * Helper to enforce Store Manager warehouse isolation.

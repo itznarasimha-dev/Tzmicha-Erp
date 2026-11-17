@@ -84,10 +84,24 @@ const FRONTEND_ENDPOINTS: Array<{ method: 'get' | 'post' | 'patch' | 'delete'; p
   { method: 'get', path: '/api/finance/payments' },
   { method: 'get', path: '/api/finance/ledgers' },
   { method: 'get', path: '/api/finance/imports/history' },
+  { method: 'get', path: '/api/finance/expenses' },
+  { method: 'get', path: '/api/finance/payroll/runs' },
+  { method: 'get', path: '/api/finance/refunds' },
+  { method: 'get', path: '/api/finance/store-charges' },
+  { method: 'get', path: '/api/finance/ledger/chart-of-accounts' },
 
   // Store & Receiving Module
   { method: 'get', path: '/api/store/incoming-orders' },
   { method: 'get', path: '/api/store/discrepancies' },
+  { method: 'get', path: '/api/store/charges' },
+
+  // Admin Module
+  { method: 'get', path: '/api/admin/system-dashboard' },
+  { method: 'get', path: '/api/admin/company-profiles' },
+  { method: 'get', path: '/api/admin/bank-accounts' },
+  { method: 'get', path: '/api/admin/warehouses' },
+  { method: 'get', path: '/api/admin/users' },
+  { method: 'get', path: '/api/admin/audit-logs' },
 
   // Notifications
   { method: 'get', path: '/api/notifications' },
