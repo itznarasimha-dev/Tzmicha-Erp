@@ -177,6 +177,14 @@ export function useContracts(query: {
   )
 }
 
+/** Single contract by ID. */
+export function useContract(id: string | null | undefined) {
+  return useHrQuery(
+    () => (id ? api.getContract(id) : Promise.reject(new Error('Contract ID is required'))),
+    [id]
+  )
+}
+
 /** Payments with filters and pagination. */
 export function usePayments(query: {
   approvalStatus?: string

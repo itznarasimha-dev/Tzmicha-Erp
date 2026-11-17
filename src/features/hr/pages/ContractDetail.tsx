@@ -9,6 +9,8 @@ import {
 import { useStore } from '../store'
 import { describeMissingPermission, useHrAccess } from '../lib/access'
 import { runHrApiAction, hrActions } from '../api-actions'
+import { useContract } from '../useHrData'
+import { mapContract } from '../api-sync'
 import type { Contract, ContractSignature, DocFile } from '../types'
 import { addDays, downloadCSV, fmtDate, fmtDateTime, fmtMoney, sum, todayISO, uid } from '../lib/utils'
 import { contractDaysRemaining, effectiveContractStatus } from '../lib/hr'
@@ -39,7 +41,13 @@ export default function ContractDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { db, update, logActivity, toast, dataSource, refreshFromApi, syncStatus } = useStore()
-  const contract = db.contracts.find((c) => c.id === id)
+  const contractQuery = useContract(id)
+  const apiContract = useMemo(() => {
+    if (contractQuery.data) return mapContract(contractQuery.data) as Contract
+    return null
+  }, [contractQuery.data])
+
+  const contract = (dataSource === 'api' ? (apiContract ?? db.contracts.find((c) => c.id === id)) : db.contracts.find((c) => c.id === id))
   const [tab, setTab] = useState<Tab>('overview')
   const [editOpen, setEditOpen] = useState(false)
   const [preview, setPreview] = useState<DocFile | null>(null)
@@ -60,14 +68,27 @@ export default function ContractDetail() {
     [db.payments, contract?.id],
   )
 
-  // In API mode the contract register hydrates asynchronously; avoid the
-  // "not found" flash while the detail is still being fetched.
-  if (!contract && dataSource === 'api' && syncStatus === 'loading') {
+  // In API mode the contract detail fetches asynchronously; show skeleton
+  if (!contract && dataSource === 'api' && (contractQuery.loading || syncStatus === 'loading')) {
     return (
       <div className="space-y-4" aria-busy="true">
         <Skeleton className="h-[120px]" />
         <Skeleton className="h-[320px]" />
         <p className="text-center text-xs text-slate-400">Loading contract details…</p>
+      </div>
+    )
+  }
+
+  if (!contract && dataSource === 'api' && contractQuery.error) {
+    return (
+      <div className="space-y-4">
+        <Card className="p-8 text-center">
+          <p className="text-sm font-medium text-rose-600 mb-2">Failed to load contract</p>
+          <p className="text-xs text-slate-400 mb-4">{contractQuery.error}</p>
+          <Button variant="secondary" onClick={() => void contractQuery.refetch()}>
+            <RefreshCw className="w-3.5 h-3.5 mr-1" /> Retry
+          </Button>
+        </Card>
       </div>
     )
   }
