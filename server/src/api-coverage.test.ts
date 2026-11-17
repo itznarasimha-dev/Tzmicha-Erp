@@ -85,6 +85,10 @@ const FRONTEND_ENDPOINTS: Array<{ method: 'get' | 'post' | 'patch' | 'delete'; p
   { method: 'get', path: '/api/finance/ledgers' },
   { method: 'get', path: '/api/finance/imports/history' },
 
+  // Store & Receiving Module
+  { method: 'get', path: '/api/store/incoming-orders' },
+  { method: 'get', path: '/api/store/discrepancies' },
+
   // Notifications
   { method: 'get', path: '/api/notifications' },
 ]

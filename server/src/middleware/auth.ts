@@ -18,6 +18,7 @@ export interface AuthContext {
   isAdmin: boolean
   permissions: Set<string>
   hrEmployeeId: string | null
+  warehouseId: string | null
   org: {
     id: string
     name: string
@@ -43,6 +44,7 @@ interface IdentityRow {
   org_timezone: string
   org_active: boolean
   hr_employee_id: string | null
+  warehouse_id: string | null
   permissions: string[] | null
 }
 
@@ -123,6 +125,7 @@ async function loadIdentity(authUserId: string): Promise<AuthContext> {
         u.email,
         u.employee_code,
         u.status,
+        u.warehouse_id,
         r.code  as role_code,
         r.tier  as role_tier,
         r.name  as role_name,
@@ -177,6 +180,7 @@ async function loadIdentity(authUserId: string): Promise<AuthContext> {
     isAdmin: ADMIN_ROLES.has(row.role_code),
     permissions: new Set(row.permissions ?? []),
     hrEmployeeId: row.hr_employee_id,
+    warehouseId: row.warehouse_id ?? null,
     org: {
       id: row.org_id,
       name: row.org_name,

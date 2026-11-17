@@ -24,6 +24,7 @@ supabase/.temp
 backups/
 dumps/
 uploads/
+scratch/
 
 # Editor directories and files
 .vscode/*
