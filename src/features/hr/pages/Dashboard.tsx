@@ -6,6 +6,8 @@ import {
   UserPlus, UserX, Users, Video, Wallet,
 } from 'lucide-react'
 import { useStore } from '../store'
+import { useHrAccess } from '../lib/access'
+import { FinanceDashboard, ManagerDashboard, SelfServiceDashboard } from '../components/role-dashboards'
 import type { Employee } from '../types'
 import {
   addDays, CHART_COLORS, daysAgo, diffDays, fmtDate, fmtDateShort, fmtMoney, fullName,
@@ -17,7 +19,8 @@ import { AreaTrend, Donut, Funnel, Legend, Sparkline } from '../components/chart
 type Period = 'daily' | 'weekly' | 'monthly'
 
 export default function Dashboard() {
-  const { db, toast } = useStore()
+  const { db, toast, dataSource, syncStatus, syncError } = useStore()
+  const access = useHrAccess()
   const navigate = useNavigate()
   const [period, setPeriod] = useState<Period>('daily')
   const [loading, setLoading] = useState(() => !sessionStorage.getItem('titan-hr-dashboard-seen'))
@@ -40,6 +43,7 @@ export default function Dashboard() {
   const absent = todayAttendance.filter((a) => a.status === 'Absent').length
   const onLeave = todayAttendance.filter((a) => a.status === 'On Leave').length
   const pendingLeaves = db.leaves.filter((l) => l.status === 'Pending').length
+  const probationCount = activeEmployees.filter((e) => e.status === 'Probation').length
   const activeContracts = db.contracts.filter((c) => c.status === 'Active' || c.status === 'Expiring Soon').length
   const pendingPayments = db.payments.filter((p) => p.approvalStatus === 'Pending' || ['Pending', 'Overdue'].includes(p.paymentStatus))
   const openJobs = db.jobs.filter((j) => j.status === 'Open')
@@ -176,13 +180,13 @@ export default function Dashboard() {
   }, [activeEmployees, db.candidates, db.onboarding, today])
 
   const pendingTasks = [
-    { label: 'Leave requests awaiting review', count: pendingLeaves, to: '/leave', tone: 'amber' as const },
-    { label: 'Contracts awaiting signature', count: db.contracts.filter((c) => c.status === 'Pending Signature').length, to: '/contracts', tone: 'violet' as const },
-    { label: 'Payroll entries in review', count: db.payroll.filter((p) => p.status === 'HR Review' || p.status === 'Finance Approval').length, to: '/payroll', tone: 'blue' as const },
-    { label: 'Payments pending approval', count: db.payments.filter((p) => p.approvalStatus === 'Pending').length, to: '/payments', tone: 'green' as const },
-    { label: 'Onboarding documents to verify', count: db.onboarding.flatMap((o) => o.documents).filter((d) => d.status === 'Pending').length, to: '/onboarding', tone: 'orange' as const },
-    { label: 'Performance reviews in progress', count: db.reviews.filter((r) => r.status !== 'Completed').length, to: '/performance', tone: 'rose' as const },
-  ]
+    { label: 'Leave requests awaiting review', count: pendingLeaves, to: '/hr/leave', tone: 'amber' as const, capability: 'leave.approve' as const },
+    { label: 'Contracts awaiting signature', count: db.contracts.filter((c) => c.status === 'Pending Signature').length, to: '/hr/contracts', tone: 'violet' as const, capability: 'contract.read' as const },
+    { label: 'Payroll entries in review', count: db.payroll.filter((p) => p.status === 'HR Review' || p.status === 'Finance Approval').length, to: '/hr/payroll', tone: 'blue' as const, capability: 'payroll.read' as const },
+    { label: 'Payments pending approval', count: db.payments.filter((p) => p.approvalStatus === 'Pending').length, to: '/hr/payments', tone: 'green' as const, capability: 'payment.read' as const },
+    { label: 'Onboarding documents to verify', count: db.onboarding.flatMap((o) => o.documents).filter((d) => d.status === 'Pending').length, to: '/hr/onboarding', tone: 'orange' as const, capability: 'onboarding.read' as const },
+    { label: 'Performance reviews in progress', count: db.reviews.filter((r) => r.status !== 'Completed').length, to: '/hr/performance', tone: 'rose' as const, capability: 'performance.read' as const },
+  ].filter((task) => access.can(task.capability))
 
   const exportSnapshot = () => {
     const rows = [
@@ -203,7 +207,18 @@ export default function Dashboard() {
     })
   }
 
-  if (loading) {
+  const isLoading = (syncStatus === 'loading' || loading) && dataSource !== 'api'
+  const hasError = !!syncError
+
+  // Role-specific dashboards. In API mode the visible scope is derived from
+  // the verified identity; the demo workspace keeps the full HR overview.
+  if (dataSource === 'api') {
+    if (access.view === 'employee') return <SelfServiceDashboard view={access.view} />
+    if (access.view === 'manager') return <ManagerDashboard />
+    if (access.view === 'finance') return <FinanceDashboard />
+  }
+
+  if (isLoading) {
     return (
       <div>
         <PageHeader title="Good morning, Amara" subtitle="Preparing your people operations snapshot…" />
@@ -226,20 +241,43 @@ export default function Dashboard() {
         actions={
           <>
             <Button variant="secondary" onClick={exportSnapshot}><Download className="h-4 w-4" /> Export snapshot</Button>
-            <Button onClick={() => navigate('/employees?new=1')}><Plus className="h-4 w-4" /> Add employee</Button>
+            {access.can('employee.create') && (
+              <Button onClick={() => navigate('/hr/employees?new=1')}><Plus className="h-4 w-4" /> Add employee</Button>
+            )}
           </>
         }
       />
+      {hasError && (
+        <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300">
+          {syncError}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <StatCard index={0} label="Total employees" value={activeEmployees.length} icon={Users} tone="brand" delta={{ value: '3 this month', up: true }} hint="incl. 2 in probation" onClick={() => navigate('/employees')} />
-        <StatCard index={1} label="Present today" value={present} icon={UserCheck} tone="green" delta={{ value: '92.4%', up: true }} hint={`${late} arrived late`} onClick={() => navigate('/attendance')} />
-        <StatCard index={2} label="Absent today" value={absent} icon={UserX} tone="red" delta={{ value: '1.2%', up: false }} hint="unplanned absence" onClick={() => navigate('/attendance')} />
-        <StatCard index={3} label="On leave today" value={onLeave} icon={CalendarDays} tone="amber" hint="approved absences" onClick={() => navigate('/leave')} />
-        <StatCard index={4} label="Pending leave" value={pendingLeaves} icon={ClipboardList} tone="violet" hint="awaiting your review" onClick={() => navigate('/leave')} />
-        <StatCard index={5} label="Active contracts" value={activeContracts} icon={FileSignature} tone="teal" hint={`${db.contracts.filter((c) => c.status === 'Expiring Soon').length} expiring soon`} onClick={() => navigate('/contracts')} />
-        <StatCard index={6} label="Pending payments" value={pendingPayments.length} icon={Wallet} tone="orange" hint={`${fmtMoney(pendingPayments.reduce((a, p) => a + p.amount, 0), true)} awaiting action`} onClick={() => navigate('/payments')} />
-        <StatCard index={7} label="Open positions" value={openPositions} icon={BriefcaseBusiness} tone="blue" hint={`across ${openJobs.length} job openings`} onClick={() => navigate('/recruitment')} />
+        {access.can('employee.read') && (
+          <StatCard index={0} label="Total employees" value={activeEmployees.length} icon={Users} tone="brand" hint={`${probationCount} in probation`} onClick={() => navigate('/hr/employees')} />
+        )}
+        {access.can('attendance.read') && (
+          <StatCard index={1} label="Present today" value={present} icon={UserCheck} tone="green" hint={`${late} arrived late`} onClick={() => navigate('/hr/attendance')} />
+        )}
+        {access.can('attendance.read') && (
+          <StatCard index={2} label="Absent today" value={absent} icon={UserX} tone="red" hint="unplanned absence" onClick={() => navigate('/hr/attendance')} />
+        )}
+        {access.can('attendance.read') && (
+          <StatCard index={3} label="On leave today" value={onLeave} icon={CalendarDays} tone="amber" hint="approved absences" onClick={() => navigate('/hr/leave')} />
+        )}
+        {access.can('leave.read') && (
+          <StatCard index={4} label="Pending leave" value={pendingLeaves} icon={ClipboardList} tone="violet" hint="awaiting review" onClick={() => navigate('/hr/leave')} />
+        )}
+        {access.can('contract.read') && (
+          <StatCard index={5} label="Active contracts" value={activeContracts} icon={FileSignature} tone="teal" hint={`${db.contracts.filter((c) => c.status === 'Expiring Soon').length} expiring soon`} onClick={() => navigate('/hr/contracts')} />
+        )}
+        {access.can('payment.read') && (
+          <StatCard index={6} label="Pending payments" value={pendingPayments.length} icon={Wallet} tone="orange" hint={`${fmtMoney(pendingPayments.reduce((a, p) => a + p.amount, 0), true)} awaiting action`} onClick={() => navigate('/hr/payments')} />
+        )}
+        {access.can('recruitment.read') && (
+          <StatCard index={7} label="Open positions" value={openPositions} icon={BriefcaseBusiness} tone="blue" hint={`across ${openJobs.length} job openings`} onClick={() => navigate('/hr/recruitment')} />
+        )}
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
@@ -259,20 +297,20 @@ export default function Dashboard() {
             <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-brand-500" /> Present <b className="text-slate-700 dark:text-slate-200">{sum(attendanceSeries.map((d) => d.present))}</b></span>
             <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-rose-500" /> Absent <b className="text-slate-700 dark:text-slate-200">{sum(attendanceSeries.map((d) => d.absent))}</b></span>
             <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-amber-500" /> On leave <b className="text-slate-700 dark:text-slate-200">{sum(attendanceSeries.map((d) => d.leave))}</b></span>
-            <button onClick={() => navigate('/attendance')} className="ml-auto flex items-center gap-1 font-semibold text-brand-600 hover:underline dark:text-brand-400">View attendance <ArrowUpRight className="h-3 w-3" /></button>
+            <button onClick={() => navigate('/hr/attendance')} className="ml-auto flex items-center gap-1 font-semibold text-brand-600 hover:underline dark:text-brand-400">View attendance <ArrowUpRight className="h-3 w-3" /></button>
           </div>
           <div className="px-2 pb-4 pt-2">
             <AreaTrend data={attendanceSeries} series={[{ key: 'present', name: 'Present', color: '#6366f1' }, { key: 'absent', name: 'Absent', color: '#f43f5e' }, { key: 'leave', name: 'On leave', color: '#f59e0b' }]} height={262} />
           </div>
         </Card>
 
-        <Card>
+        <Card className="p-5">
           <div className="flex items-start justify-between px-5 pt-5">
             <div>
               <h3 className="text-[15px] font-semibold">By department</h3>
               <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{activeEmployees.length} active employees</p>
             </div>
-            <Badge tone="slate">9 teams</Badge>
+            <Badge tone="slate">{deptData.length} teams</Badge>
           </div>
           <div className="px-3">
             <Donut data={deptData} height={196} centerValue={activeEmployees.length} centerLabel="people" />
@@ -285,53 +323,7 @@ export default function Dashboard() {
                 <span className="font-semibold tabular text-slate-800 dark:text-slate-200">{d.value}</span>
               </div>
             ))}
-            {deptData.length > 6 && <button onClick={() => navigate('/employees')} className="col-span-2 text-left text-[11px] font-semibold text-brand-600 hover:underline dark:text-brand-400">+{deptData.length - 6} more teams</button>}
-          </div>
-        </Card>
-      </div>
-
-      <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card className="p-5">
-          <div className="flex items-start justify-between">
-            <div>
-              <h3 className="text-[15px] font-semibold">Recruitment pipeline</h3>
-              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{db.candidates.length} candidates · {openPositions} openings</p>
-            </div>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-400"><BriefcaseBusiness className="h-4 w-4" /></div>
-          </div>
-          <div className="mt-4"><Funnel stages={pipeline} /></div>
-          <button onClick={() => navigate('/recruitment')} className="mt-4 flex w-full items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-[11px] font-semibold text-slate-600 hover:bg-slate-100 dark:bg-white/[0.03] dark:text-slate-300 dark:hover:bg-white/[0.06]">Open pipeline <ArrowUpRight className="h-3.5 w-3.5" /></button>
-        </Card>
-
-        <Card className="p-5">
-          <div className="flex items-start justify-between">
-            <div>
-              <h3 className="text-[15px] font-semibold">Leave summary</h3>
-              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">All requests this cycle</p>
-            </div>
-            <Badge tone="amber">{pendingLeaves} pending</Badge>
-          </div>
-          <div className="mt-4 flex h-2.5 overflow-hidden rounded-full bg-slate-100 dark:bg-white/[0.06]">
-            <div className="bg-emerald-500" style={{ width: `${(leaveSummary.approved / leaveSummary.total) * 100}%` }} />
-            <div className="bg-amber-400" style={{ width: `${(leaveSummary.pending / leaveSummary.total) * 100}%` }} />
-            <div className="bg-rose-400" style={{ width: `${(leaveSummary.rejected / leaveSummary.total) * 100}%` }} />
-          </div>
-          <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-            {[['Approved', leaveSummary.approved, 'text-emerald-600 dark:text-emerald-400'], ['Pending', leaveSummary.pending, 'text-amber-600 dark:text-amber-400'], ['Rejected', leaveSummary.rejected, 'text-rose-600 dark:text-rose-400']].map(([label, value, color]) => (
-              <div key={label as string} className="rounded-lg bg-slate-50 py-2 dark:bg-white/[0.03]">
-                <p className={`tabular text-lg font-bold ${color}`}>{value as number}</p>
-                <p className="text-[10px] text-slate-400">{label as string}</p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-3.5 space-y-2">
-            {leaveSummary.byType.map(([type, days], i) => (
-              <div key={type} className="flex items-center gap-2 text-[11px]">
-                <span className="h-1.5 w-1.5 rounded-full" style={{ background: CHART_COLORS[i] }} />
-                <span className="flex-1 truncate text-slate-500 dark:text-slate-400">{type}</span>
-                <span className="tabular font-semibold text-slate-700 dark:text-slate-200">{days}d</span>
-              </div>
-            ))}
+            {deptData.length > 6 && <button onClick={() => navigate('/hr/employees')} className="col-span-2 text-left text-[11px] font-semibold text-brand-600 hover:underline dark:text-brand-400">+{deptData.length - 6} more teams</button>}
           </div>
         </Card>
 
@@ -352,7 +344,7 @@ export default function Dashboard() {
               </div>
             ))}
           </div>
-          <button onClick={() => navigate('/contracts')} className="mt-4 flex w-full items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-[11px] font-semibold text-slate-600 hover:bg-slate-100 dark:bg-white/[0.03] dark:text-slate-300 dark:hover:bg-white/[0.06]">Contract directory <ArrowUpRight className="h-3.5 w-3.5" /></button>
+          <button onClick={() => navigate('/hr/contracts')} className="mt-4 flex w-full items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-[11px] font-semibold text-slate-600 hover:bg-slate-100 dark:bg-white/[0.03] dark:text-slate-300 dark:hover:bg-white/[0.06]">Contract directory <ArrowUpRight className="h-3.5 w-3.5" /></button>
         </Card>
 
         <Card className="p-5">
@@ -378,7 +370,7 @@ export default function Dashboard() {
             <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400"><TrendingUp className="h-3.5 w-3.5 text-emerald-500" /> {fmtMoney(paymentSummary.paidAmount, true)} total paid</span>
             {paymentSummary.failed > 0 && <span className="font-semibold text-rose-500">{paymentSummary.failed} need attention</span>}
           </div>
-          <button onClick={() => navigate('/payments')} className="mt-2.5 flex w-full items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-[11px] font-semibold text-slate-600 hover:bg-slate-100 dark:bg-white/[0.03] dark:text-slate-300 dark:hover:bg-white/[0.06]">Payment workspace <ArrowUpRight className="h-3.5 w-3.5" /></button>
+          <button onClick={() => navigate('/hr/payments')} className="mt-2.5 flex w-full items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-[11px] font-semibold text-slate-600 hover:bg-slate-100 dark:bg-white/[0.03] dark:text-slate-300 dark:hover:bg-white/[0.06]">Payment workspace <ArrowUpRight className="h-3.5 w-3.5" /></button>
         </Card>
       </div>
 
@@ -392,10 +384,10 @@ export default function Dashboard() {
             <CalendarClock className="h-4 w-4 text-slate-400" />
           </div>
           <div className="grid gap-5 p-5 sm:grid-cols-2">
-            <MomentList title="Birthdays" icon={Cake} tone="bg-pink-50 text-pink-500 dark:bg-pink-500/10 dark:text-pink-400" items={upcoming.birthdays.map((b) => ({ key: b.employee.id, name: fullName(b.employee), photo: b.employee.photo, detail: `${fmtDate(b.date)} · turns ${new Date().getFullYear() - new Date(b.employee.dob).getFullYear()}`, tag: b.inDays === 0 ? 'Today' : `in ${b.inDays}d`, to: `/employees/${b.employee.id}` }))} empty="No birthdays in the next 30 days" />
-            <MomentList title="Work anniversaries" icon={PartyPopper} tone="bg-violet-50 text-violet-500 dark:bg-violet-500/10 dark:text-violet-400" items={upcoming.anniversaries.map((a) => ({ key: a.employee.id, name: fullName(a.employee), photo: a.employee.photo, detail: `${fmtDate(a.date)} · ${a.years} years`, tag: `in ${a.inDays}d`, to: `/employees/${a.employee.id}` }))} empty="No anniversaries in the next 30 days" />
-            <MomentList title="Interviews" icon={Video} tone="bg-sky-50 text-sky-500 dark:bg-sky-500/10 dark:text-sky-400" items={upcoming.interviews.map((c) => ({ key: c.id, name: c.name, detail: `${c.interview!.round} · ${c.interview!.time}`, tag: fmtDateShort(c.interview!.date), to: '/recruitment' }))} empty="No interviews scheduled" />
-            <MomentList title="New joiners" icon={UserPlus} tone="bg-emerald-50 text-emerald-500 dark:bg-emerald-500/10 dark:text-emerald-400" items={upcoming.joiners.map((j) => ({ key: j.id, name: j.name, detail: `${j.designation} · ${j.department}`, tag: j.joiningDate === today ? 'Today' : `in ${diffDays(today, j.joiningDate)}d`, to: '/onboarding' }))} empty="No upcoming joiners" />
+            <MomentList title="Birthdays" icon={Cake} tone="bg-pink-50 text-pink-500 dark:bg-pink-500/10 dark:text-pink-400" items={upcoming.birthdays.map((b) => ({ key: b.employee.id, name: fullName(b.employee), photo: b.employee.photo, detail: `${fmtDate(b.date)} · turns ${new Date().getFullYear() - new Date(b.employee.dob).getFullYear()}`, tag: b.inDays === 0 ? 'Today' : `in ${b.inDays}d`, to: `/hr/employees/${b.employee.id}` }))} empty="No birthdays in the next 30 days" />
+            <MomentList title="Work anniversaries" icon={PartyPopper} tone="bg-violet-50 text-violet-500 dark:bg-violet-500/10 dark:text-violet-400" items={upcoming.anniversaries.map((a) => ({ key: a.employee.id, name: fullName(a.employee), photo: a.employee.photo, detail: `${fmtDate(a.date)} · ${a.years} years`, tag: `in ${a.inDays}d`, to: `/hr/employees/${a.employee.id}` }))} empty="No anniversaries in the next 30 days" />
+            <MomentList title="Interviews" icon={Video} tone="bg-sky-50 text-sky-500 dark:bg-sky-500/10 dark:text-sky-400" items={upcoming.interviews.map((c) => ({ key: c.id, name: c.name, detail: `${c.interview!.round} · ${c.interview!.time}`, tag: fmtDateShort(c.interview!.date), to: '/hr/recruitment' }))} empty="No interviews scheduled" />
+            <MomentList title="New joiners" icon={UserPlus} tone="bg-emerald-50 text-emerald-500 dark:bg-emerald-500/10 dark:text-emerald-400" items={upcoming.joiners.map((j) => ({ key: j.id, name: j.name, detail: `${j.designation} · ${j.department}`, tag: j.joiningDate === today ? 'Today' : `in ${diffDays(today, j.joiningDate)}d`, to: `/hr/onboarding` }))} empty="No upcoming joiners" />
           </div>
         </Card>
 
@@ -461,49 +453,51 @@ export default function Dashboard() {
               })}
             </div>
           </div>
-        </Card>
-
-        <div className="space-y-4">
-          <Card className="relative overflow-hidden bg-gradient-to-br from-brand-600 to-violet-700 p-5 text-white">
-            <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
-            <div className="absolute -bottom-10 -left-6 h-28 w-28 rounded-full bg-teal-400/20 blur-2xl" />
-            <div className="relative">
-              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-100"><Sparkles className="h-3.5 w-3.5" /> People pulse</div>
-              <p className="mt-3 font-display text-[17px] font-semibold leading-snug">Attendance is healthy. Focus on leave and payroll approvals today.</p>
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <div className="rounded-xl bg-white/10 p-3 backdrop-blur">
-                  <p className="tabular text-xl font-bold">{Math.round((present / Math.max(activeEmployees.length, 1)) * 100)}%</p>
-                  <p className="text-[10px] text-brand-100">attendance rate</p>
-                </div>
-                <div className="rounded-xl bg-white/10 p-3 backdrop-blur">
-                  <p className="tabular text-xl font-bold">{db.reviews.filter((r) => r.status === 'Completed').length}/{db.reviews.length}</p>
-                  <p className="text-[10px] text-brand-100">reviews completed</p>
-                </div>
-              </div>
-              <button onClick={() => navigate('/reports')} className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-lg bg-white/15 py-2 text-xs font-semibold backdrop-blur transition hover:bg-white/25">Open analytics <ArrowUpRight className="h-3.5 w-3.5" /></button>
-            </div>
           </Card>
 
-          <SectionCard title="Quick actions" bodyClassName="p-3">
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { label: 'Add employee', icon: UserPlus, to: '/employees?new=1' },
-                { label: 'Review leave', icon: CalendarDays, to: '/leave' },
-                { label: 'Record payment', icon: Wallet, to: '/payments?new=1' },
-                { label: 'Post a job', icon: BriefcaseBusiness, to: '/recruitment?new=1' },
-                { label: 'Run payroll', icon: Banknote, to: '/payroll' },
-                { label: 'Reports', icon: TrendingUp, to: '/reports' },
-              ].map((a) => (
-                <button key={a.label} onClick={() => navigate(a.to)} className="flex flex-col items-start gap-2 rounded-xl border border-slate-100 p-3 text-left transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-sm dark:border-white/[0.06] dark:hover:border-brand-500/30">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400"><a.icon className="h-3.5 w-3.5" /></span>
-                  <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">{a.label}</span>
-                </button>
-              ))}
-            </div>
-          </SectionCard>
+          <div className="space-y-4">
+            <Card className="relative overflow-hidden bg-gradient-to-br from-brand-600 to-violet-700 p-5 text-white">
+              <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
+              <div className="absolute -bottom-10 -left-6 h-28 w-28 rounded-full bg-teal-400/20 blur-2xl" />
+              <div className="relative">
+                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-100"><Sparkles className="h-3.5 w-3.5" /> People pulse</div>
+                <p className="mt-3 font-display text-[17px] font-semibold leading-snug">Attendance is healthy. Focus on leave and payroll approvals today.</p>
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <div className="rounded-xl bg-white/10 p-3 backdrop-blur">
+                    <p className="tabular text-xl font-bold">{Math.round((present / Math.max(activeEmployees.length, 1)) * 100)}%</p>
+                    <p className="text-[10px] text-brand-100">attendance rate</p>
+                  </div>
+                  <div className="rounded-xl bg-white/10 p-3 backdrop-blur">
+                    <p className="tabular text-xl font-bold">{db.reviews.filter((r) => r.status === 'Completed').length}/{db.reviews.length}</p>
+                    <p className="text-[10px] text-brand-100">reviews completed</p>
+                  </div>
+                </div>
+                <button onClick={() => navigate('/hr/reports')} className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-lg bg-white/15 py-2 text-xs font-semibold backdrop-blur transition hover:bg-white/25">Open analytics <ArrowUpRight className="h-3 w-3" /></button>
+              </div>
+            </Card>
+
+            <SectionCard title="Quick actions" bodyClassName="p-3">
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { label: 'Add employee', icon: UserPlus, to: '/hr/employees?new=1', capability: 'employee.create' as const },
+                  { label: 'Review leave', icon: CalendarDays, to: '/hr/leave', capability: 'leave.approve' as const },
+                  { label: 'Record payment', icon: Wallet, to: '/hr/payments?new=1', capability: 'payment.create' as const },
+                  { label: 'Post a job', icon: BriefcaseBusiness, to: '/hr/recruitment?new=1', capability: 'recruitment.write' as const },
+                  { label: 'Run payroll', icon: Banknote, to: '/hr/payroll', capability: 'payroll.prepare' as const },
+                  { label: 'Reports', icon: TrendingUp, to: '/hr/reports', capability: 'analytics.read' as const },
+                ]
+                  .filter((a) => access.can(a.capability))
+                  .map((a) => (
+                  <button key={a.label} onClick={() => navigate(a.to)} className="flex flex-col items-start gap-2 rounded-xl border border-slate-100 p-3 text-left transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-sm dark:border-white/[0.06] dark:hover:border-brand-500/30">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400"><a.icon className="h-3.5 w-3.5" /></span>
+                    <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">{a.label}</span>
+                  </button>
+                ))}
+              </div>
+            </SectionCard>
+          </div>
         </div>
       </div>
-    </div>
   )
 }
 

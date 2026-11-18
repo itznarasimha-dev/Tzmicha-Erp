@@ -15,7 +15,7 @@ import {
 import Modal from '../common/Modal';
 import { formatINR, formatDate } from '../../utils/formatters';
 import { numberToIndianWords, downloadInvoiceDocument } from '../../utils/documentGenerator';
-import { DEFAULT_COMPANY_CONFIG } from '../../data/mockData';
+import { DEFAULT_COMPANY_CONFIG } from '../../config/companyConfig';
 import { useSales } from '../../context/SalesContext';
 import { useToast } from '../../context/ToastContext';
 

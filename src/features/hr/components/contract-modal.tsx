@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useStore } from '../store'
+import { runHrApiAction, hrActions } from '../api-actions'
 import type { Contract, ContractStatus } from '../types'
 import { fmtDate, fullName, todayISO, uid } from '../lib/utils'
 import { buildPaymentSchedule } from '../lib/hr'
@@ -21,7 +22,7 @@ const blank = {
 }
 
 export function ContractModal({ open, onClose, contract }: ContractModalProps) {
-  const { db, update, logActivity, toast } = useStore()
+  const { db, update, logActivity, toast, dataSource, refreshFromApi } = useStore()
   const [form, setForm] = useState(blank)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
@@ -54,7 +55,7 @@ export function ContractModal({ open, onClose, contract }: ContractModalProps) {
     setErrors((e) => ({ ...e, employeeId: '' }))
   }
 
-  const save = () => {
+  const save = async () => {
     const next: Record<string, string> = {}
     if (!form.title.trim()) next.title = 'Contract title is required'
     if (!form.partyName.trim()) next.partyName = form.partyType === 'Employee' ? 'Select an employee' : 'Party name is required'
@@ -63,7 +64,43 @@ export function ContractModal({ open, onClose, contract }: ContractModalProps) {
     if (form.startDate && form.endDate && form.endDate <= form.startDate) next.endDate = 'End date must be after the start date'
     if (!form.value || Number(form.value) < 0) next.value = 'Enter a valid contract value'
     setErrors(next)
-    if (Object.keys(next).length) return
+    if (Object.keys(next).length || saving) return
+
+    const department = (db.settings.departments as Array<{ id?: string; name: string }>).find((d) => d.name === form.department)
+    const payload = {
+      title: form.title.trim(),
+      partyType: form.partyType,
+      employeeId: form.partyType === 'Employee' ? (form.employeeId || undefined) : undefined,
+      partyName: form.partyName.trim(),
+      departmentId: department?.id || undefined,
+      contractType: form.contractType.trim(),
+      startDate: form.startDate,
+      endDate: form.endDate,
+      value: Number(form.value),
+      paymentFrequency: form.paymentFrequency,
+      notes: form.notes.trim() || undefined,
+    }
+
+    if (dataSource === 'api') {
+      setSaving(true)
+      const res = contract
+        ? await runHrApiAction({ dataSource, refreshFromApi, toast }, {
+            action: () => hrActions.updateContract(contract.id, payload),
+            successMessage: 'Contract updated',
+            successDescription: `${form.title.trim()} has been saved.`,
+            errorTitle: 'Could not update contract',
+          })
+        : await runHrApiAction({ dataSource, refreshFromApi, toast }, {
+            action: () => hrActions.createContract(payload),
+            successMessage: 'Contract created',
+            successDescription: `${form.title.trim()} has been added to the contract register.`,
+            errorTitle: 'Could not create contract',
+          })
+      setSaving(false)
+      if (res.ok) onClose()
+      return
+    }
+
     setSaving(true)
     window.setTimeout(() => {
       const value = Number(form.value)
@@ -76,7 +113,7 @@ export function ContractModal({ open, onClose, contract }: ContractModalProps) {
           } : c)),
         }))
         logActivity('contract', 'Contract updated', `${form.title} · ${contract.id}`)
-        toast('Contract updated', 'success', `${form.title} has been saved.`)
+        toast('Contract updated (demo)', 'success', `${form.title} has been saved. Demo data is not saved to the database.`)
       } else {
         const year = new Date().getFullYear()
         const max = Math.max(...db.contracts.map((c) => Number(c.id.split('-').pop()) || 0), 100)
@@ -106,7 +143,7 @@ export function ContractModal({ open, onClose, contract }: ContractModalProps) {
         }
         update((d) => ({ ...d, contracts: [newContract, ...d.contracts] }))
         logActivity('contract', 'Contract created', `${newContract.title} · ${newContract.id}`)
-        toast('Contract created', 'success', `${id} has been added to the contract register.`)
+        toast('Contract created (demo)', 'success', `${id} has been added to the contract register. Demo data is not saved to the database.`)
       }
       setSaving(false)
       onClose()

@@ -1,0 +1,25 @@
+# Code Owners for ERP System
+# Defines mandatory reviewers for critical infrastructure, schema, and shared components
+
+# Global fallback owners
+* @tzmichasureshmd-bit @itznarasimha-dev
+
+# Database Schemas & Migrations (Requires Lead approval before merging)
+/prisma/ @tzmichasureshmd-bit
+/prisma/schema.prisma @tzmichasureshmd-bit
+/supabase/migrations/ @tzmichasureshmd-bit
+
+# Backend Core, App Routing & Security Middleware
+/server/src/app.ts @tzmichasureshmd-bit @itznarasimha-dev
+/server/src/routes/ @tzmichasureshmd-bit @itznarasimha-dev
+/server/src/middleware/ @tzmichasureshmd-bit @itznarasimha-dev
+/server/src/db/ @tzmichasureshmd-bit
+
+# Frontend Core API Clients
+/src/api/ @tzmichasureshmd-bit @itznarasimha-dev
+/src/lib/api/ @tzmichasureshmd-bit @itznarasimha-dev
+
+# Shared UI, Navigation & Design Tokens
+/src/components/layout/ @tzmichasureshmd-bit @itznarasimha-dev
+/src/components/Sidebar.tsx @tzmichasureshmd-bit @itznarasimha-dev
+/src/index.css @tzmichasureshmd-bit @itznarasimha-dev

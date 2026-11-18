@@ -1,5 +1,5 @@
 import { formatINR, formatDate } from './formatters.js';
-import { DEFAULT_COMPANY_CONFIG } from '../data/mockData.js';
+import { DEFAULT_COMPANY_CONFIG } from '../config/companyConfig.js';
 
 /**
  * Convert numerical monetary amount into Indian English Words (Rupees and Paise)

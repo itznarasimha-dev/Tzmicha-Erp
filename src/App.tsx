@@ -77,6 +77,52 @@ const RoleBasedRedirect: React.FC = () => {
   return <Navigate to="/admin/dashboard" replace />;
 };
 
+const AttendanceRedirect: React.FC = () => {
+  const { currentRole } = useErpStore();
+  if (currentRole === 'hr') return <Navigate to="/hr/attendance" replace />;
+  if (currentRole === 'sales') return <Navigate to="/sales/attendance" replace />;
+  return <Navigate to="/admin/attendance" replace />;
+};
+
+const EmployeesRedirect: React.FC = () => {
+  const { currentRole } = useErpStore();
+  if (currentRole === 'hr') return <Navigate to="/hr/employees" replace />;
+  return <Navigate to="/admin/users" replace />;
+};
+
+const PerformanceRedirect: React.FC = () => {
+  const { currentRole } = useErpStore();
+  if (currentRole === 'hr') return <Navigate to="/hr/performance" replace />;
+  return <Navigate to="/admin/sales-performance" replace />;
+};
+
+const LeavesRedirect: React.FC = () => {
+  const { currentRole } = useErpStore();
+  if (currentRole === 'hr') return <Navigate to="/hr/leave" replace />;
+  return <Navigate to="/admin/leaves" replace />;
+};
+
+const PayrollRedirect: React.FC = () => {
+  const { currentRole } = useErpStore();
+  if (currentRole === 'hr') return <Navigate to="/hr/payroll" replace />;
+  if (currentRole === 'finance') return <Navigate to="/finance/payroll" replace />;
+  return <Navigate to="/admin/dashboard" replace />;
+};
+
+const PaymentsRedirect: React.FC = () => {
+  const { currentRole } = useErpStore();
+  if (currentRole === 'hr') return <Navigate to="/hr/payments" replace />;
+  if (currentRole === 'finance') return <Navigate to="/finance/payments" replace />;
+  return <Navigate to="/admin/dashboard" replace />;
+};
+
+const RequestsRedirect: React.FC = () => {
+  const { currentRole } = useErpStore();
+  if (currentRole === 'hr') return <Navigate to="/hr/requests" replace />;
+  if (currentRole === 'service') return <Navigate to="/service/requests" replace />;
+  return <Navigate to="/admin/dashboard" replace />;
+};
+
 export const App: React.FC = () => {
   return (
     <BrowserRouter>
@@ -241,7 +287,7 @@ export const App: React.FC = () => {
           <Route path="discounts" element={<Navigate to="/admin/discounts" replace />} />
           <Route path="admin/users" element={<UserManagement />} />
           <Route path="users" element={<Navigate to="/admin/users" replace />} />
-          <Route path="employees" element={<Navigate to="/admin/users" replace />} />
+          <Route path="employees" element={<EmployeesRedirect />} />
           <Route path="admin/organizations" element={<AdminOrganizationsOverview />} />
           <Route path="admin/organization" element={<Navigate to="/admin/organizations" replace />} />
           <Route path="organization" element={<Navigate to="/admin/organizations" replace />} />
@@ -272,7 +318,7 @@ export const App: React.FC = () => {
           <Route path="credit" element={<Navigate to="/admin/customer-credit" replace />} />
           <Route path="admin/sales-performance" element={<AdminSalesPerformanceCommissions />} />
           <Route path="admin/commissions" element={<Navigate to="/admin/sales-performance" replace />} />
-          <Route path="performance" element={<Navigate to="/admin/sales-performance" replace />} />
+          <Route path="performance" element={<PerformanceRedirect />} />
           <Route path="admin/approvals" element={<ApprovalsView />} />
           <Route path="admin/field-marketing" element={<AdminFieldMarketingView />} />
           <Route path="admin/expenses" element={<FieldExpensesSettlement />} />
@@ -289,8 +335,17 @@ export const App: React.FC = () => {
           <Route path="billing" element={<Navigate to="/admin/invoices" replace />} />
           <Route path="admin/attendance" element={<AdminAttendanceLeaveView />} />
           <Route path="admin/leaves" element={<AdminAttendanceLeaveView />} />
-          <Route path="attendance" element={<Navigate to="/admin/attendance" replace />} />
-          <Route path="leaves" element={<Navigate to="/admin/leaves" replace />} />
+          <Route path="attendance" element={<AttendanceRedirect />} />
+          <Route path="leaves" element={<LeavesRedirect />} />
+          <Route path="leave" element={<LeavesRedirect />} />
+          <Route path="payroll" element={<PayrollRedirect />} />
+          <Route path="contracts" element={<Navigate to="/hr/contracts" replace />} />
+          <Route path="contracts/:id" element={<Navigate to="/hr/contracts" replace />} />
+          <Route path="recruitment" element={<Navigate to="/hr/recruitment" replace />} />
+          <Route path="onboarding" element={<Navigate to="/hr/onboarding" replace />} />
+          <Route path="offboarding" element={<Navigate to="/hr/offboarding" replace />} />
+          <Route path="payments" element={<PaymentsRedirect />} />
+          <Route path="requests" element={<RequestsRedirect />} />
 
           {/* Role Queries & Helpdesk Chat Module (All Roles) */}
           <Route path="queries" element={<RoleQueriesChatView />} />
@@ -301,6 +356,8 @@ export const App: React.FC = () => {
           <Route path="service/chat" element={<Navigate to="/service/queries" replace />} />
           <Route path="finance/queries" element={<RoleQueriesChatView roleContext="finance" />} />
           <Route path="finance/chat" element={<Navigate to="/finance/queries" replace />} />
+          <Route path="hr/queries" element={<RoleQueriesChatView roleContext="hr" />} />
+          <Route path="hr/chat" element={<Navigate to="/hr/queries" replace />} />
 
           {/* Legacy / Direct shortcuts */}
           <Route path="admin/sales/*" element={<Navigate to="/sales" replace />} />

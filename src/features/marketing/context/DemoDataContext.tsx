@@ -14,6 +14,14 @@ import { buildSeedData } from '../data/marketing'
 import { DATA_KEY } from '../config/demo'
 import { uid } from '../utils/format'
 import { normalizeLead } from '../utils/leads'
+import { fetchMarketingDatabase } from '../api-sync'
+import {
+  ApiError,
+  hasApiToken,
+  isApiConfigured,
+  setAccessToken,
+  setUnauthorizedHandler,
+} from '@/lib/api/client'
 
 interface StoredShape {
   version: 1
@@ -34,6 +42,11 @@ interface DemoDataContextValue {
   addNotification: (notification: Omit<AppNotification, 'id' | 'at' | 'read'>) => void
   markAllNotificationsRead: () => void
   markNotificationRead: (id: string) => void
+  /** Real API or localStorage demo data. */
+  dataSource: 'demo' | 'api'
+  syncStatus: 'idle' | 'loading' | 'ready' | 'error'
+  syncError: string | null
+  refreshFromApi: () => Promise<void>
 }
 
 const DemoDataContext = createContext<DemoDataContextValue | null>(null)
@@ -191,13 +204,20 @@ export function DemoDataProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<DemoData>(hydrate)
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
   const [storageAvailable, setStorageAvailable] = useState(true)
+  const [dataSource, setDataSource] = useState<'demo' | 'api'>('demo')
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
+  const [syncError, setSyncError] = useState<string | null>(null)
   const isFirstRender = useRef(true)
+  const hydrationStarted = useRef(false)
 
   const update = useCallback<UpdateFn>((key, updater) => {
     setData((current) => ({ ...current, [key]: updater(current[key]) }))
   }, [])
 
   useEffect(() => {
+    // API-backed records live in the database; never copy them into the demo
+    // localStorage bucket where they would become stale "mock" data.
+    if (dataSource !== 'demo') return
     if (isFirstRender.current) {
       isFirstRender.current = false
     }
@@ -208,16 +228,62 @@ export function DemoDataProvider({ children }: { children: ReactNode }) {
     } catch {
       setStorageAvailable(false)
     }
-  }, [data])
+  }, [data, dataSource])
+
+  const hydrateFromApi = useCallback(async () => {
+    if (!isApiConfigured() || !hasApiToken()) {
+      setDataSource('demo')
+      setSyncStatus('idle')
+      setSyncError(null)
+      return
+    }
+    setSyncStatus('loading')
+    setSyncError(null)
+    try {
+      const next = await fetchMarketingDatabase()
+      setData(next)
+      setDataSource('api')
+      setSyncStatus('ready')
+    } catch (error) {
+      setDataSource('demo')
+      setSyncStatus('error')
+      setSyncError(
+        error instanceof ApiError && error.code === 'network_error'
+          ? 'The ERP API is unreachable. Showing demo data.'
+          : error instanceof Error
+            ? error.message
+            : 'Could not load marketing data from the API.',
+      )
+    }
+  }, [])
+
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      setAccessToken(null)
+      setDataSource('demo')
+      setSyncStatus('idle')
+    })
+    if (hydrationStarted.current) return
+    hydrationStarted.current = true
+    void hydrateFromApi()
+    return () => setUnauthorizedHandler(null)
+  }, [hydrateFromApi])
 
   const resetDemoData = useCallback(() => {
     setData(buildSeedData())
+    setDataSource('demo')
+    setSyncStatus('idle')
+    setSyncError(null)
     try {
       localStorage.removeItem(DATA_KEY)
     } catch {
       /* ignore */
     }
   }, [])
+
+  const refreshFromApi = useCallback(async () => {
+    await hydrateFromApi()
+  }, [hydrateFromApi])
 
   const addNotification = useCallback<DemoDataContextValue['addNotification']>(
     (notification) => {
@@ -261,6 +327,10 @@ export function DemoDataProvider({ children }: { children: ReactNode }) {
       addNotification,
       markAllNotificationsRead,
       markNotificationRead,
+      dataSource,
+      syncStatus,
+      syncError,
+      refreshFromApi,
     }),
     [
       data,
@@ -271,6 +341,10 @@ export function DemoDataProvider({ children }: { children: ReactNode }) {
       addNotification,
       markAllNotificationsRead,
       markNotificationRead,
+      dataSource,
+      syncStatus,
+      syncError,
+      refreshFromApi,
     ],
   )
 

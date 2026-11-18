@@ -702,8 +702,63 @@ function computeMetrics(
 
 // ─── Main Service Functions ───────────────────────────────────
 export async function fetchReceivingData(_warehouseId: string): Promise<ReceivingPageData> {
-  await new Promise((r) => setTimeout(r, 300));
   const store = useErpStore.getState();
+  const token = typeof window !== 'undefined' ? localStorage.getItem('supabase_access_token') || '' : '';
+  let backendPOs: PurchaseOrder[] = [];
+
+  try {
+    const res = await fetch(`/api/store/incoming-orders${_warehouseId ? `?warehouseId=${_warehouseId}` : ''}`, {
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    });
+    if (res.ok) {
+      const json = await res.json();
+      if (json.data && Array.isArray(json.data) && json.data.length > 0) {
+        backendPOs = json.data.map((po: any) => ({
+          id: po.id,
+          poNumber: po.po_number || po.code,
+          supplierId: po.supplier_id || 'sup-001',
+          supplierName: po.supplier_name || 'Vendor Master',
+          supplierContact: po.supplier_gstin ? `GSTIN: ${po.supplier_gstin}` : 'Verified Vendor Master',
+          orderDate: po.order_date,
+          expectedDeliveryDate: po.expected_arrival_date || po.order_date,
+          destinationWarehouse: po.warehouse_code || po.warehouse_name || 'WH-001',
+          deliveryRef: po.lr_number || po.vehicle_number || `DN-${po.po_number || po.code}`,
+          poStatus: (po.status?.charAt(0).toUpperCase() + po.status?.slice(1).replace('_', ' ')) as POStatus,
+          receivingStatus: (po.is_overdue
+            ? 'Overdue'
+            : po.status === 'received'
+            ? 'Fully Received'
+            : po.status === 'partially_received'
+            ? 'Partially Received'
+            : 'Expected') as ReceivingStatus,
+          lines: (po.lines || []).map((l: any) => ({
+            lineId: l.id,
+            productCode: l.productSku || 'SKU-001',
+            productName: l.productName || 'Procured Item',
+            productCategory: 'Procured Stock',
+            stockType: 'Raw Material',
+            orderedQty: Number(l.orderedQuantity || 0),
+            receivedQty: Number(l.receivedQuantity || 0),
+            outstandingQty: Number(l.outstandingQuantity || 0),
+            uom: 'Units',
+            trackingType: 'Batch',
+            requiresExpiry: true,
+            requiresInspection: false,
+            unitPrice: Number(l.unitPrice || 0),
+          })),
+          totalOrderedQty: (po.lines || []).reduce((s: number, l: any) => s + Number(l.orderedQuantity || 0), 0),
+          totalReceivedQty: (po.lines || []).reduce((s: number, l: any) => s + Number(l.receivedQuantity || 0), 0),
+          totalOutstandingQty: (po.lines || []).reduce((s: number, l: any) => s + Number(l.outstandingQuantity || 0), 0),
+          lastUpdated: new Date().toISOString(),
+          notes: po.notes || 'Official ERP Purchase Order',
+          grnIds: [],
+        }));
+      }
+    }
+  } catch {
+    // Fallback gracefully
+  }
+
   const mockPos = getMockPurchaseOrders();
   const mockGrns = getMockGRNs();
   const mockDiscrepancies = getMockDiscrepancies();
@@ -841,7 +896,7 @@ export async function fetchReceivingData(_warehouseId: string): Promise<Receivin
     attachments: inw.attachmentFileName ? [inw.attachmentFileName] : [],
   }));
 
-  const combinedPOs = [...livePOs, ...mockPos];
+  const combinedPOs = backendPOs.length > 0 ? backendPOs : [...livePOs, ...mockPos];
   const combinedGrns = [...liveGrns, ...mockGrns];
   const combinedDiscrepancies = [...liveDiscrepancies, ...mockDiscrepancies];
 
@@ -852,13 +907,58 @@ export async function fetchReceivingData(_warehouseId: string): Promise<Receivin
     discrepancies: combinedDiscrepancies,
     supplierReturns,
     lastRefresh: new Date().toISOString(),
-    isMockData: false,
+    isMockData: backendPOs.length === 0,
   };
 }
 
 export async function submitGRN(form: unknown): Promise<{ success: boolean; grnNumber: string }> {
-  await new Promise((r) => setTimeout(r, 600));
   const grnForm = form as GRNFormState;
+  const token = typeof window !== 'undefined' ? localStorage.getItem('supabase_access_token') || '' : '';
+
+  // Attempt live backend submit
+  if (grnForm && grnForm.poId && grnForm.poId.includes('-')) {
+    try {
+      const res = await fetch(`/api/store/incoming-orders/${grnForm.poId}/grn`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          deliveryChallanNumber: grnForm.supplierDeliveryNote || '',
+          transporterName: 'Supplier Direct',
+          vehicleNumber: '',
+          lrNumber: '',
+          notes: grnForm.overallRemarks || '',
+          lines: (grnForm.lines || []).map((l: any) => ({
+            poLineId: l.lineId || 'b0000000-0000-0000-0000-000000000001',
+            productId: l.productId || 'c0000000-0000-0000-0000-000000000001',
+            orderedQuantity: Number(l.orderedQty || 0),
+            receivedQuantity: Number(l.receivedQty || 0),
+            acceptedQuantity: Number(l.acceptedQty || l.receivedQty || 0),
+            shortageQuantity: Number(l.shortageQty || 0),
+            damagedQuantity: Number(l.damagedQty || 0),
+            excessQuantity: 0,
+            batchNumber: l.batchNumber || '',
+            expiryDate: l.expiryDate || null,
+            storageLocation: l.rackBin || '',
+            unitCost: Number(l.unitPrice || 0),
+          })),
+        }),
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        if (json.data?.grnNumber) {
+          return { success: true, grnNumber: json.data.grnNumber };
+        }
+      }
+    } catch {
+      // Fallback to store
+    }
+  }
+
+  await new Promise((r) => setTimeout(r, 600));
   const store = useErpStore.getState();
   const randNum = Math.floor(8800 + Math.random() * 200);
   const grnNumber = `GRN-2026-${randNum}`;

@@ -25,6 +25,7 @@ import {
 } from 'recharts'
 import { useDemoData } from '../context/DemoDataContext'
 import { useDemoRole } from '../context/DemoRoleContext'
+import { runMarketingApiAction, marketingApi } from '../api-actions'
 import { useToast } from '../context/ToastContext'
 import { DEMO_CREDENTIALS } from '../config/demo'
 import type {
@@ -366,7 +367,7 @@ function leadFromForm(values: LeadFormValues, existing: Lead | null): Lead {
     sourceCategory: values.sourceCategory,
     sourceDetail: values.sourceDetail.trim() || undefined,
     marketingActivity: values.marketingActivity.trim() || undefined,
-    campaignId: values.campaignId || null,
+    campaignId: values.campaignId ?? null,
     product: values.products[0] ?? existing?.product ?? 'Portfolio',
     assignedTo: values.assignedTo,
     generatedBy: values.generatedBy || values.assignedTo || CURRENT_USER,
@@ -434,11 +435,12 @@ function leadFromForm(values: LeadFormValues, existing: Lead | null): Lead {
 }
 
 export function LeadsPage({ tab }: { tab: string }) {
-  const { data, update, addNotification } = useDemoData()
+  const { data, update, addNotification, dataSource, refreshFromApi } = useDemoData()
   const { roleId, profile } = useDemoRole()
   const { pushToast } = useToast()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
+  const chartAnim = useChartAnimation()
 
   const [createOpen, setCreateOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
@@ -613,6 +615,46 @@ export function LeadsPage({ tab }: { tab: string }) {
     const now = new Date().toISOString()
     const nextStatus = statusForBoardStage(stage)
     const restoring = lead.status === 'Rejected' || lead.status === 'Not Interested'
+
+    if (dataSource === 'api') {
+      const ui = { dataSource, refreshFromApi, pushToast }
+      if (stage === 'rejected') {
+        const reason = options?.reason?.trim()
+        if (!reason) {
+          pushToast({ title: 'Rejection reason required', description: 'Record why the lead is being rejected.', tone: 'warning' })
+          return false
+        }
+        const notes = options?.notes?.trim()
+        await runMarketingApiAction(ui, {
+          action: () => marketingApi.rejectLead(lead.id, { reason, notes }),
+          successTitle: 'Lead rejected',
+          successDescription: `${lead.name} left the active pipeline and is available in Rejected leads. Its notes, attribution and history were preserved.`,
+          errorTitle: 'Could not reject lead',
+          refresh: true,
+        })
+        return true
+      }
+
+      const patch: Record<string, unknown> = { status: nextStatus }
+      if (restoring) {
+        patch.nextFollowUp = lead.rejection?.previousNextFollowUp ?? lead.nextFollowUp ?? null
+      }
+      await runMarketingApiAction(ui, {
+        action: () => marketingApi.updateLead(lead.id, patch as any),
+        successTitle: stage === 'qualified' ? 'Lead qualified — confirm handover' : 'Lead moved',
+        successDescription:
+          stage === 'qualified'
+            ? `${lead.name} is Qualified, not yet transferred. Review the customer details and confirm the Sales handover.`
+            : `${lead.name} is now in ${boardStageLabel(stage)}.`,
+        errorTitle: 'Could not update lead',
+        refresh: true,
+      })
+      if (stage === 'qualified') {
+        setSendToSalesLeadId(lead.id)
+      }
+      return true
+    }
+
     const patch: Partial<Lead> = { status: nextStatus }
     let summary = restoring
       ? `Lead restored from Rejected to ${boardStageLabel(stage)} on the tracking board.`
@@ -671,7 +713,7 @@ export function LeadsPage({ tab }: { tab: string }) {
     return true
   }
 
-  const restoreLead = (lead: Lead) => {
+  const restoreLead = async (lead: Lead) => {
     if (!['Rejected', 'Not Interested'].includes(lead.status)) {
       pushToast({ title: 'Nothing to restore', description: 'Only rejected leads can be restored to the marketing pipeline.', tone: 'warning' })
       return
@@ -681,6 +723,25 @@ export function LeadsPage({ tab }: { tab: string }) {
       previous && ['New', 'Follow-up Required', 'Qualified'].includes(previous)
         ? previous
         : 'Follow-up Required'
+
+    if (dataSource === 'api') {
+      const ui = { dataSource, refreshFromApi, pushToast }
+      await runMarketingApiAction(ui, {
+        action: () =>
+          marketingApi.updateLead(lead.id, {
+            status: target,
+            rejection: undefined,
+            lostReason: undefined,
+            nextFollowUp: lead.rejection?.previousNextFollowUp ?? lead.nextFollowUp ?? null,
+          } as any),
+        successTitle: 'Lead restored',
+        successDescription: `${lead.name} is back in ${target}. The previous rejection remains in the activity history for audit.`,
+        errorTitle: 'Could not restore lead',
+        refresh: true,
+      })
+      return
+    }
+
     updateLead(lead.id, {
       status: target,
       rejection: undefined,
@@ -699,7 +760,42 @@ export function LeadsPage({ tab }: { tab: string }) {
     })
   }
 
-  const completeConversion = (lead: Lead, values: ConversionFormValues): ConversionResult => {
+  const completeConversion = async (
+    lead: Lead,
+    values: ConversionFormValues,
+  ): Promise<ConversionResult | null> => {
+    if (dataSource === 'api') {
+      const res = await runMarketingApiAction({ dataSource, refreshFromApi, pushToast }, {
+        action: () =>
+          marketingApi.convertLead(lead.id, {
+            customerName: values.name.trim(),
+            company: values.company.trim(),
+            email: values.email.trim(),
+            phone: values.phone.trim(),
+            notes: values.notes.trim(),
+            outcome: `Converted from lead ${lead.id}`,
+          }),
+        successTitle: 'Lead converted',
+        successDescription: `${values.name.trim()} (${values.company.trim()}) converted to a customer and linked to an opportunity.`,
+        errorTitle: 'Could not convert lead',
+      })
+      if (res.ok) {
+        const result = res.value as { customer: { id: string; name: string; company: string }; lead?: { customerId?: string } }
+        setConvertingLeadId(null)
+        return {
+          customerId: result.customer.id,
+          customerName: result.customer.name,
+          company: result.customer.company,
+          customerLinked: true,
+          opportunityId: result.lead?.customerId ?? '',
+          opportunityName: values.opportunityName.trim() || `${values.company.trim()} — ${values.product.trim()} opportunity`,
+          opportunityLinked: Boolean(result.lead),
+          salesRepName: '',
+        }
+      }
+      return null
+    }
+
     const salesRep =
       data.salesReps.find((rep) => rep.id === values.salesRepId && rep.active) ??
       data.salesReps.find((rep) => rep.active)
@@ -736,7 +832,7 @@ export function LeadsPage({ tab }: { tab: string }) {
         location: values.location.trim(),
         industry: values.industry.trim() || lead.industry,
         source: values.source,
-        campaignId: values.campaignId || null,
+        campaignId: values.campaignId ?? null,
         product: values.product.trim() || lead.product,
         leadId: lead.id,
         salesRepId: salesRep.id,
@@ -764,7 +860,7 @@ export function LeadsPage({ tab }: { tab: string }) {
         leadName: lead.name,
         customerId,
         salesRepId: salesRep.id,
-        campaignId: values.campaignId || null,
+        campaignId: values.campaignId ?? null,
         product: values.product.trim() || lead.product,
         value: opportunityValue,
         probability: opportunityProbability(values.opportunityStage),
@@ -829,7 +925,71 @@ export function LeadsPage({ tab }: { tab: string }) {
     }
   }
 
-  const saveLead = (values: LeadFormValues) => {
+  const saveLead = async (values: LeadFormValues) => {
+    const nextFollowUpIso = values.nextFollowUp
+      ? new Date(`${values.nextFollowUp}T${values.nextFollowUpTime || '10:00'}:00`).toISOString()
+      : null
+
+    const payload = {
+      name: values.name.trim(),
+      company: values.company.trim(),
+      phone: values.phone.trim(),
+      whatsapp: values.whatsapp.trim() || undefined,
+      email: values.email.trim(),
+      location: [values.city, values.state, values.country].filter(Boolean).join(', ') || undefined,
+      city: values.city.trim() || undefined,
+      state: values.state.trim() || undefined,
+      country: values.country.trim() || undefined,
+      address: values.address.trim() || undefined,
+      industry: 'General',
+      customerType: values.customerType || undefined,
+      jobTitle: values.jobTitle.trim() || undefined,
+      source: values.source,
+      sourceCategory: values.sourceCategory,
+      sourceDetail: values.sourceDetail.trim() || undefined,
+      marketingActivity: values.marketingActivity.trim() || undefined,
+      campaignId: values.campaignId || undefined,
+      product: values.products[0] ?? '',
+      assignedTo: values.assignedTo || undefined,
+      status: values.status,
+      priority: values.priority,
+      nextFollowUp: nextFollowUpIso || undefined,
+      nextAction: values.nextAction.trim() || undefined,
+      notes: values.notes.trim() || undefined,
+      solutionsDiscussed: values.solutionsDiscussed.trim() || undefined,
+      informationShared: values.informationShared.trim() || undefined,
+    }
+
+    if (dataSource === 'api') {
+      const ui = { dataSource, refreshFromApi, pushToast }
+      if (editingLead) {
+        await runMarketingApiAction(ui, {
+          action: () => marketingApi.updateLead(editingLead.id, payload as any),
+          successTitle: 'Lead updated',
+          successDescription: `${values.name.trim()} was saved in the ERP.`,
+          errorTitle: 'Could not update lead',
+        })
+        setEditingLeadId(null)
+      } else {
+        await runMarketingApiAction(ui, {
+          action: () => marketingApi.createLead(payload),
+          successTitle: 'Lead added',
+          successDescription: `${values.name.trim()} from ${values.company || 'no company'} was added to the ERP.`,
+          errorTitle: 'Could not create lead',
+        })
+        if (values.status === 'Qualified') {
+          pushToast({
+            title: 'Lead added and qualified',
+            description: `${values.name.trim()} is ready for a confirmed handover. Review the customer details before transferring.`,
+            tone: 'success',
+          })
+        }
+        setCreateOpen(false)
+        clearSearchParam('action')
+      }
+      return
+    }
+
     if (editingLead) {
       const nextLead = leadFromForm(values, editingLead)
       const changedToQualified =
@@ -940,6 +1100,27 @@ export function LeadsPage({ tab }: { tab: string }) {
     if (!values.expectedFirstContact) throw new Error('Set the expected first-contact target for this handover.')
 
     const lead = sendToSalesLead
+
+    if (dataSource === 'api') {
+      const ui = { dataSource, refreshFromApi, pushToast }
+      await runMarketingApiAction(ui, {
+        action: () =>
+          marketingApi.assignLead(lead.id, {
+            salesRepId: values.salesRepId,
+            salesManagerId: values.salesManagerId || undefined,
+            expectedFirstContact: values.expectedFirstContact || undefined,
+            handoffNote: values.handoffNote.trim() || undefined,
+            requirementSummary: lead.qualification?.mainRequirement || lead.notes || lead.product || undefined,
+          }),
+        successTitle: 'Lead assigned to Sales',
+        successDescription: `${lead.name} handed over to sales representative.`,
+        errorTitle: 'Could not assign lead to Sales',
+        refresh: true,
+      })
+      setSendToSalesLeadId(null)
+      return { handoverId: '', leadId: lead.id, salesRepName: '', salesManagerName: '', expectedFirstContact: values.expectedFirstContact, notificationCount: 0, customerNotificationCount: 0 } as SendToSalesResult
+    }
+
     const now = new Date().toISOString()
     const handoverId = uid('HND').toUpperCase()
     const campaign = data.campaigns.find((item) => item.id === lead.campaignId) ?? null
@@ -1062,8 +1243,9 @@ export function LeadsPage({ tab }: { tab: string }) {
     }
   }
 
-  const completeConversionAndClose = (lead: Lead, values: ConversionFormValues) => {
-    const result = completeConversion(lead, values)
+  const completeConversionAndClose = async (lead: Lead, values: ConversionFormValues) => {
+    const result = await completeConversion(lead, values)
+    if (!result) return
     setConvertingLeadId(null)
     return result
   }
@@ -1592,7 +1774,47 @@ export function LeadsPage({ tab }: { tab: string }) {
     setFollowUpModal(null)
   }
 
-  const completeFollowUp = (lead: Lead, view: FollowUpView, values: FollowUpCompletionValues) => {
+  const completeFollowUp = async (lead: Lead, view: FollowUpView, values: FollowUpCompletionValues) => {
+    if (dataSource === 'api') {
+      const ui = { dataSource, refreshFromApi, pushToast }
+      const nextFollowUpAt = values.nextDate
+        ? new Date(`${values.nextDate}T${values.nextTime || '10:00'}:00`).toISOString()
+        : null
+      await runMarketingApiAction(ui, {
+        action: () =>
+          marketingApi.completeFollowUp(lead.id, view.id, {
+            outcome: values.outcome.trim(),
+            latestResponse: values.latestResponse.trim() || undefined,
+            newRequirements: values.newRequirements.trim() || undefined,
+            concerns: values.concerns.trim() || undefined,
+            updatedBudget: values.updatedBudget.trim() ? Number(values.updatedBudget) : null,
+            purchaseReadiness: values.purchaseReadiness.trim() || undefined,
+            agreedNextSteps: values.agreedNextSteps.trim() || undefined,
+            nextFollowUpAt,
+          }),
+        successTitle: 'Follow-up completed',
+        successDescription: `${lead.name} was updated.${nextFollowUpAt ? ` Next follow-up scheduled for ${formatDateTime(nextFollowUpAt)}.` : ''}`,
+        errorTitle: 'Could not complete follow-up',
+        refresh: true,
+      })
+      if (nextFollowUpAt) {
+        await runMarketingApiAction(ui, {
+          action: () =>
+            marketingApi.createFollowUp(lead.id, {
+              dueAt: nextFollowUpAt,
+              method: values.nextMethod,
+              reason: values.nextReason.trim(),
+              reminder: undefined,
+            }),
+          successTitle: 'Next follow-up scheduled',
+          errorTitle: 'Could not schedule next follow-up',
+          refresh: false,
+        })
+      }
+      setFollowUpModal(null)
+      return
+    }
+
     const now = new Date().toISOString()
     const completedFields = {
       status: 'Completed' as const,
@@ -2033,8 +2255,8 @@ export function LeadsPage({ tab }: { tab: string }) {
           followUp={followUpModal.mode === 'complete' ? followUpModal.followUp : null}
           onClose={() => setFollowUpModal(null)}
           onSchedule={(values) => scheduleFollowUp(followUpLead, values)}
-          onComplete={(values) => {
-            if (followUpModal.mode === 'complete') completeFollowUp(followUpLead, followUpModal.followUp, values)
+          onComplete={async (values) => {
+            if (followUpModal.mode === 'complete') await completeFollowUp(followUpLead, followUpModal.followUp, values)
           }}
         />
       ) : null}
@@ -2121,7 +2343,7 @@ export function LeadsPage({ tab }: { tab: string }) {
                 <XAxis type="number" {...axisProps} />
                 <YAxis type="category" dataKey="source" {...axisProps} width={108} tick={{ fill: 'var(--muted)', fontSize: 9.5 }} />
                 <Tooltip content={<ChartTooltip valueFormatter={(value) => `${value} leads`} />} cursor={{ fill: 'var(--surface-2)' }} />
-                <Bar dataKey="leads" name="Leads" radius={[0, 4, 4, 0]} isAnimationActive={useChartAnimation()}>
+                <Bar dataKey="leads" name="Leads" radius={[0, 4, 4, 0]} isAnimationActive={chartAnim}>
                   {sources.map((entry, index) => (
                     <Cell key={entry.source} fill={chartColors[index % chartColors.length]} />
                   ))}
@@ -2553,7 +2775,7 @@ export function LeadsPage({ tab }: { tab: string }) {
                 <XAxis type="number" {...axisProps} tickFormatter={(value: number) => `${value}%`} />
                 <YAxis type="category" dataKey="name" {...axisProps} width={108} tick={{ fill: 'var(--muted)', fontSize: 9.5 }} />
                 <Tooltip content={<ChartTooltip valueFormatter={(value) => `${value.toFixed(1)}%`} />} cursor={{ fill: 'var(--surface-2)' }} />
-                <Bar dataKey="roi" name="ROI" radius={[0, 4, 4, 0]} isAnimationActive={useChartAnimation()}>
+                <Bar dataKey="roi" name="ROI" radius={[0, 4, 4, 0]} isAnimationActive={chartAnim}>
                   {rows.map((campaign) => <Cell key={campaign.id} fill={(campaignRoi(campaign) ?? 0) >= 100 ? 'var(--chart-2)' : 'var(--chart-1)'} />)}
                 </Bar>
               </BarChart>
@@ -2623,7 +2845,7 @@ interface ConvertLeadModalProps {
   salesReps: SalesRepresentative[]
   existingOpportunity: Opportunity | null
   onClose: () => void
-  onConvert: (values: ConversionFormValues) => ConversionResult
+  onConvert: (values: ConversionFormValues) => ConversionResult | Promise<ConversionResult | void>
 }
 
 function ConvertLeadModal({
@@ -2655,7 +2877,7 @@ function ConvertLeadModal({
     setErrors((current) => ({ ...current, [key]: '' }))
   }
 
-  const submit = () => {
+  const submit = async () => {
     const next: Record<string, string> = {}
     if (!values.name.trim()) next.name = 'Customer name is required.'
     if (!values.company.trim()) next.company = 'Company is required.'
@@ -2677,8 +2899,8 @@ function ConvertLeadModal({
     if (Object.keys(next).some((key) => next[key])) return
 
     try {
-      const conversion = onConvert(values)
-      setResult(conversion)
+      const conversion = await onConvert(values)
+      if (conversion) setResult(conversion)
     } catch (error) {
       setErrors({ form: error instanceof Error ? error.message : 'Conversion could not be completed.' })
     }

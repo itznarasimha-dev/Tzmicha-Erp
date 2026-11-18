@@ -16,7 +16,7 @@ export default function NotFound() {
             <h1 className="mt-2 text-xl font-bold">This page has moved on</h1>
             <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-slate-500 dark:text-slate-400">The page you are looking for does not exist in this demo workspace. Try the dashboard or search from the top bar.</p>
             <div className="mt-6 flex flex-wrap justify-center gap-2">
-              <Button onClick={() => navigate('/')}><LayoutDashboard className="h-4 w-4" /> Go to dashboard</Button>
+              <Button onClick={() => navigate('/hr')}><LayoutDashboard className="h-4 w-4" /> Go to dashboard</Button>
               <Button variant="secondary" onClick={() => navigate(-1)}><ArrowLeft className="h-4 w-4" /> Go back</Button>
             </div>
             <div className="mt-6 flex items-center justify-center gap-1.5 text-[11px] text-slate-400"><Search className="h-3.5 w-3.5" /> Tip: press ⌘K or Ctrl+K to search people and pages</div>

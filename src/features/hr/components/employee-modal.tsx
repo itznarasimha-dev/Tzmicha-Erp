@@ -3,6 +3,7 @@ import { Building2, UserRound } from 'lucide-react'
 import type { Employee, EmploymentType, EmployeeStatus } from '../types'
 import { useStore } from '../store'
 import { fullName, todayISO } from '../lib/utils'
+import { runHrApiAction, hrActions } from '../api-actions'
 import { Button, Field, Input, Modal, Select, Textarea } from './ui'
 
 interface EmployeeModalProps {
@@ -18,7 +19,7 @@ const blank = {
 }
 
 export function EmployeeModal({ open, onClose, employee }: EmployeeModalProps) {
-  const { db, update, logActivity, toast } = useStore()
+  const { db, update, logActivity, toast, dataSource, refreshFromApi } = useStore()
   const [form, setForm] = useState(blank)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
@@ -81,11 +82,66 @@ export function EmployeeModal({ open, onClose, employee }: EmployeeModalProps) {
     return Object.keys(next).length === 0
   }
 
-  const save = () => {
-    if (!validate()) return
+  const save = async () => {
+    if (!validate() || saving) return
+    const manager = db.employees.find((e) => e.id === form.managerId)
+    const skills = form.skills.split(',').map((s) => s.trim()).filter(Boolean)
+
+    if (dataSource === 'api') {
+      const dept = (db.settings.departments as Array<{ id?: string; name: string }>).find((d) => d.name === form.department)
+      const desig = (db.settings.designations as Array<{ id?: string; name: string; department?: string }>).find(
+        (d) => d.name === form.designation && (!form.department || d.department === form.department || !d.department),
+      )
+      if (!dept?.id) {
+        toast('Department mapping missing', 'error', 'Cannot save to API: selected department has no server ID. Refresh HR data and try again.')
+        return
+      }
+      if (!desig?.id) {
+        toast('Designation mapping missing', 'error', 'Cannot save to API: selected designation has no server ID. Refresh HR data and try again.')
+        return
+      }
+      setSaving(true)
+      const ui = { dataSource, refreshFromApi, toast }
+      const basePayload = {
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        departmentId: dept.id,
+        designationId: desig.id,
+        managerId: form.managerId || undefined,
+        employmentType: form.employmentType,
+        joiningDate: form.joiningDate,
+        workLocation: form.location.trim() || undefined,
+        gender: form.gender as Employee['gender'],
+        dateOfBirth: form.dob || undefined,
+        address: form.address.trim() || undefined,
+        emergencyContact: form.emergencyContact.trim() || undefined,
+        bankAccountMasked: form.bankAccount.trim() || undefined,
+        currentCtc: Number(form.salary),
+        skills,
+        bio: form.bio.trim() || undefined,
+      }
+      const res = employee
+        ? await runHrApiAction(ui, {
+            action: () => hrActions.updateEmployee(employee.id, { ...basePayload, employeeStatus: form.status }),
+            successMessage: 'Employee profile updated',
+            successDescription: `${form.firstName.trim()} ${form.lastName.trim()} has been saved.`,
+            errorTitle: 'Could not update employee',
+          })
+        : await runHrApiAction(ui, {
+            action: () => hrActions.createEmployee({ ...basePayload, employeeStatus: form.status }),
+            successMessage: 'Employee added',
+            successDescription: `${form.firstName.trim()} ${form.lastName.trim()} was created in the ERP.`,
+            errorTitle: 'Could not create employee',
+          })
+      setSaving(false)
+      if (res.ok) onClose()
+      return
+    }
+
     setSaving(true)
     window.setTimeout(() => {
-      const manager = db.employees.find((e) => e.id === form.managerId)
       const payload = {
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
@@ -107,15 +163,15 @@ export function EmployeeModal({ open, onClose, employee }: EmployeeModalProps) {
         bankAccount: form.bankAccount.trim(),
         photo: form.photo.trim(),
         bio: form.bio.trim(),
-        skills: form.skills.split(',').map((s) => s.trim()).filter(Boolean),
+        skills,
       }
       if (employee) {
         update((d) => ({
           ...d,
           employees: d.employees.map((e) => (e.id === employee.id ? { ...e, ...payload } : e)),
         }))
-        logActivity('employee', 'Employee profile updated', `${payload.firstName} ${payload.lastName} · ${payload.designation}`)
-        toast('Employee profile updated', 'success', `${payload.firstName} ${payload.lastName} has been saved.`)
+        logActivity('employee', 'Employee profile updated', `${payload.firstName} ${payload.lastName} - ${payload.designation}`)
+        toast('Employee profile updated (demo)', 'success', `${payload.firstName} ${payload.lastName} saved in demo data only.`)
       } else {
         const maxId = Math.max(...db.employees.map((e) => Number(e.id.replace(/\D/g, '')) || 0), 0)
         const id = `EMP-${String(maxId + 1).padStart(3, '0')}`
@@ -126,20 +182,25 @@ export function EmployeeModal({ open, onClose, employee }: EmployeeModalProps) {
           documents: [],
         }
         update((d) => ({ ...d, employees: [newEmployee, ...d.employees] }))
-        logActivity('employee', 'New employee added', `${newEmployee.firstName} ${newEmployee.lastName} · ${newEmployee.designation}`)
-        toast('Employee added', 'success', `${newEmployee.firstName} ${newEmployee.lastName} was added as ${id}.`)
+        logActivity('employee', 'New employee added', `${newEmployee.firstName} ${newEmployee.lastName} - ${newEmployee.designation}`)
+        toast('Employee added (demo)', 'success', `${newEmployee.firstName} ${newEmployee.lastName} added as ${id} (demo data only).`)
       }
       setSaving(false)
       onClose()
     }, 400)
   }
 
+
   return (
     <Modal
       open={open}
       onClose={onClose}
       title={employee ? 'Edit employee' : 'Add a new employee'}
-      description={employee ? `Update the profile and employment details for ${fullName(employee)}.` : 'Create a new employee record. This is demo data stored only in your browser.'}
+      description={employee
+        ? `Update the profile and employment details for ${fullName(employee)}.`
+        : dataSource === 'api'
+          ? 'Create a new employee record in the ERP. This does not automatically create a login/auth account unless your backend provisioning flow does so.'
+          : 'Create a new employee record. This is demo data stored only in your browser.'}
       size="lg"
       footer={<><Button variant="secondary" onClick={onClose}>Cancel</Button><Button onClick={save} loading={saving}>{employee ? 'Save changes' : 'Add employee'}</Button></>}
     >

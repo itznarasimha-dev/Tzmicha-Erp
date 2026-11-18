@@ -14,6 +14,17 @@ dist-ssr
 .env
 .env.*
 !.env.example
+backend/.env
+backend/.env.*
+server/.env
+server/.env.*
+supabase/.temp
+*.dump
+*.backup
+backups/
+dumps/
+uploads/
+scratch/
 
 # Editor directories and files
 .vscode/*

@@ -24,6 +24,7 @@ import {
 } from 'recharts'
 import { useDemoData } from '../context/DemoDataContext'
 import { useToast } from '../context/ToastContext'
+import { runMarketingApiAction, marketingApi } from '../api-actions'
 import type { Plan, PlanStatus, PlanType } from '../types/marketing'
 import { Button } from '../components/ui/Button'
 import { Badge, StatusBadge } from '../components/ui/Badge'
@@ -86,7 +87,7 @@ function blankPlanForm(type: PlanType = 'Annual'): PlanFormValues {
 }
 
 export function PlansBudgetsPage({ tab }: { tab: string }) {
-  const { data, update, addNotification } = useDemoData()
+  const { data, update, addNotification, dataSource, refreshFromApi } = useDemoData()
   const { pushToast } = useToast()
   const [searchParams, setSearchParams] = useSearchParams()
   const chartAnim = useChartAnimation()
@@ -125,7 +126,25 @@ export function PlansBudgetsPage({ tab }: { tab: string }) {
     setFormOpen(true)
   }
 
-  const createPlan = (values: PlanFormValues) => {
+  const createPlan = async (values: PlanFormValues) => {
+    if (dataSource === 'api') {
+      await runMarketingApiAction({ dataSource, refreshFromApi, pushToast }, {
+        action: () => marketingApi.createPlan({
+          title: values.title.trim(),
+          month: `${values.year}-${values.type === 'Quarterly' ? String(values.quarter).padStart(2, '0') : '01'}`,
+          objective: values.goal.trim(),
+          estimatedBudget: Math.round(Number(values.budget) || 0),
+          supportingNotes: values.notes.trim() || undefined,
+        }),
+        successTitle: 'Plan created',
+        successDescription: `${values.title.trim()} has been created in the ERP.`,
+        errorTitle: 'Could not create plan',
+        refresh: true,
+      })
+      setFormOpen(false)
+      return
+    }
+
     const newPlan: Plan = {
       id: uid('PLN'),
       title: values.title.trim(),
@@ -156,11 +175,40 @@ export function PlansBudgetsPage({ tab }: { tab: string }) {
     setFormOpen(false)
   }
 
-  const updatePlanStatus = (plan: Plan, status: PlanStatus) => {
+  const PLAN_STATUS_TO_ACTION: Record<PlanStatus, 'submit' | 'approve' | 'reject' | 'request-changes' | 'start' | 'submit-results' | 'complete'> = {
+    Draft: 'submit',
+    'In Review': 'approve',
+    Approved: 'start',
+    Active: 'complete',
+    Closed: 'complete',
+  }
+
+  const updatePlanStatus = async (plan: Plan, status: PlanStatus) => {
+    if (dataSource === 'api') {
+      const action = PLAN_STATUS_TO_ACTION[status]
+      await runMarketingApiAction({ dataSource, refreshFromApi, pushToast }, {
+        action: () => {
+          switch (action) {
+            case 'submit': return marketingApi.submitPlan(plan.id)
+            case 'approve': return marketingApi.approvePlan(plan.id)
+            case 'reject': return marketingApi.rejectPlan(plan.id, 'Status changed via plan detail view.')
+            case 'request-changes': return marketingApi.requestPlanChanges(plan.id, 'Status changed via plan detail view.')
+            case 'start': return marketingApi.startPlan(plan.id)
+            case 'submit-results': return marketingApi.submitPlanResults(plan.id)
+            case 'complete': return marketingApi.completePlan(plan.id)
+          }
+        },
+        successTitle: 'Plan status updated',
+        successDescription: `${plan.title} is now ${status}.`,
+        errorTitle: `Could not ${action} plan`,
+        refresh: true,
+      })
+      return
+    }
     update('plans', (current) => current.map((item) => (item.id === plan.id ? { ...item, status } : item)))
     pushToast({
-      title: 'Plan status updated',
-      description: `${plan.title} is now ${status} in local demo data.`,
+      title: 'Plan status updated (demo)',
+      description: `${plan.title} is now ${status}. Demo data is not saved to the database.`,
       tone: 'success',
     })
   }

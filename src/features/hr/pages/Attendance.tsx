@@ -1,14 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  CalendarDays, CalendarRange, Check, ChevronLeft, ChevronRight, Clock, Download, Eye, LayoutGrid,
-  List, PencilLine, Plus, RotateCcw, X,
+  AlertTriangle, CalendarDays, CalendarRange, Check, ChevronLeft, ChevronRight, Clock, Download, Eye, LayoutGrid,
+  List, PencilLine, Plus, RefreshCw, RotateCcw, X,
 } from 'lucide-react'
 import { useStore } from '../store'
+import { useAttendance, useCorrections } from '../useHrData'
+import { describeMissingPermission, useHrAccess } from '../lib/access'
 import type { AttendanceCorrection, AttendanceStatus, Employee } from '../types'
 import {
   addDays, downloadCSV, fmtDate, fmtDateShort, fullName, hoursBetween, sum, todayISO, toISO,
 } from '../lib/utils'
+import { runHrApiAction, hrActions } from '../api-actions'
+import { HrPermissionNotice } from '../components/hr-guard'
 import {
   Avatar, Badge, Button, Card, EmptyState, Field, IconButton, Input, Modal, PageHeader, Pagination,
   SearchInput, Select, StatCard, StatusBadge, Tabs, Textarea,
@@ -34,8 +38,22 @@ const monthRange = (iso: string) => {
 }
 
 export default function Attendance() {
-  const { db, update, toast, logActivity } = useStore()
+  const { db, update, toast, logActivity, dataSource, refreshFromApi } = useStore()
+  const access = useHrAccess()
   const navigate = useNavigate()
+  const [savingCorrection, setSavingCorrection] = useState(false)
+  const [decidingCorrection, setDecidingCorrection] = useState(false)
+  const [requestOpen, setRequestOpen] = useState(false)
+  const [requestSaving, setRequestSaving] = useState(false)
+  const [requestForm, setRequestForm] = useState({
+    employeeId: db.employees[0]?.id || '',
+    date: todayISO(),
+    status: 'Present' as AttendanceStatus,
+    checkIn: '09:00',
+    checkOut: '17:30',
+    reason: '',
+  })
+  const [requestErrors, setRequestErrors] = useState<Record<string, string>>({})
   const [tab, setTab] = useState<Tab>('records')
   const [view, setView] = useState<'table' | 'calendar'>('table')
   const [mode, setMode] = useState<Mode>('day')
@@ -61,7 +79,30 @@ export default function Attendance() {
     return { ...r, label: new Date(date + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) }
   }, [mode, date])
 
-  const rangeRecords = useMemo(() => db.attendance.filter((a) => a.date >= range.start && a.date <= range.end), [db.attendance, range])
+  const useApi = dataSource === 'api'
+  const selectedDepartmentId = useMemo(() => {
+    if (department === 'All') return undefined
+    return (db.settings.departments as Array<{ id?: string; name: string }>).find((d) => d.name === department)?.id
+  }, [department, db.settings.departments])
+
+  const attendanceQuery = useAttendance({
+    employeeId: undefined,
+    departmentId: selectedDepartmentId,
+    status: status === 'All' ? undefined : (status as any),
+    from: range.start,
+    to: range.end,
+    page: useApi ? page : undefined,
+    pageSize: useApi ? pageSize : undefined,
+  })
+  const correctionsQuery = useCorrections({ status: 'Pending' })
+
+  const attendanceData = useApi ? (attendanceQuery.data as any) : null
+  const correctionsData = useApi ? correctionsQuery.data : null
+
+  const allAttendance = (useApi ? (attendanceData?.data ?? []) : db.attendance) as typeof db.attendance
+  const allCorrections = ((useApi ? correctionsData : db.corrections) ?? []) as AttendanceCorrection[]
+
+  const rangeRecords = useMemo(() => allAttendance.filter((a) => a.date >= range.start && a.date <= range.end), [allAttendance, range])
 
   const empMap = useMemo(() => new Map(db.employees.map((e) => [e.id, e])), [db.employees])
 
@@ -122,13 +163,17 @@ export default function Attendance() {
   }, [rangeRecords, empMap, department, search])
 
   const rowCount = mode === 'day' ? dailyRows.length : aggregateRows.length
-  const totalPages = Math.max(1, Math.ceil(rowCount / pageSize))
-  const currentPage = Math.min(page, totalPages)
-  const from = (currentPage - 1) * pageSize
-  const rowsDaily = dailyRows.slice(from, from + pageSize)
-  const rowsAgg = aggregateRows.slice(from, from + pageSize)
+  const meta = attendanceData?.meta
+  const totalItems = useApi ? Number(meta?.total ?? rowCount) : rowCount
+  const totalPages = useApi ? Math.max(1, Number(meta?.totalPages ?? 1)) : Math.max(1, Math.ceil(rowCount / pageSize))
+  const currentPage = useApi ? Number(meta?.page ?? page) : Math.min(page, totalPages)
+  const from = useApi ? (rowCount ? (currentPage - 1) * (meta?.pageSize ?? pageSize) : 0) : (Math.min(page, totalPages) - 1) * pageSize
+  // In API mode we request paginated data; keep client-side slicing as fallback for derived/filtered views.
+  const rowsDaily = useApi && mode === 'day' && !search && department === 'All' && status === 'All' ? dailyRows : dailyRows.slice((useApi ? 0 : from), (useApi ? dailyRows.length : from + pageSize))
+  const rowsAgg = useApi && mode !== 'day' ? aggregateRows : aggregateRows.slice((useApi ? 0 : from), (useApi ? aggregateRows.length : from + pageSize))
+  const displayTo = useApi ? from + (mode === 'day' ? rowsDaily.length : rowsAgg.length) : Math.min(from + pageSize, rowCount)
 
-  const pendingCorrections = (db.corrections || []).filter((c) => c.status === 'Pending').length
+  const pendingCorrections = allCorrections.filter((c) => c.status === 'Pending').length
 
   const exportData = () => {
     let rows: (string | number)[][]
@@ -153,8 +198,8 @@ export default function Attendance() {
     })
   }
 
-  const saveCorrection = () => {
-    if (!editing) return
+  const saveCorrection = async () => {
+    if (!editing || savingCorrection) return
     if (!editing.employeeId) { setError('Select an employee'); return }
     if (!editing.date) { setError('Select a date'); return }
     if (!editing.reason.trim()) { setError('Add a reason for the manual correction'); return }
@@ -162,7 +207,34 @@ export default function Attendance() {
       setError('Check-in and check-out are required for this status')
       return
     }
+    const emp = db.employees.find((e) => e.id === editing.employeeId)
     const hours = editing.checkIn && editing.checkOut && ['Present', 'Late', 'Remote', 'Half Day'].includes(editing.status) ? hoursBetween(editing.checkIn, editing.checkOut) : 0
+
+    if (dataSource === 'api') {
+      setSavingCorrection(true)
+      const toIso = (t: string) => new Date(`${editing.date}T${t}:00`).toISOString()
+      const checkIn = ['Absent', 'On Leave'].includes(editing.status) ? undefined : (editing.checkIn ? toIso(editing.checkIn) : undefined)
+      const checkOut = ['Absent', 'On Leave'].includes(editing.status) ? undefined : (editing.checkOut ? toIso(editing.checkOut) : undefined)
+      const res = await runHrApiAction({ dataSource, refreshFromApi, toast }, {
+        action: () => hrActions.recordAttendance({
+          employeeId: editing.employeeId,
+          date: editing.date,
+          status: editing.status,
+          checkIn,
+          checkOut,
+          hours,
+          note: editing.reason,
+          source: 'Manual',
+        }),
+        successMessage: 'Attendance saved',
+        successDescription: `${emp ? fullName(emp) : 'Employee'} marked ${editing.status} for ${fmtDate(editing.date)}.`,
+        errorTitle: 'Could not save attendance',
+      })
+      setSavingCorrection(false)
+      if (res.ok) setEditing(null)
+      return
+    }
+
     update((d) => {
       const existing = d.attendance.find((a) => a.employeeId === editing.employeeId && a.date === editing.date)
       const record = {
@@ -182,19 +254,89 @@ export default function Attendance() {
         attendance: existing ? d.attendance.map((a) => (a.id === existing.id ? record : a)) : [record, ...d.attendance],
       }
     })
-    const emp = db.employees.find((e) => e.id === editing.employeeId)
-    logActivity('attendance', 'Manual attendance correction', `${emp ? fullName(emp) : editing.employeeId} · ${editing.date} · ${editing.status}`)
-    toast('Attendance corrected', 'success', `${emp ? fullName(emp) : 'Employee'} marked ${editing.status} for ${fmtDate(editing.date)}.`)
+    logActivity('attendance', 'Manual attendance correction', `${emp ? fullName(emp) : editing.employeeId} - ${editing.date} - ${editing.status}`)
+    toast('Attendance corrected (demo)', 'success', `${emp ? fullName(emp) : 'Employee'} marked ${editing.status} for ${fmtDate(editing.date)} (demo data only).`)
     setEditing(null)
   }
 
-  const applyDecision = () => {
-    if (!correctTarget) return
+  const submitCorrectionRequest = async () => {
+    const next: Record<string, string> = {}
+    if (!requestForm.employeeId) next.employeeId = 'Select an employee'
+    if (!requestForm.date) next.date = 'Select a date'
+    if (!requestForm.reason.trim()) next.reason = 'Add a reason for the correction request'
+    if (['Present', 'Late', 'Remote', 'Half Day'].includes(requestForm.status) && (!requestForm.checkIn || !requestForm.checkOut)) {
+      next.reason = next.reason ? `${next.reason} Check-in and check-out are required for this status.` : 'Check-in and check-out are required for this status.'
+    }
+    setRequestErrors(next)
+    if (Object.keys(next).length || requestSaving) return
+
+    if (dataSource === 'api') {
+      setRequestSaving(true)
+      const toIso = (t: string) => new Date(`${requestForm.date}T${t}:00`).toISOString()
+      const res = await runHrApiAction({ dataSource, refreshFromApi, toast }, {
+        action: () => hrActions.requestCorrection({
+          employeeId: requestForm.employeeId,
+          date: requestForm.date,
+          requestedStatus: requestForm.status,
+          checkIn: ['Absent', 'On Leave'].includes(requestForm.status) ? undefined : (requestForm.checkIn ? toIso(requestForm.checkIn) : undefined),
+          checkOut: ['Absent', 'On Leave'].includes(requestForm.status) ? undefined : (requestForm.checkOut ? toIso(requestForm.checkOut) : undefined),
+          reason: requestForm.reason.trim(),
+        }),
+        successMessage: 'Correction request submitted',
+        successDescription: 'The request has been sent for review and will appear in the corrections queue.',
+        errorTitle: 'Could not submit correction request',
+      })
+      setRequestSaving(false)
+      if (res.ok) setRequestOpen(false)
+      return
+    }
+
+    setRequestSaving(true)
+    window.setTimeout(() => {
+      const hr = db.employees.find((e) => e.id === requestForm.employeeId)
+      const local: AttendanceCorrection = {
+        id: `CR-${Math.max(9000, ...(db.corrections || []).map((c) => Number(c.id.replace(/\D/g, '')) || 9000)) + 1}`,
+        employeeId: requestForm.employeeId,
+        date: requestForm.date,
+        requestedStatus: requestForm.status,
+        checkIn: ['Absent', 'On Leave'].includes(requestForm.status) ? null : requestForm.checkIn || null,
+        checkOut: ['Absent', 'On Leave'].includes(requestForm.status) ? null : requestForm.checkOut || null,
+        reason: requestForm.reason.trim(),
+        status: 'Pending',
+        requestedAt: todayISO(),
+        reviewedBy: undefined,
+        remarks: undefined,
+      }
+      update((d) => ({ ...d, corrections: [...(d.corrections || []), local] }))
+      logActivity('attendance', 'Correction request submitted', `${hr ? fullName(hr) : requestForm.employeeId} · ${requestForm.date} · ${requestForm.status}`)
+      toast('Correction request submitted (demo)', 'success', `${hr ? fullName(hr) : 'Employee'} requested ${requestForm.status} for ${fmtDate(requestForm.date)}. Demo data is not saved to the database.`)
+      setRequestSaving(false)
+      setRequestOpen(false)
+    }, 350)
+  }
+
+  const applyDecision = async () => {
+    if (!correctTarget || decidingCorrection) return
     if (decision === 'Rejected' && !remarks.trim()) {
       toast('Add a remark', 'error', 'A reason is required when rejecting a correction request.')
       return
     }
     const target = correctTarget
+    const emp = db.employees.find((e) => e.id === target.employeeId)
+
+    if (dataSource === 'api') {
+      setDecidingCorrection(true)
+      const res = await runHrApiAction({ dataSource, refreshFromApi, toast }, {
+        action: () => hrActions.decideCorrection(target.id, { decision, remarks: remarks.trim() || undefined }),
+        successMessage: `Correction ${decision.toLowerCase()}`,
+        successDescription: decision === 'Approved' ? 'The attendance record has been updated.' : 'The correction request was rejected.',
+        errorTitle: 'Could not process correction',
+      })
+      setDecidingCorrection(false)
+      if (res.ok) { setCorrectTarget(null); setRemarks('') }
+      return
+    }
+
     update((d) => {
       const correctionList = d.corrections || []
       let attendanceList = d.attendance
@@ -221,9 +363,8 @@ export default function Attendance() {
         corrections: correctionList.map((c) => (c.id === target.id ? { ...c, status: decision, reviewedBy: 'Amara Okafor', remarks } : c)),
       }
     })
-    const emp = db.employees.find((e) => e.id === target.employeeId)
-    logActivity('attendance', `Attendance correction ${decision.toLowerCase()}`, `${emp ? fullName(emp) : target.employeeId} · ${target.date}`)
-    toast(`Correction ${decision.toLowerCase()}`, decision === 'Approved' ? 'success' : 'info', decision === 'Approved' ? 'The attendance record has been updated.' : 'The employee will be notified of the decision.')
+    logActivity('attendance', `Attendance correction ${decision.toLowerCase()}`, `${emp ? fullName(emp) : target.employeeId} - ${target.date}`)
+    toast(`Correction ${decision.toLowerCase()} (demo)`, decision === 'Approved' ? 'success' : 'info', decision === 'Approved' ? 'Attendance updated in demo data only.' : 'Decision saved in demo data only.')
     setCorrectTarget(null)
     setRemarks('')
   }
@@ -259,12 +400,52 @@ export default function Attendance() {
 
   return (
     <div>
-      <PageHeader
+      {useApi && attendanceQuery.loading && (
+        <div className="text-center py-12">
+          <div className="flex flex-col items-center gap-3 animate-pulse">
+            <div className="w-12 h-12 rounded-full border-4 border-brand-500 border-t-transparent" />
+            <p className="text-sm text-slate-500 dark:text-slate-400">Loading attendance data…</p>
+          </div>
+        </div>
+      )}
+      {useApi && attendanceQuery.error && (
+        <div className="text-center py-12">
+          <div className="rounded-xl bg-rose-50 border border-rose-200 px-6 py-8 max-w-md mx-auto dark:bg-rose-500/10 dark:border-rose-500/20">
+            <AlertTriangle className="h-6 w-6 text-rose-500 mx-auto mb-3" />
+            <h3 className="text-lg font-semibold text-rose-900 dark:text-rose-300">Unable to load attendance data</h3>
+            <p className="mt-2 text-sm text-rose-700 dark:text-rose-400">{attendanceQuery.error}</p>
+            <button
+              onClick={() => attendanceQuery.refetch()}
+              className="mt-4 px-4 py-2 text-sm font-semibold text-rose-600 hover:text-rose-700 dark:text-rose-300"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
+      {(!useApi || (!attendanceQuery.loading && !attendanceQuery.error)) && (
+        <>
+        <PageHeader
         title="Attendance"
         subtitle="Track presence, working hours and corrections across every team — with an audit trail for manual changes."
         crumbs={['People', 'Attendance']}
-        actions={<><Button variant="secondary" onClick={exportData}><Download className="h-4 w-4" /> Export</Button><Button onClick={() => openCorrection(db.employees[0]?.id || '', date)}><Plus className="h-4 w-4" /> Manual correction</Button></>}
+        actions={
+          <>
+            {useApi && <Button variant="secondary" onClick={() => { void attendanceQuery.refetch(); void correctionsQuery.refetch() }} disabled={attendanceQuery.loading || correctionsQuery.loading}><RefreshCw className={`h-4 w-4 ${attendanceQuery.loading || correctionsQuery.loading ? 'animate-spin' : ''}`} /> Refresh</Button>}
+            <Button variant="secondary" onClick={exportData}><Download className="h-4 w-4" /> Export</Button>
+            {access.can('attendance.record') && (
+              <Button onClick={() => openCorrection(db.employees[0]?.id || '', date)}><Plus className="h-4 w-4" /> Manual correction</Button>
+            )}
+            {access.can('attendance.record') && (
+              <Button onClick={() => { setRequestForm({ employeeId: db.employees[0]?.id || '', date, status: 'Present', checkIn: '09:00', checkOut: '17:30', reason: '' }); setRequestErrors({}); setRequestOpen(true) }}><RefreshCw className="h-4 w-4" /> Request correction</Button>
+            )}
+          </>
+        }
       />
+
+      {!access.can('attendance.record') && (
+        <HrPermissionNotice className="mb-4" message={`${describeMissingPermission('attendance.record')} You can review attendance records but cannot record or request changes.`} />
+      )}
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-6">
         <StatCard index={0} label="Present" value={summary.present + summary.remote} icon={Check} tone="green" hint={`${summary.remote} remote`} />
@@ -336,7 +517,11 @@ export default function Attendance() {
                           <StatusBadge status={r.status} />
                           <p className="mt-1 text-[10px] text-slate-400">{r.source}{r.corrected ? ' · corrected' : ''}</p>
                         </td>
-                        <td className="table-cell text-right"><Button variant="ghost" size="sm" onClick={() => openCorrection(e!.id, r.date, r)}><PencilLine className="h-3.5 w-3.5" /> Correct</Button></td>
+                        <td className="table-cell text-right">
+                          {access.can('attendance.record')
+                            ? <Button variant="ghost" size="sm" onClick={() => openCorrection(e!.id, r.date, r)}><PencilLine className="h-3.5 w-3.5" /> Correct</Button>
+                            : <span className="text-[11px] text-slate-400">Read only</span>}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -372,9 +557,9 @@ export default function Attendance() {
                   </tbody>
                 </table>
               )}
-              {rowCount === 0 && <EmptyState icon={CalendarDays} title="No attendance records" description="No records match this date range and filters. Try a different date or clear the filters." action={<Button variant="secondary" onClick={() => { setSearch(''); setDepartment('All'); setStatus('All') }}><RotateCcw className="h-4 w-4" /> Clear filters</Button>} />}
+              {rowCount === 0 && !attendanceQuery.loading && <EmptyState icon={CalendarDays} title="No attendance records" description="No records match this date range and filters. Try a different date or clear the filters." action={<Button variant="secondary" onClick={() => { setSearch(''); setDepartment('All'); setStatus('All') }}><RotateCcw className="h-4 w-4" /> Clear filters</Button>} />}
             </div>
-            {rowCount > 0 && <Pagination page={currentPage} totalPages={totalPages} total={rowCount} from={from} to={Math.min(from + pageSize, rowCount)} onPage={setPage} pageSize={pageSize} onPageSize={setPageSize} label={mode === 'day' ? 'records' : 'employees'} />}
+            {totalItems > 0 && <Pagination page={currentPage} totalPages={totalPages} total={totalItems} from={rowCount ? from + 1 : 0} to={rowCount ? displayTo : 0} onPage={setPage} pageSize={meta?.pageSize ?? pageSize} onPageSize={setPageSize} label={mode === 'day' ? 'records' : 'employees'} />}
           </>
         )}
 
@@ -434,7 +619,7 @@ export default function Attendance() {
               <table className="w-full min-w-[1050px]">
                 <thead className="bg-slate-50/80 dark:bg-white/[0.025]"><tr><th className="table-head">Employee</th><th className="table-head">Date</th><th className="table-head">Requested</th><th className="table-head">Reason</th><th className="table-head">Requested on</th><th className="table-head">Reviewer</th><th className="table-head">Status</th><th className="table-head text-right">Actions</th></tr></thead>
                 <tbody>
-                  {(db.corrections || []).map((c) => {
+                  {allCorrections.map((c) => {
                     const e = empMap.get(c.employeeId)
                     return (
                       <tr key={c.id} className="table-row">
@@ -442,17 +627,19 @@ export default function Attendance() {
                           <div className="flex items-center gap-2.5"><Avatar name={e ? fullName(e) : c.employeeId} src={e?.photo} size="xs" /><span><span className="block text-[13px] font-semibold text-slate-800 dark:text-slate-100">{e ? fullName(e) : c.employeeId}</span><span className="block text-[10px] text-slate-400">{c.id}</span></span></div>
                         </td>
                         <td className="table-cell">{fmtDate(c.date)}</td>
-                        <td className="table-cell"><StatusBadge status={c.requestedStatus} /><span className="ml-2 text-[11px] text-slate-400">{c.checkIn}–{c.checkOut}</span></td>
+                        <td className="table-cell"><StatusBadge status={c.requestedStatus} /><span className="ml-2 text-[11px] text-slate-400">{c.checkIn || '—'}–{c.checkOut || '—'}</span></td>
                         <td className="table-cell"><p className="max-w-[260px] truncate text-[11.5px]" title={c.reason}>{c.reason}</p></td>
                         <td className="table-cell">{fmtDate(c.requestedAt)}</td>
                         <td className="table-cell">{c.reviewedBy || '—'}</td>
                         <td className="table-cell"><StatusBadge status={c.status} /></td>
                         <td className="table-cell text-right">
-                          {c.status === 'Pending' ? (
+                          {c.status === 'Pending' && access.can('attendance.approve') ? (
                             <div className="flex justify-end gap-1">
                               <button onClick={() => { setCorrectTarget(c); setDecision('Approved'); setRemarks('') }} className="flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400"><Check className="h-3 w-3" /> Approve</button>
                               <button onClick={() => { setCorrectTarget(c); setDecision('Rejected'); setRemarks('') }} className="flex items-center gap-1 rounded-lg bg-rose-50 px-2.5 py-1.5 text-[11px] font-semibold text-rose-700 hover:bg-rose-100 dark:bg-rose-500/10 dark:text-rose-400"><X className="h-3 w-3" /> Reject</button>
                             </div>
+                          ) : c.status === 'Pending' ? (
+                            <span className="text-[11px] text-slate-400" title={describeMissingPermission('attendance.approve')}>Approval requires permission</span>
                           ) : <span className="text-[11px] text-slate-400">{c.remarks || 'Reviewed'}</span>}
                         </td>
                       </tr>
@@ -460,7 +647,7 @@ export default function Attendance() {
                   })}
                 </tbody>
               </table>
-              {(db.corrections || []).length === 0 && <EmptyState icon={PencilLine} title="No correction requests" description="Attendance correction requests raised by employees will appear here." />}
+              {allCorrections.length === 0 && <EmptyState icon={PencilLine} title="No correction requests" description="Attendance correction requests raised by employees will appear here." />}
             </div>
           </div>
         )}
@@ -471,7 +658,7 @@ export default function Attendance() {
         onClose={() => setEditing(null)}
         title="Manual attendance correction"
         description="Authorized HR action. This updates the attendance record immediately and logs the change."
-        footer={<><Button variant="secondary" onClick={() => setEditing(null)}>Cancel</Button><Button onClick={saveCorrection}>Save correction</Button></>}
+        footer={<><Button variant="secondary" onClick={() => setEditing(null)} disabled={savingCorrection}>Cancel</Button><Button onClick={saveCorrection} loading={savingCorrection} disabled={savingCorrection}>Save correction</Button></>}
       >
         {editing && (
           <div className="grid gap-4 sm:grid-cols-2">
@@ -505,7 +692,7 @@ export default function Attendance() {
         onClose={() => setCorrectTarget(null)}
         title={decision === 'Approved' ? 'Approve correction request' : 'Reject correction request'}
         description={correctTarget ? `${correctTarget.id} · ${empMap.get(correctTarget.employeeId) ? fullName(empMap.get(correctTarget.employeeId)!) : correctTarget.employeeId} · ${fmtDate(correctTarget.date)}` : ''}
-        footer={<><Button variant="secondary" onClick={() => setCorrectTarget(null)}>Cancel</Button><Button variant={decision === 'Approved' ? 'primary' : 'danger'} onClick={applyDecision}>{decision === 'Approved' ? 'Approve correction' : 'Reject request'}</Button></>}
+        footer={<><Button variant="secondary" onClick={() => setCorrectTarget(null)} disabled={decidingCorrection}>Cancel</Button><Button variant={decision === 'Approved' ? 'primary' : 'danger'} onClick={applyDecision} loading={decidingCorrection} disabled={decidingCorrection}>{decision === 'Approved' ? 'Approve correction' : 'Reject request'}</Button></>}
       >
         {correctTarget && (
           <div className="space-y-4">
@@ -520,6 +707,43 @@ export default function Attendance() {
           </div>
         )}
       </Modal>
-    </div>
+
+      <Modal
+        open={requestOpen}
+        onClose={() => setRequestOpen(false)}
+        title="Request an attendance correction"
+        description="Ask HR to review and correct an attendance record. The request enters the corrections queue for approval."
+        footer={<><Button variant="secondary" onClick={() => setRequestOpen(false)} disabled={requestSaving}>Cancel</Button><Button onClick={submitCorrectionRequest} loading={requestSaving} disabled={requestSaving}>Submit request</Button></>}
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Employee" required error={requestErrors.employeeId} className="sm:col-span-2">
+            <Select value={requestForm.employeeId} onChange={(e) => setRequestForm({ ...requestForm, employeeId: e.target.value })}>
+              <option value="">Select employee</option>
+              {db.employees.filter((e) => e.status !== 'Terminated').map((e) => <option key={e.id} value={e.id}>{fullName(e)} · {e.department}</option>)}
+            </Select>
+          </Field>
+          <Field label="Date" required error={requestErrors.date}>
+            <Input type="date" value={requestForm.date} onChange={(e) => setRequestForm({ ...requestForm, date: e.target.value })} invalid={!!requestErrors.date} />
+          </Field>
+          <Field label="Requested status" required>
+            <Select value={requestForm.status} onChange={(e) => setRequestForm({ ...requestForm, status: e.target.value as AttendanceStatus })}>
+              {['Present', 'Late', 'Remote', 'Half Day', 'Absent', 'On Leave'].map((s) => <option key={s}>{s}</option>)}
+            </Select>
+          </Field>
+          <Field label="Check in">
+            <Input type="time" value={requestForm.checkIn} disabled={['Absent', 'On Leave'].includes(requestForm.status)} onChange={(e) => setRequestForm({ ...requestForm, checkIn: e.target.value })} />
+          </Field>
+          <Field label="Check out">
+            <Input type="time" value={requestForm.checkOut} disabled={['Absent', 'On Leave'].includes(requestForm.status)} onChange={(e) => setRequestForm({ ...requestForm, checkOut: e.target.value })} />
+          </Field>
+          <Field label="Reason" required error={requestErrors.reason} className="sm:col-span-2">
+            <Textarea value={requestForm.reason} onChange={(e) => setRequestForm({ ...requestForm, reason: e.target.value })} placeholder="Explain why the recorded attendance needs correction…" invalid={!!requestErrors.reason} />
+          </Field>
+          {Object.values(requestErrors).length > 0 && <p className="sm:col-span-2 rounded-lg bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700 dark:bg-rose-500/10 dark:text-rose-400">Please fix the errors above before submitting.</p>}
+        </div>
+      </Modal>
+    </>
+  )}
+  </div>
   )
 }

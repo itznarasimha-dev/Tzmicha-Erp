@@ -1,6 +1,6 @@
 // Comprehensive Domain Type Definitions for ApexFlow Manufacturing & Regional ERP
 
-export type UserRole = 'admin' | 'sales' | 'marketing' | 'store_manager' | 'finance' | 'service' | 'hr';
+export type UserRole = 'admin' | 'manager' | 'sales' | 'marketing' | 'store_manager' | 'finance' | 'service' | 'hr';
 
 export type SubscriptionPlan = 'Standard' | 'Professional' | 'Enterprise';
 
@@ -642,6 +642,7 @@ export interface Customer {
   billingAddress?: string;
   shippingAddress?: string;
   gstin?: string;
+  pan?: string;
   paymentTerms?: string; // e.g. 'Net 30', 'Net 45', 'Immediate'
   creditLimit: number;
   currentOutstanding: number;
@@ -726,9 +727,9 @@ export interface SalesOrder {
   notes?: string;
 }
 
-export type InvoiceStatus = 'draft' | 'issued' | 'paid' | 'partially_paid' | 'overdue' | 'cancelled';
+export type InvoiceStatus = 'draft' | 'issued' | 'paid' | 'partially_paid' | 'overdue' | 'cancelled' | 'pending_approval' | 'rejected' | 'pending_service_approval';
 export type InvoicePaymentStatus = 'unpaid' | 'partially_paid' | 'paid';
-export type InvoiceSource = 'sales_order_payment' | 'admin_manual';
+export type InvoiceSource = 'sales_order_payment' | 'admin_manual' | 'service_billing';
 
 export interface InvoiceItem {
   id: string;
@@ -780,6 +781,9 @@ export interface Invoice {
   paymentReference?: string;
   paymentDate?: string;
   notes?: string;
+  serviceRequestId?: string;
+  serviceApprovedById?: string;
+  approvalStatus?: string;
   // Additive Multi-Company & GST Compliance Fields
   companyProfileId?: string;
   templateId?: string;
@@ -1105,7 +1109,8 @@ export interface AuditLog {
     | 'payroll'
     | 'incentive'
     | 'journal_entry'
-    | 'budget_request';
+    | 'budget_request'
+    | string;
   entityId: string;
   details: string;
   regionId?: string;

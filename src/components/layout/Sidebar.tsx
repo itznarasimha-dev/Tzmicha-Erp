@@ -1024,6 +1024,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       path: '/hr/settings',
       icon: <ShieldCheck className="w-4 h-4" />,
     },
+    { group: 'Support & Queries' },
+    {
+      name: 'HR Queries & Helpdesk Chat',
+      path: '/hr/queries',
+      icon: <MessageSquare className="w-4 h-4" />,
+      badge: (roleQueries || []).filter((q) => (q.requesterRole === 'hr' || q.requesterId === currentUser?.id) && q.status === 'open').length || undefined,
+      badgeVariant: 'warning',
+    },
   ];
 
   const currentNavItems =
@@ -1152,7 +1160,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               return (
                 <div
                   key={idx}
-                  className="px-3 pt-3.5 pb-1 text-[10px] font-medium uppercase tracking-[0.08em] text-slate-400"
+                  className="px-3 pt-3.5 pb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400 font-sans"
                 >
                   {item.group}
                 </div>
@@ -1167,10 +1175,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 title={collapsed && !mobileOpen ? item.name : undefined}
                 className={({ isActive }) =>
                   clsx(
-                    'flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-normal transition-all duration-150 group relative',
+                    'flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px] transition-all duration-150 group relative font-sans',
                     isActive
-                      ? 'bg-slate-100 text-slate-950 font-medium shadow-2xs'
-                      : 'text-slate-600 hover:text-slate-950 hover:bg-slate-50',
+                      ? 'bg-slate-100/90 text-slate-950 font-bold shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-950 hover:bg-slate-50 font-medium',
                     item.isComingSoon && 'opacity-85'
                   )
                 }
@@ -1187,7 +1195,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     </span>
 
                     {(!collapsed || mobileOpen) && (
-                      <span className="truncate flex-1 tracking-tight text-xs">{item.name}</span>
+                      <span className="truncate flex-1 tracking-tight text-[13px]">{item.name}</span>
                     )}
 
                     {(!collapsed || mobileOpen) && item.badge !== undefined && (

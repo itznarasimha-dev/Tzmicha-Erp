@@ -25,6 +25,7 @@ import {
   YAxis,
 } from 'recharts'
 import { useDemoData } from '../context/DemoDataContext'
+import { runMarketingApiAction, marketingApi } from '../api-actions'
 import { useToast } from '../context/ToastContext'
 import type { FieldClaim, FieldVisit, MarketResearch, VisitStatus, VisitType } from '../types/marketing'
 import { Button } from '../components/ui/Button'
@@ -95,7 +96,7 @@ type ClaimFormValues = {
 }
 
 export function FieldMarketingPage({ tab }: { tab: string }) {
-  const { data, update, addNotification } = useDemoData()
+  const { data, update, addNotification, dataSource, refreshFromApi } = useDemoData()
   const { pushToast } = useToast()
   const [searchParams, setSearchParams] = useSearchParams()
   const chartAnim = useChartAnimation()

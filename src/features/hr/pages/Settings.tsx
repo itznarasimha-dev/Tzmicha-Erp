@@ -6,12 +6,15 @@ import {
   Sparkles, Sun, Target, Trash2, UserCog, Wallet, X,
 } from 'lucide-react'
 import { useStore, useTheme } from '../store'
+import { describeMissingPermission, useHrAccess } from '../lib/access'
+import { runHrApiAction, hrActions } from '../api-actions'
 import type { SettingsData } from '../types'
 import { createDemoDatabase } from '../data/demo'
 import { downloadCSV, fmtDate, todayISO, uid } from '../lib/utils'
 import {
   Badge, Button, Card, ConfirmDialog, Field, Input, Modal, PageHeader, Select, Textarea, Toggle,
 } from '../components/ui'
+import { HrPermissionNotice } from '../components/hr-guard'
 import { cn } from '../lib/utils'
 
 type FieldType = 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'select' | 'textarea'
@@ -130,8 +133,20 @@ const colorTone = (color: string) => {
   return allowed.includes(color) ? color as any : 'slate'
 }
 
+const designationLevel = (level: unknown): string => {
+  const value = String(level ?? '')
+  if (value === 'Executive') return 'Head'
+  return ['Junior', 'Mid', 'Senior', 'Lead', 'Head'].includes(value) ? value : 'Mid'
+}
+
+const designationCode = (name: unknown): string => {
+  const base = String(name ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 14) || 'DES'
+  return `${base}${Math.random().toString(36).slice(2, 6).toUpperCase()}`.slice(0, 20)
+}
+
 export default function Settings() {
-  const { db, update, resetDemo, toast } = useStore()
+  const access = useHrAccess()
+  const { db, update, resetDemo, toast, dataSource, refreshFromApi } = useStore()
   const { theme, setTheme } = useTheme()
   const [activeId, setActiveId] = useState<keyof SettingsData>('departments')
   const [search, setSearch] = useState('')
@@ -201,10 +216,78 @@ export default function Settings() {
     if (editing) {
       const idx = list.findIndex((r) => r.id === editing.id)
       if (idx >= 0) list[idx] = { ...editing, ...clean }
-      toast(`${section.label.slice(0, -1)} updated`, 'success', `${clean[section.fields[0].key]} has been saved.`)
     } else {
       const id = `${section.prefix}-${uid('n').replace('n-', '')}`
       list.unshift({ ...clean, id })
+    }
+
+    if (dataSource === 'api') {
+      const finish = () => { setModalOpen(false); setEditing(null) }
+      const name = String(clean[section.fields[0].key] ?? '')
+      if (section.id === 'departments') {
+        if (editing) {
+          toast('Editing departments is not supported', 'warning', 'The API does not expose a department update endpoint yet. Nothing was changed.')
+          return
+        }
+        void runHrApiAction({ dataSource, refreshFromApi, toast }, {
+          action: () => hrActions.createDepartment({ code: String(clean.code), name }),
+          successMessage: 'Department added',
+          successDescription: `${name} has been added. Department-head assignment requires a user account and is not set from this form.`,
+          errorTitle: 'Could not add department',
+        }).then((res) => { if (res.ok) finish() })
+        return
+      }
+      if (section.id === 'designations') {
+        if (editing) {
+          toast('Editing designations is not supported', 'warning', 'The API does not expose a designation update endpoint yet. Nothing was changed.')
+          return
+        }
+        const departmentId = db.settings.departments.find((d) => d.name === clean.department)?.id
+        void runHrApiAction({ dataSource, refreshFromApi, toast }, {
+          action: () => hrActions.createDesignation({
+            code: designationCode(name),
+            name,
+            ...(departmentId ? { departmentId } : {}),
+            level: designationLevel(clean.level),
+          }),
+          successMessage: 'Designation added',
+          successDescription: `${name} has been added to the designation catalogue.`,
+          errorTitle: 'Could not add designation',
+        }).then((res) => { if (res.ok) finish() })
+        return
+      }
+      if (section.id === 'holidays') {
+        if (editing) {
+          toast('Editing holidays is not supported', 'warning', 'The API does not expose a holiday update endpoint yet. Nothing was changed.')
+          return
+        }
+        void runHrApiAction({ dataSource, refreshFromApi, toast }, {
+          action: () => hrActions.createHoliday({ name, date: String(clean.date), type: (clean.type || 'Public') as 'Public' | 'Company' | 'Optional' }),
+          successMessage: 'Holiday added',
+          successDescription: `${name} was added to the holiday calendar.`,
+          errorTitle: 'Could not add holiday',
+        }).then((res) => { if (res.ok) finish() })
+        return
+      }
+      if (section.id === 'leaveTypes') {
+        toast('Leave type changes are not supported by the API', 'warning', 'Leave types are managed by the backend and no create or update endpoint exists yet. Nothing was changed.')
+        return
+      }
+      void runHrApiAction({ dataSource, refreshFromApi, toast }, {
+        action: async () => {
+          const current = await hrActions.getHrSettings()
+          await hrActions.saveHrSettings({ ...current.data, [section.id]: list })
+        },
+        successMessage: `${section.label.slice(0, -1)} ${editing ? 'updated' : 'added'}`,
+        successDescription: `${name} has been saved.`,
+        errorTitle: 'Could not save configuration',
+      }).then((res) => { if (res.ok) finish() })
+      return
+    }
+
+    if (editing) {
+      toast(`${section.label.slice(0, -1)} updated`, 'success', `${clean[section.fields[0].key]} has been saved.`)
+    } else {
       toast(`${section.label.slice(0, -1)} added`, 'success', `${clean[section.fields[0].key]} has been added to ${section.label.toLowerCase()}.`)
     }
     update((d) => ({ ...d, settings: { ...d.settings, [section.id]: list } }))
@@ -216,6 +299,32 @@ export default function Settings() {
     if (!deleteItem) return
     const list = rows.filter((r) => r.id !== deleteItem.id)
     const name = deleteItem[section.fields[0].key] || deleteItem.id
+    if (dataSource === 'api') {
+      if (section.id === 'holidays') {
+        void runHrApiAction({ dataSource, refreshFromApi, toast }, {
+          action: () => hrActions.deleteHoliday(deleteItem.id),
+          successMessage: 'Holiday removed',
+          successDescription: `${name} was deleted from the holiday calendar.`,
+          errorTitle: 'Could not remove holiday',
+        }).then((res) => { if (res.ok) setDeleteItem(null) })
+        return
+      }
+      if (section.id === 'departments' || section.id === 'designations' || section.id === 'leaveTypes') {
+        toast('Deleting this configuration is not supported', 'warning', 'The API keeps these catalogues intact and exposes no delete endpoint. Nothing was removed.')
+        setDeleteItem(null)
+        return
+      }
+      void runHrApiAction({ dataSource, refreshFromApi, toast }, {
+        action: async () => {
+          const current = await hrActions.getHrSettings()
+          await hrActions.saveHrSettings({ ...current.data, [section.id]: list })
+        },
+        successMessage: 'Configuration removed',
+        successDescription: `${name} was deleted from ${section.label.toLowerCase()}.`,
+        errorTitle: 'Could not remove configuration',
+      }).then((res) => { if (res.ok) setDeleteItem(null) })
+      return
+    }
     update((d) => ({ ...d, settings: { ...d.settings, [section.id]: list } }))
     toast('Configuration removed', 'success', `${name} was deleted from ${section.label.toLowerCase()}.`)
     setDeleteItem(null)
@@ -233,6 +342,11 @@ export default function Settings() {
   }
 
   const resetSettings = () => {
+    if (dataSource === 'api') {
+      toast('Restoring defaults is not supported by the API', 'warning', 'Production configuration cannot be reset from the portal. Nothing was changed.')
+      setResetOpen(false)
+      return
+    }
     update((d) => ({ ...d, settings: createDemoDatabase().settings }))
     toast('Default settings restored', 'success', 'All configuration tables have been returned to the demo defaults.')
     setResetOpen(false)
@@ -263,8 +377,19 @@ export default function Settings() {
         title="HR Settings"
         subtitle="Configure the structures behind every module — departments, policies, leave types, contracts and review templates."
         crumbs={['Insights', 'HR Settings']}
-        actions={<><Button variant="secondary" onClick={() => setResetOpen(true)}><RotateCcw className="h-4 w-4" /> Restore defaults</Button><Button onClick={openCreate}><Plus className="h-4 w-4" /> Add {section.label.slice(0, -1).toLowerCase()}</Button></>}
+        actions={
+          <>
+            <Button variant="secondary" onClick={() => setResetOpen(true)}><RotateCcw className="h-4 w-4" /> Restore defaults</Button>
+            {access.can('settings.write') && (
+              <Button onClick={openCreate}><Plus className="h-4 w-4" /> Add {section.label.slice(0, -1).toLowerCase()}</Button>
+            )}
+          </>
+        }
       />
+
+      {!access.can('settings.write') && (
+        <HrPermissionNotice className="mb-4" message={`${describeMissingPermission('settings.write')} You can review the HR configuration but cannot change it.`} />
+      )}
 
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         {[
@@ -329,7 +454,9 @@ export default function Settings() {
               </div>
               <div className="flex gap-2">
                 <Button variant="secondary" size="sm" onClick={exportSection}><Download className="h-3.5 w-3.5" /> Export</Button>
-                <Button size="sm" onClick={openCreate}><Plus className="h-3.5 w-3.5" /> Add</Button>
+                {access.can('settings.write') && (
+                  <Button size="sm" onClick={openCreate}><Plus className="h-3.5 w-3.5" /> Add</Button>
+                )}
               </div>
             </div>
             <div className="relative mt-4 max-w-sm">
@@ -355,8 +482,14 @@ export default function Settings() {
                     ))}
                     <td className="table-cell text-right">
                       <div className="flex justify-end gap-1">
-                        <button onClick={() => openEdit(row)} className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-brand-600 dark:hover:bg-white/[0.06] dark:hover:text-brand-400" aria-label={`Edit ${row[section.fields[0].key]}`}><Pencil className="h-3.5 w-3.5" /></button>
-                        <button onClick={() => setDeleteItem(row)} className="rounded-lg p-2 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10 dark:hover:text-rose-400" aria-label={`Delete ${row[section.fields[0].key]}`}><Trash2 className="h-3.5 w-3.5" /></button>
+                        {access.can('settings.write') ? (
+                          <>
+                            <button onClick={() => openEdit(row)} className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-brand-600 dark:hover:bg-white/[0.06] dark:hover:text-brand-400" aria-label={`Edit ${row[section.fields[0].key]}`}><Pencil className="h-3.5 w-3.5" /></button>
+                            <button onClick={() => setDeleteItem(row)} className="rounded-lg p-2 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10 dark:hover:text-rose-400" aria-label={`Delete ${row[section.fields[0].key]}`}><Trash2 className="h-3.5 w-3.5" /></button>
+                          </>
+                        ) : (
+                          <span className="text-[11px] text-slate-400" title={describeMissingPermission('settings.write')}>Read only</span>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -368,7 +501,7 @@ export default function Settings() {
                 <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-400 dark:bg-white/[0.05]"><Settings2 className="h-5 w-5" /></div>
                 <p className="text-sm font-semibold">{search ? 'No matching configuration' : `No ${section.label.toLowerCase()} configured`}</p>
                 <p className="mt-1 max-w-sm text-xs text-slate-400">{search ? 'Try a broader search term.' : 'Add your first entry to make it available across the workspace.'}</p>
-                <Button size="sm" className="mt-4" onClick={search ? () => setSearch('') : openCreate}>{search ? 'Clear search' : <><Plus className="h-3.5 w-3.5" /> Add entry</>}</Button>
+                <Button size="sm" className="mt-4" onClick={search ? () => setSearch('') : openCreate} disabled={!search && !access.can('settings.write')}>{search ? 'Clear search' : <><Plus className="h-3.5 w-3.5" /> Add entry</>}</Button>
               </div>
             )}
           </div>

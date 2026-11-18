@@ -298,6 +298,7 @@ export const Header: React.FC<HeaderProps> = ({
             else if (role === 'marketing') navigate('/marketing/queries');
             else if (role === 'service') navigate('/service/queries');
             else if (role === 'finance') navigate('/finance/queries');
+            else if (role === 'hr') navigate('/hr/queries');
             else navigate('/admin/queries');
           }}
           type="button"
@@ -496,6 +497,7 @@ export const Header: React.FC<HeaderProps> = ({
                     else if (role === 'marketing') navigate('/marketing/queries');
                     else if (role === 'service') navigate('/service/queries');
                     else if (role === 'finance') navigate('/finance/queries');
+                    else if (role === 'hr') navigate('/hr/queries');
                     else navigate('/admin/queries');
                   }}
                   className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-colors cursor-pointer"

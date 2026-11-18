@@ -32,6 +32,7 @@ import {
 } from 'recharts'
 import { useDemoData } from '../context/DemoDataContext'
 import { useToast } from '../context/ToastContext'
+import { runMarketingApiAction, marketingApi } from '../api-actions'
 import type {
   CelebrityPayment,
   Expense,
@@ -106,7 +107,7 @@ type ClaimFormValues = {
 }
 
 export function ExpensesPaymentsPage({ tab }: { tab: string }) {
-  const { data, update, addNotification } = useDemoData()
+  const { data, update, addNotification, dataSource, refreshFromApi } = useDemoData()
   const { pushToast } = useToast()
   const [searchParams, setSearchParams] = useSearchParams()
   const chartAnim = useChartAnimation()
@@ -181,7 +182,7 @@ export function ExpensesPaymentsPage({ tab }: { tab: string }) {
   const influencerName = (influencerId: string) =>
     data.influencers.find((influencer) => influencer.id === influencerId)?.name ?? influencerId
 
-  const setExpenseStatus = (expense: Expense, status: ExpenseStatus, note?: string) => {
+  const setExpenseStatus = async (expense: Expense, status: ExpenseStatus, note?: string) => {
     const allowed: Record<ExpenseStatus, ExpenseStatus[]> = {
       Draft: ['Pending Approval'],
       'Pending Approval': ['Draft', 'Approved', 'Rejected'],
@@ -197,6 +198,51 @@ export function ExpensesPaymentsPage({ tab }: { tab: string }) {
       })
       return
     }
+
+    if (dataSource === 'api') {
+      const ui = { dataSource, refreshFromApi, pushToast }
+      if (status === 'Pending Approval' && expense.status === 'Draft') {
+        await runMarketingApiAction(ui, {
+          action: () => marketingApi.submitExpense(expense.id),
+          successTitle: 'Expense submitted for approval',
+          successDescription: `${expense.ref} · ${formatINR(expense.amount)} · ${expense.purpose}`,
+          errorTitle: 'Could not submit expense',
+          refresh: true,
+        })
+        return
+      }
+      if (status === 'Approved' && expense.status === 'Pending Approval') {
+        await runMarketingApiAction(ui, {
+          action: () => marketingApi.decideExpense(expense.id, { decision: 'Approved', comments: note?.trim() }),
+          successTitle: 'Expense approved',
+          successDescription: `${expense.ref} · ${formatINR(expense.amount)} · ${expense.purpose}`,
+          errorTitle: 'Could not approve expense',
+          refresh: true,
+        })
+        return
+      }
+      if (status === 'Rejected' && expense.status === 'Pending Approval') {
+        await runMarketingApiAction(ui, {
+          action: () => marketingApi.decideExpense(expense.id, { decision: 'Rejected', comments: note?.trim() }),
+          successTitle: 'Expense rejected',
+          successDescription: `${expense.ref} · ${formatINR(expense.amount)} · ${expense.purpose}`,
+          errorTitle: 'Could not reject expense',
+          refresh: true,
+        })
+        return
+      }
+      if (status === 'Paid' && expense.status === 'Approved') {
+        await runMarketingApiAction(ui, {
+          action: () => marketingApi.reimburseExpense(expense.id, note?.trim()),
+          successTitle: 'Expense reimbursed',
+          successDescription: `${expense.ref} · ${formatINR(expense.amount)} · ${expense.purpose}`,
+          errorTitle: 'Could not reimburse expense',
+          refresh: true,
+        })
+        return
+      }
+    }
+
     const reviewerComment =
       status === 'Approved'
         ? note?.trim() || 'Approved in local demo review. Payment is still outstanding.'
@@ -211,7 +257,7 @@ export function ExpensesPaymentsPage({ tab }: { tab: string }) {
     addNotification({
       title:
         status === 'Pending Approval'
-          ? 'Expense submitted for approval'
+          ? 'Expense submitted for approval (demo)'
           : status === 'Paid'
             ? 'Expense marked paid in demo'
             : `Expense ${status.toLowerCase()} in demo`,
@@ -236,8 +282,52 @@ export function ExpensesPaymentsPage({ tab }: { tab: string }) {
     })
   }
 
-  const saveExpense = (values: ExpenseFormValues) => {
+  const saveExpense = async (values: ExpenseFormValues) => {
     const amount = Math.round(Number(values.amount) || 0)
+
+    if (dataSource === 'api') {
+      if (editingExpense) {
+        await runMarketingApiAction({ dataSource, refreshFromApi, pushToast }, {
+          action: () => marketingApi.updateExpense(editingExpense.id, {
+            category: values.category,
+            campaignId: values.campaignId || undefined,
+            vendorName: values.vendorId || undefined,
+            amount,
+            expenseDate: values.date,
+            description: values.purpose.trim(),
+            documentPath: values.receiptName.trim() || undefined,
+          }),
+          successTitle: 'Expense updated',
+          successDescription: `${editingExpense.ref} · ${formatINR(amount)} · ${values.purpose.trim()}`,
+          errorTitle: 'Could not update expense',
+          refresh: true,
+        })
+        setEditingExpenseId(null)
+        setExpenseOpen(false)
+        return
+      }
+      await runMarketingApiAction({ dataSource, refreshFromApi, pushToast }, {
+        action: () => marketingApi.createExpense({
+          source: 'other',
+          title: values.purpose.trim(),
+          campaignId: values.campaignId || undefined,
+          vendorName: values.vendorId || undefined,
+          category: values.category,
+          amount,
+          expenseDate: values.date,
+          description: values.purpose.trim(),
+          documentPath: values.receiptName.trim() || undefined,
+          submit: false,
+        }),
+        successTitle: 'Expense draft created',
+        successDescription: `${values.purpose.trim()} · ${formatINR(amount)}`,
+        errorTitle: 'Could not create expense',
+        refresh: true,
+      })
+      setExpenseOpen(false)
+      return
+    }
+
     if (editingExpense) {
       update('expenses', (current) =>
         current.map((item) =>
@@ -258,7 +348,7 @@ export function ExpensesPaymentsPage({ tab }: { tab: string }) {
         ),
       )
       pushToast({
-        title: 'Expense draft updated',
+        title: 'Expense draft updated (demo)',
         description: `${editingExpense.ref} saved locally. Submit it when ready for demo approval.`,
         tone: 'success',
       })
@@ -290,7 +380,7 @@ export function ExpensesPaymentsPage({ tab }: { tab: string }) {
       href: '/marketing/expenses/campaign-expenses',
     })
     pushToast({
-      title: 'Expense draft saved locally',
+      title: 'Expense draft saved locally (demo)',
       description: `${expense.ref} is a demo draft. Submit it locally or review the status workflow — no finance system was contacted.`,
       tone: 'success',
     })

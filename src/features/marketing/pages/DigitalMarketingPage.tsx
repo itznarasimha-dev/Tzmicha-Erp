@@ -32,6 +32,7 @@ import {
 } from 'recharts'
 import { useDemoData } from '../context/DemoDataContext'
 import { useToast } from '../context/ToastContext'
+import { runMarketingApiAction, marketingApi } from '../api-actions'
 import type {
   Campaign,
   CampaignChannel,
@@ -137,7 +138,7 @@ type ContentFormValues = {
 }
 
 export function DigitalMarketingPage({ tab }: { tab: string }) {
-  const { data, update, addNotification } = useDemoData()
+  const { data, update, addNotification, dataSource, refreshFromApi } = useDemoData()
   const { pushToast } = useToast()
   const [searchParams, setSearchParams] = useSearchParams()
   const chartAnim = useChartAnimation()
@@ -192,16 +193,51 @@ export function DigitalMarketingPage({ tab }: { tab: string }) {
     setSearchParams(next, { replace: true })
   }
 
-  const updateCampaignStatus = (campaign: Campaign, status: CampaignStatus) => {
+  const updateCampaignStatus = async (campaign: Campaign, status: CampaignStatus) => {
+    if (dataSource === 'api') {
+      await runMarketingApiAction({ dataSource, refreshFromApi, pushToast }, {
+        action: () => marketingApi.updateCampaign(campaign.id, { status }),
+        successTitle: 'Campaign status updated',
+        successDescription: `${campaign.name} is now ${status}.`,
+        errorTitle: 'Could not update campaign status',
+        refresh: true,
+      })
+      return
+    }
     update('campaigns', (current) => current.map((item) => (item.id === campaign.id ? { ...item, status } : item)))
     pushToast({
-      title: 'Campaign status updated',
-      description: `${campaign.name} is now ${status}. This only changes local demo data.`,
+      title: 'Campaign status updated (demo)',
+      description: `${campaign.name} is now ${status}. Demo data is not saved to the database.`,
       tone: 'success',
     })
   }
 
-  const createCampaign = (values: CampaignFormValues) => {
+  const createCampaign = async (values: CampaignFormValues) => {
+    if (dataSource === 'api') {
+      await runMarketingApiAction({ dataSource, refreshFromApi, pushToast }, {
+        action: () => marketingApi.createCampaign({
+          name: values.name.trim(),
+          objective: values.objective.trim(),
+          channel: values.channel,
+          audience: values.audience.trim(),
+          product: values.product.trim() || undefined,
+          startDate: values.startDate,
+          endDate: values.endDate,
+          budget: Math.round(Number(values.budget) || 0),
+          spend: 0,
+          status: values.status,
+          ownerUserId: undefined,
+        }),
+        successTitle: 'Campaign added',
+        successDescription: `${values.name.trim()} is now in the ERP with zero spend.`,
+        errorTitle: 'Could not create campaign',
+        refresh: true,
+      })
+      setCampaignOpen(false)
+      clearParam('action')
+      return
+    }
+
     const campaign: Campaign = {
       id: uid('CMP'),
       name: values.name.trim(),
@@ -226,8 +262,8 @@ export function DigitalMarketingPage({ tab }: { tab: string }) {
       href: '/marketing/digital/campaigns',
     })
     pushToast({
-      title: 'Campaign added',
-      description: `${campaign.name} is now in the local demo workspace with zero spend.`,
+      title: 'Campaign added (demo)',
+      description: `${campaign.name} is now in the local demo workspace with zero spend. Demo data is not saved to the database.`,
       tone: 'success',
     })
     setCampaignOpen(false)

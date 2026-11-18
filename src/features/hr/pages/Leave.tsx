@@ -1,14 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  ArrowUpRight, CalendarDays, CalendarRange, Check, ChevronLeft, ChevronRight, Download,
+  AlertTriangle, ArrowUpRight, CalendarDays, CalendarRange, Check, ChevronLeft, ChevronRight, Download,
   Pencil, Plus, Settings2, Users, X,
 } from 'lucide-react'
 import { useStore } from '../store'
+import { useHolidays, useLeaveBalances, useLeaves, useLeaveTypes } from '../useHrData'
+import { describeMissingPermission, useHrAccess } from '../lib/access'
 import type { LeaveRequest, LeaveType, Priority } from '../types'
 import {
   addDays, diffDays, downloadCSV, fmtDate, fmtDateShort, fullName, sum, todayISO, toISO,
 } from '../lib/utils'
+import { runHrApiAction, hrActions } from '../api-actions'
+import { HrPermissionNotice } from '../components/hr-guard'
 import {
   Avatar, Badge, Button, Card, Drawer, EmptyState, Field, IconButton, Input, Modal, PageHeader,
   Pagination, ProgressBar, SearchInput, Select, StatCard, StatusBadge, Tabs, Textarea, Toggle,
@@ -20,8 +24,11 @@ type Decision = 'Approved' | 'Rejected'
 const priorityTone = (p: Priority) => (p === 'Urgent' || p === 'High' ? 'red' : p === 'Medium' ? 'amber' : 'slate')
 
 export default function Leave() {
-  const { db, update, logActivity, toast } = useStore()
+  const { db, update, logActivity, toast, dataSource, refreshFromApi } = useStore()
+  const access = useHrAccess()
   const navigate = useNavigate()
+  const [submitting, setSubmitting] = useState(false)
+  const [deciding, setDeciding] = useState(false)
   const [tab, setTab] = useState<TabKey>('requests')
   const [status, setStatus] = useState('All')
   const [type, setType] = useState('All')
@@ -31,6 +38,7 @@ export default function Leave() {
   const [pageSize, setPageSize] = useState(8)
   const [detail, setDetail] = useState<LeaveRequest | null>(null)
   const [decision, setDecision] = useState<{ request: LeaveRequest; action: Decision } | null>(null)
+  const [cancelling, setCancelling] = useState<LeaveRequest | null>(null)
   const [remarks, setRemarks] = useState('')
   const [newOpen, setNewOpen] = useState(false)
   const [policyOpen, setPolicyOpen] = useState<LeaveType | null>(null)
@@ -40,39 +48,65 @@ export default function Leave() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [policyForm, setPolicyForm] = useState({ allocation: 0, paid: true, carryForward: false, requiresApproval: true, description: '' })
 
-  useEffect(() => { setPage(1) }, [status, type, department, search, pageSize])
-  useEffect(() => {
-    if (policyOpen) setPolicyForm({ allocation: policyOpen.allocation, paid: policyOpen.paid, carryForward: policyOpen.carryForward, requiresApproval: policyOpen.requiresApproval, description: policyOpen.description })
-  }, [policyOpen])
+  const leavesQuery = useLeaves({
+    employeeId: undefined,
+    leaveTypeId: undefined,
+    status: status === 'All' ? undefined : status as any,
+    from: undefined,
+    to: undefined,
+    page,
+    pageSize,
+  })
+  const leaveTypesQuery = useLeaveTypes()
+  const balancesQuery = useLeaveBalances({ year: new Date().getFullYear() })
+  const holidaysQuery = useHolidays()
+
+  const useApi = dataSource === 'api'
+  const leavesData = useApi ? leavesQuery.data : null
+  const leaveTypesData = useApi ? leaveTypesQuery.data : null
+  const balancesData = useApi ? (balancesQuery.data as any as Array<{ employeeId: string; leaveType: string; year: number; allocated: number; used: number; pending: number; available: number }> | null) : null
+  const holidaysData = useApi ? (holidaysQuery.data as any as Array<{ id: string; name: string; date: string; type: string }> | null) : null
 
   const empMap = useMemo(() => new Map(db.employees.map((e) => [e.id, e])), [db.employees])
-  const pending = db.leaves.filter((l) => l.status === 'Pending').length
-  const approved = db.leaves.filter((l) => l.status === 'Approved')
+  const allLeaves = (useApi ? (leavesData?.data ?? []) : db.leaves) as LeaveRequest[]
+  const pending = allLeaves.filter((l) => l.status === 'Pending').length
+  const approved = allLeaves.filter((l) => l.status === 'Approved')
   const onLeaveToday = db.attendance.filter((a) => a.date === todayISO() && a.status === 'On Leave').length
   const totalApprovedDays = approved.reduce((a, l) => a + l.days, 0)
   const utilization = Math.round((totalApprovedDays / Math.max(1, db.employees.filter((e) => e.status !== 'Terminated').length * 20)) * 100)
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return db.leaves
+    return allLeaves
       .filter((l) => {
         const emp = empMap.get(l.employeeId)
         const matchSearch = !q || (emp && (fullName(emp).toLowerCase().includes(q) || emp.id.toLowerCase().includes(q))) || l.leaveType.toLowerCase().includes(q) || l.reason.toLowerCase().includes(q)
         return matchSearch && (status === 'All' || l.status === status) && (type === 'All' || l.leaveType === type) && (department === 'All' || emp?.department === department)
       })
       .sort((a, b) => b.appliedOn.localeCompare(a.appliedOn))
-  }, [db.leaves, empMap, search, status, type, department])
+  }, [allLeaves, empMap, search, status, type, department])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
-  const currentPage = Math.min(page, totalPages)
-  const from = (currentPage - 1) * pageSize
-  const rows = filtered.slice(from, from + pageSize)
+  const meta = (leavesData as any)?.meta
+  const totalItems = useApi ? Number(meta?.total ?? filtered.length) : filtered.length
+  const totalPages = useApi ? Math.max(1, Number(meta?.totalPages ?? 1)) : Math.max(1, Math.ceil(filtered.length / pageSize))
+  const currentPage = useApi ? Number(meta?.page ?? page) : Math.min(page, totalPages)
+  const from = useApi ? (filtered.length ? (currentPage - 1) * (meta?.pageSize ?? pageSize) : 0) : (Math.min(page, totalPages) - 1) * pageSize
+  const rows = useApi && !search && type === 'All' && department === 'All' ? filtered : filtered.slice((useApi ? 0 : from), (useApi ? filtered.length : from + pageSize))
 
-  const typeUsage = db.settings.leaveTypes.map((t) => ({
+  const typeUsage = (leaveTypesData ?? db.settings.leaveTypes).map((t) => ({
     ...t,
     used: approved.filter((l) => l.leaveType === t.name).reduce((a, l) => a + l.days, 0),
-    pending: db.leaves.filter((l) => l.leaveType === t.name && l.status === 'Pending').reduce((a, l) => a + l.days, 0),
+    pending: allLeaves.filter((l) => l.leaveType === t.name && l.status === 'Pending').reduce((a, l) => a + l.days, 0),
   }))
+
+  useEffect(() => { setPage(1) }, [status, type, department, search, pageSize])
+
+  const apiLoading = leavesQuery.loading || leaveTypesQuery.loading
+  const apiError = leavesQuery.error || leaveTypesQuery.error
+
+  useEffect(() => {
+    if (policyOpen) setPolicyForm({ allocation: policyOpen.allocation, paid: policyOpen.paid, carryForward: policyOpen.carryForward, requiresApproval: policyOpen.requiresApproval, description: policyOpen.description })
+  }, [policyOpen])
 
   const openNew = () => {
     setForm({ employeeId: db.employees[0]?.id || '', leaveType: db.settings.leaveTypes[0]?.name || 'Annual Leave', from: addDays(todayISO(), 3), to: addDays(todayISO(), 4), reason: '', priority: 'Medium', halfDay: false })
@@ -80,7 +114,7 @@ export default function Leave() {
     setNewOpen(true)
   }
 
-  const submitRequest = () => {
+  const submitRequest = async () => {
     const next: Record<string, string> = {}
     if (!form.employeeId) next.employeeId = 'Select an employee'
     if (!form.from) next.from = 'Start date is required'
@@ -88,8 +122,29 @@ export default function Leave() {
     if (form.from && form.to && form.to < form.from) next.to = 'End date must be on or after the start date'
     if (!form.reason.trim()) next.reason = 'Provide a reason for the leave request'
     setErrors(next)
-    if (Object.keys(next).length) return
+    if (Object.keys(next).length || submitting) return
     const days = form.halfDay ? 0.5 : diffDays(form.from, form.to) + 1
+    const emp = empMap.get(form.employeeId)
+
+    if (dataSource === 'api') {
+      const leaveType = (db.settings.leaveTypes as Array<{ id?: string; name: string }>).find((t) => t.name === form.leaveType)
+      const leaveTypeId = (leaveType as any)?.id || (leaveType as any)?.leaveTypeId
+      if (!leaveTypeId) {
+        toast('Leave type not synced', 'error', 'Cannot submit to API because the selected leave type has no server ID. Refresh HR data and try again.')
+        return
+      }
+      setSubmitting(true)
+      const res = await runHrApiAction({ dataSource, refreshFromApi, toast }, {
+        action: () => hrActions.applyLeave({ employeeId: form.employeeId, leaveTypeId, from: form.from, to: form.to, reason: form.reason.trim() }),
+        successMessage: 'Leave request submitted',
+        successDescription: `${days} day${days === 1 ? '' : 's'} requested for ${emp ? fullName(emp) : 'employee'}.`,
+        errorTitle: 'Leave request failed',
+      })
+      setSubmitting(false)
+      if (res.ok) { setNewOpen(false); leavesQuery.refetch() }
+      return
+    }
+
     const request: LeaveRequest = {
       id: `LV-${String(3000 + db.leaves.length)}`,
       employeeId: form.employeeId,
@@ -106,9 +161,8 @@ export default function Leave() {
       halfDay: form.halfDay,
     }
     update((d) => ({ ...d, leaves: [request, ...d.leaves] }))
-    const emp = empMap.get(form.employeeId)
-    logActivity('leave', 'Leave request submitted', `${emp ? fullName(emp) : form.employeeId} · ${form.leaveType} · ${days} day(s)`)
-    toast('Leave request submitted', 'success', `${days} day${days === 1 ? '' : 's'} requested for ${emp ? fullName(emp) : 'employee'}.`)
+    logActivity('leave', 'Leave request submitted', `${emp ? fullName(emp) : form.employeeId} - ${form.leaveType} - ${days} day(s)`)
+    toast('Leave request submitted (demo)', 'success', `${days} day${days === 1 ? '' : 's'} requested for ${emp ? fullName(emp) : 'employee'}. Demo data is not saved to the database.`)
     setNewOpen(false)
   }
 
@@ -117,21 +171,64 @@ export default function Leave() {
     setRemarks('')
   }
 
-  const applyDecision = () => {
-    if (!decision) return
+  const applyDecision = async () => {
+    if (!decision || deciding) return
     if (decision.action === 'Rejected' && !remarks.trim()) {
       toast('Reviewer remarks required', 'error', 'Please add a comment explaining the rejection.')
       return
     }
     const { request, action } = decision
+    const emp = empMap.get(request.employeeId)
+
+    if (dataSource === 'api') {
+      setDeciding(true)
+      const res = await runHrApiAction({ dataSource, refreshFromApi, toast }, {
+        action: () => action === 'Approved'
+          ? hrActions.approveLeave(request.id, remarks.trim() || undefined)
+          : hrActions.rejectLeave(request.id, remarks.trim()),
+        successMessage: `Leave ${action.toLowerCase()}`,
+        successDescription: `${emp ? fullName(emp) : 'Employee'}'s request has been updated.`,
+        errorTitle: `Could not ${action.toLowerCase()} leave`,
+      })
+      setDeciding(false)
+      if (res.ok) { setDecision(null); setDetail(null); leavesQuery.refetch() }
+      return
+    }
+
     update((d) => ({
       ...d,
-      leaves: d.leaves.map((l) => (l.id === request.id ? { ...l, status: action, reviewer: 'Amara Okafor', remarks: remarks.trim() || 'Approved — coverage confirmed with the reporting manager.' } : l)),
+      leaves: d.leaves.map((l) => (l.id === request.id ? { ...l, status: action, reviewer: 'Amara Okafor', remarks: remarks.trim() || 'Approved - coverage confirmed with the reporting manager.' } : l)),
     }))
-    const emp = empMap.get(request.employeeId)
-    logActivity('leave', `Leave request ${action.toLowerCase()}`, `${emp ? fullName(emp) : request.employeeId} · ${request.leaveType} · ${request.days} day(s)`)
-    toast(`Leave ${action.toLowerCase()}`, action === 'Approved' ? 'success' : 'info', `${emp ? fullName(emp) : 'Employee'}'s request has been updated.`)
+    logActivity('leave', `Leave request ${action.toLowerCase()}`, `${emp ? fullName(emp) : request.employeeId} - ${request.leaveType} - ${request.days} day(s)`)
+    toast(`Leave ${action.toLowerCase()} (demo)`, action === 'Approved' ? 'success' : 'info', `${emp ? fullName(emp) : 'Employee'}'s request updated in demo data only.`)
     setDecision(null)
+    setDetail(null)
+  }
+
+  /**
+   * Cancel a pending leave request. The backend allows the owner of the
+   * request (or a holder of `hr.leave.approve`) to cancel it.
+   */
+  const cancelLeave = async () => {
+    if (!cancelling || cancelling.status !== 'Pending') return
+    const target = cancelling
+    setCancelling(null)
+    if (dataSource === 'api') {
+      const res = await runHrApiAction({ dataSource, refreshFromApi, toast }, {
+        action: () => hrActions.cancelLeave(target.id),
+        successMessage: 'Leave request cancelled',
+        successDescription: `${empMap.get(target.employeeId) ? fullName(empMap.get(target.employeeId)!) : 'Employee'} · ${target.leaveType}`,
+        errorTitle: 'Could not cancel leave request',
+      })
+      if (res.ok) { setDetail(null); void leavesQuery.refetch() }
+      return
+    }
+    update((d) => ({
+      ...d,
+      leaves: d.leaves.map((l) => (l.id === target.id ? { ...l, status: 'Cancelled' as const, remarks: 'Cancelled by the requester.' } : l)),
+    }))
+    logActivity('leave', 'Leave request cancelled', `${empMap.get(target.employeeId) ? fullName(empMap.get(target.employeeId)!) : target.employeeId} - ${target.leaveType}`)
+    toast('Leave request cancelled (demo)', 'info', 'Cancelled in demo data only.')
     setDetail(null)
   }
 
@@ -176,14 +273,63 @@ export default function Leave() {
     setCalMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
   }
 
+  /** Holidays shown on the leave calendar (API data when connected). */
+  const holidayList = useMemo(() => {
+    if (useApi) return holidaysData ?? []
+    return (db.settings.holidays ?? []) as Array<{ id: string; name: string; date: string; type: string }>
+  }, [useApi, holidaysData, db.settings.holidays])
+
+  const holidayByDate = useMemo(() => {
+    const map: Record<string, string> = {}
+    holidayList.forEach((h) => { map[h.date] = h.name })
+    return map
+  }, [holidayList])
+
   return (
     <div>
-      <PageHeader
+      {useApi && apiLoading && (
+        <div className="text-center py-12">
+          <div className="flex flex-col items-center gap-3 animate-pulse">
+            <div className="w-12 h-12 rounded-full border-4 border-brand-500 border-t-transparent" />
+            <p className="text-sm text-slate-500 dark:text-slate-400">Loading leave data…</p>
+          </div>
+        </div>
+      )}
+      {useApi && apiError && (
+        <div className="text-center py-12">
+          <div className="rounded-xl bg-rose-50 border border-rose-200 px-6 py-8 max-w-md mx-auto dark:bg-rose-500/10 dark:border-rose-500/20">
+            <AlertTriangle className="h-6 w-6 text-rose-500 mx-auto mb-3" />
+            <h3 className="text-lg font-semibold text-rose-900 dark:text-rose-300">Unable to load leave data</h3>
+            <p className="mt-2 text-sm text-rose-700 dark:text-rose-400">{apiError}</p>
+            <button
+              onClick={() => { leavesQuery.refetch(); leaveTypesQuery.refetch() }}
+              className="mt-4 px-4 py-2 text-sm font-semibold text-rose-600 hover:text-rose-700 dark:text-rose-300"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
+      {(!useApi || (!apiLoading && !apiError)) && (
+        <>
+        <PageHeader
         title="Leave Management"
         subtitle="Review requests, track balances and keep an eye on upcoming absences across the organization."
         crumbs={['People', 'Leave Management']}
-        actions={<><Button variant="secondary" onClick={exportLeaves}><Download className="h-4 w-4" /> Export</Button><Button onClick={openNew}><Plus className="h-4 w-4" /> New request</Button></>}
+        actions={
+          <>
+            {useApi && <Button variant="secondary" onClick={() => { void leavesQuery.refetch(); void leaveTypesQuery.refetch() }} disabled={leavesQuery.loading || leaveTypesQuery.loading}>Refresh</Button>}
+            <Button variant="secondary" onClick={exportLeaves}><Download className="h-4 w-4" /> Export</Button>
+            {access.can('leave.apply') && (
+              <Button onClick={openNew}><Plus className="h-4 w-4" /> New request</Button>
+            )}
+          </>
+        }
       />
+
+      {!access.can('leave.approve') && (
+        <HrPermissionNotice className="mb-4" message={`${describeMissingPermission('leave.approve')} You can submit and track leave requests but cannot decide them.`} />
+      )}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard index={0} label="Pending requests" value={pending} icon={CalendarDays} tone="amber" hint="awaiting review" />
@@ -233,10 +379,17 @@ export default function Leave() {
                         <td className="table-cell"><p className="max-w-[170px] truncate text-[11.5px]" title={l.reason}>{l.reason}</p></td>
                         <td className="table-cell"><StatusBadge status={l.status} /></td>
                         <td className="table-cell" onClick={(e) => e.stopPropagation()}>
-                          {l.status === 'Pending' ? (
+                          {l.status === 'Pending' && access.can('leave.approve') ? (
                             <div className="flex justify-end gap-1">
                               <button onClick={() => openDecision(l, 'Approved')} className="flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400"><Check className="h-3 w-3" /> Approve</button>
                               <button onClick={() => openDecision(l, 'Rejected')} className="flex items-center gap-1 rounded-lg bg-rose-50 px-2.5 py-1.5 text-[11px] font-semibold text-rose-700 hover:bg-rose-100 dark:bg-rose-500/10 dark:text-rose-400"><X className="h-3 w-3" /> Reject</button>
+                            </div>
+                          ) : l.status === 'Pending' ? (
+                            <div className="flex items-center justify-end gap-1">
+                              <span className="text-[11px] text-slate-400" title={describeMissingPermission('leave.approve')}>Awaiting an authorised approver</span>
+                              {(access.isSelf(l.employeeId) || access.can('leave.cancel')) && (
+                                <button onClick={() => setCancelling(l)} className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-200 dark:bg-white/[0.07] dark:text-slate-300">Cancel</button>
+                              )}
                             </div>
                           ) : <div className="text-right"><StatusBadge status={l.status} /><p className="mt-1 text-[10px] text-slate-400">{l.reviewer}</p></div>}
                         </td>
@@ -245,14 +398,38 @@ export default function Leave() {
                   })}
                 </tbody>
               </table>
-              {filtered.length === 0 && <EmptyState icon={CalendarDays} title="No leave requests" description="No requests match the current filters." action={<Button onClick={openNew}><Plus className="h-4 w-4" /> Create request</Button>} />}
+              {filtered.length === 0 && <EmptyState icon={CalendarDays} title="No leave requests" description="No requests match the current filters." action={access.can('leave.apply') ? <Button onClick={openNew}><Plus className="h-4 w-4" /> Create request</Button> : undefined} />}
             </div>
-            {filtered.length > 0 && <Pagination page={currentPage} totalPages={totalPages} total={filtered.length} from={from} to={Math.min(from + pageSize, filtered.length)} onPage={setPage} pageSize={pageSize} onPageSize={setPageSize} label="requests" />}
+            {totalItems > 0 && <Pagination page={currentPage} totalPages={totalPages} total={totalItems} from={filtered.length ? from + 1 : 0} to={filtered.length ? (from + rows.length) : 0} onPage={setPage} pageSize={meta?.pageSize ?? pageSize} onPageSize={setPageSize} label="requests" />}
           </>
         )}
 
         {tab === 'balances' && (
           <div className="p-4 sm:p-5">
+            {useApi && balancesData && (
+              <div className="mb-4 overflow-x-auto rounded-xl border border-slate-100 dark:border-white/[0.06]">
+                <table className="w-full min-w-[720px]">
+                  <thead className="bg-slate-50 dark:bg-white/[0.03]">
+                    <tr><th className="table-head">Employee</th><th className="table-head">Leave type</th><th className="table-head text-right">Allocated</th><th className="table-head text-right">Used</th><th className="table-head text-right">Pending</th><th className="table-head text-right">Available</th></tr>
+                  </thead>
+                  <tbody>
+                    {balancesData.map((b) => (
+                      <tr key={`${b.employeeId}-${b.leaveType}-${b.year}`} className="table-row">
+                        <td className="table-cell">{empMap.get(b.employeeId) ? fullName(empMap.get(b.employeeId)!) : b.employeeId}</td>
+                        <td className="table-cell">{b.leaveType}</td>
+                        <td className="table-cell text-right tabular">{b.allocated}</td>
+                        <td className="table-cell text-right tabular">{b.used}</td>
+                        <td className="table-cell text-right tabular">{b.pending}</td>
+                        <td className="table-cell text-right tabular font-semibold">{b.available}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {balancesData.length === 0 && (
+                  <p className="px-4 py-8 text-center text-[11px] text-slate-400">No leave balances were returned for your scope.</p>
+                )}
+              </div>
+            )}
             <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-3">
               {typeUsage.map((t) => (
                 <div key={t.id} className="rounded-xl border border-slate-100 p-3.5 dark:border-white/[0.06]">
@@ -283,7 +460,7 @@ export default function Leave() {
                           return <td key={t.id} className="table-cell text-center"><span className={`tabular text-[12px] font-semibold ${remaining <= 2 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-700 dark:text-slate-200'}`}>{remaining}</span><span className="text-[10px] text-slate-400"> / {t.allocation}</span></td>
                         })}
                         <td className="table-cell tabular font-semibold">{used}d</td>
-                        <td className="table-cell text-right"><Button variant="ghost" size="sm" onClick={() => navigate(`/employees/${e.id}`)}>Profile <ArrowUpRight className="h-3 w-3" /></Button></td>
+                        <td className="table-cell text-right"><Button variant="ghost" size="sm" onClick={() => navigate(`/hr/employees/${e.id}`)}>Profile <ArrowUpRight className="h-3 w-3" /></Button></td>
                       </tr>
                     )
                   })}
@@ -306,8 +483,18 @@ export default function Leave() {
               <div className="flex items-center gap-3 text-[10px] text-slate-500 dark:text-slate-400">
                 <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Approved</span>
                 <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full border border-dashed border-amber-500 bg-amber-100" /> Pending</span>
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-rose-400" /> Holiday</span>
               </div>
             </div>
+            {holidayList.length > 0 && (
+              <div className="mb-4 flex flex-wrap gap-1.5">
+                {holidayList.map((h) => (
+                  <Badge key={h.id} tone={h.type === 'Public' ? 'red' : h.type === 'Company' ? 'violet' : 'slate'}>
+                    {h.name} · {fmtDateShort(h.date)}
+                  </Badge>
+                ))}
+              </div>
+            )}
             <div className="grid grid-cols-7 gap-1.5">
               {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => <div key={d} className="pb-1 text-center text-[10px] font-bold uppercase tracking-wider text-slate-400">{d}</div>)}
               {calendar.map((cell, i) => {
@@ -317,6 +504,11 @@ export default function Leave() {
                   <div key={cell.iso} className={`min-h-[104px] rounded-xl border p-1.5 ${isToday ? 'border-brand-300 bg-brand-50/40 dark:border-brand-500/40 dark:bg-brand-500/[0.06]' : 'border-slate-100 bg-white dark:border-white/[0.06] dark:bg-white/[0.02]'}`}>
                     <span className={`flex h-5 w-5 items-center justify-center rounded-md text-[10px] font-semibold ${isToday ? 'bg-brand-600 text-white' : 'text-slate-500 dark:text-slate-400'}`}>{cell.day}</span>
                     <div className="mt-1 space-y-1">
+                      {holidayByDate[cell.iso] && (
+                        <p className="block w-full truncate rounded bg-rose-50 px-1 py-0.5 text-left text-[9px] font-medium text-rose-700 dark:bg-rose-500/10 dark:text-rose-400">
+                          {holidayByDate[cell.iso]}
+                        </p>
+                      )}
                       {cell.leaves.slice(0, 3).map((l) => {
                         const emp = empMap.get(l.employeeId)
                         return (
@@ -353,7 +545,7 @@ export default function Leave() {
           <div className="p-4 sm:p-5">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-brand-50/60 p-3.5 dark:bg-brand-500/[0.06]">
               <p className="text-xs text-slate-600 dark:text-slate-300">These policies power leave balances and approval rules across the workspace. Edit thresholds directly or manage them in HR Settings.</p>
-              <Button variant="secondary" size="sm" onClick={() => navigate('/settings')}><Settings2 className="h-3.5 w-3.5" /> HR Settings</Button>
+              <Button variant="secondary" size="sm" onClick={() => navigate('/hr/settings')} disabled={!access.can('settings.write')} title={access.can('settings.write') ? undefined : describeMissingPermission('settings.write')}><Settings2 className="h-3.5 w-3.5" /> HR Settings</Button>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {typeUsage.map((t) => (
@@ -363,7 +555,11 @@ export default function Leave() {
                       <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{t.name}</p>
                       <p className="mt-0.5 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">{t.description}</p>
                     </div>
-                    <button onClick={() => setPolicyOpen(t)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-brand-600 dark:hover:bg-white/10"><Pencil className="h-3.5 w-3.5" /></button>
+                    {access.can('settings.write') ? (
+                      <button onClick={() => setPolicyOpen(t)} title="Edit leave policy" className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-brand-600 dark:hover:bg-white/10"><Pencil className="h-3.5 w-3.5" /></button>
+                    ) : (
+                      <span className="text-[10px] text-slate-400" title={describeMissingPermission('settings.write')}>Read only</span>
+                    )}
                   </div>
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     <Badge tone="brand">{t.allocation} days / year</Badge>
@@ -387,7 +583,11 @@ export default function Leave() {
         onClose={() => setDetail(null)}
         title="Leave request"
         description={detail ? `${detail.id} · submitted ${fmtDate(detail.appliedOn)}` : ''}
-        footer={detail && detail.status === 'Pending' ? <><Button variant="secondary" onClick={() => openDecision(detail, 'Rejected')}><X className="h-4 w-4" /> Reject</Button><Button onClick={() => openDecision(detail, 'Approved')}><Check className="h-4 w-4" /> Approve</Button></> : <Button variant="secondary" onClick={() => setDetail(null)}>Close</Button>}
+        footer={detail && detail.status === 'Pending' && access.can('leave.approve')
+          ? <><Button variant="secondary" onClick={() => openDecision(detail, 'Rejected')}><X className="h-4 w-4" /> Reject</Button><Button onClick={() => openDecision(detail, 'Approved')}><Check className="h-4 w-4" /> Approve</Button></>
+          : detail && detail.status === 'Pending' && (access.isSelf(detail.employeeId) || access.can('leave.cancel'))
+            ? <><Button variant="secondary" onClick={() => setCancelling(detail)}>Cancel request</Button><Button variant="secondary" onClick={() => setDetail(null)}>Close</Button></>
+            : <Button variant="secondary" onClick={() => setDetail(null)}>Close</Button>}
       >
         {detail && (() => {
           const emp = empMap.get(detail.employeeId)
@@ -441,7 +641,7 @@ export default function Leave() {
         onClose={() => setNewOpen(false)}
         title="New leave request"
         description="Record a leave request on behalf of an employee. It enters the approval queue as pending."
-        footer={<><Button variant="secondary" onClick={() => setNewOpen(false)}>Cancel</Button><Button onClick={submitRequest}>Submit request</Button></>}
+        footer={<><Button variant="secondary" onClick={() => setNewOpen(false)} disabled={submitting}>Cancel</Button><Button onClick={submitRequest} loading={submitting} disabled={submitting}>Submit request</Button></>}
       >
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Employee" required error={errors.employeeId} className="sm:col-span-2">
@@ -471,12 +671,25 @@ export default function Leave() {
         onClose={() => setDecision(null)}
         title={decision?.action === 'Approved' ? 'Approve leave request' : 'Reject leave request'}
         description={decision ? `${decision.request.leaveType} · ${decision.request.days} day(s) · ${fmtDate(decision.request.from)}` : ''}
-        footer={<><Button variant="secondary" onClick={() => setDecision(null)}>Cancel</Button><Button variant={decision?.action === 'Approved' ? 'primary' : 'danger'} onClick={applyDecision}>{decision?.action === 'Approved' ? 'Approve request' : 'Reject request'}</Button></>}
+        footer={<><Button variant="secondary" onClick={() => setDecision(null)} disabled={deciding}>Cancel</Button><Button variant={decision?.action === 'Approved' ? 'primary' : 'danger'} onClick={applyDecision} loading={deciding} disabled={deciding}>{decision?.action === 'Approved' ? 'Approve request' : 'Reject request'}</Button></>}
       >
         <Field label={decision?.action === 'Approved' ? 'Reviewer remarks (optional)' : 'Reason for rejection'} required={decision?.action === 'Rejected'}>
           <Textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder={decision?.action === 'Approved' ? 'Approved — coverage and handover confirmed.' : 'Explain the reason for rejecting this leave request…'} />
         </Field>
         <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-[11px] text-slate-500 dark:bg-white/[0.03] dark:text-slate-400">The employee will see this remark in their request history.</p>
+      </Modal>
+
+      <Modal
+        open={!!cancelling}
+        onClose={() => setCancelling(null)}
+        title="Cancel leave request?"
+        description={cancelling ? `${cancelling.leaveType} · ${cancelling.days} day(s) · ${fmtDate(cancelling.from)}` : ''}
+        footer={<><Button variant="secondary" onClick={() => setCancelling(null)}>Keep request</Button><Button variant="danger" onClick={cancelLeave}>Cancel request</Button></>}
+      >
+        <p className="text-sm text-slate-600 dark:text-slate-300">
+          The pending request will be marked as cancelled and any open approval is withdrawn. Approved leave is not
+          cancelled from here — contact HR to adjust an approved absence.
+        </p>
       </Modal>
 
       <Modal
@@ -498,6 +711,8 @@ export default function Leave() {
           </div>
         )}
       </Modal>
-    </div>
+    </>
+  )}
+  </div>
   )
 }

@@ -14,7 +14,6 @@ import Modal from '../common/Modal';
 import FormField from '../common/FormField';
 import { useSales } from '../../context/SalesContext';
 import { useToast } from '../../context/ToastContext';
-import { TEAM_ROSTER } from '../../data/mockData';
 
 const ACTIVITY_TYPES = [
   'Customer Visit',
@@ -54,16 +53,19 @@ export default function AssignActivityModal({ isOpen, onClose, activityToEdit = 
     updateActivity,
     userProfile,
     userRole,
+    teamRoster = [],
   } = useSales();
 
   const { showToast } = useToast();
 
-  // Eligible field staff: Sales Representatives and Junior Sales Employees
+  // Eligible field staff from real team roster or active profile
   const eligibleStaff = useMemo(() => {
-    return TEAM_ROSTER.filter(
-      (m) => m.role === 'sales_rep' || m.role === 'junior_sales'
+    const list = Array.isArray(teamRoster) && teamRoster.length > 0 ? teamRoster : (userProfile ? [userProfile] : []);
+    const filtered = list.filter(
+      (m) => m.role === 'sales_rep' || m.role === 'junior_sales' || m.role === 'field_sales'
     );
-  }, []);
+    return filtered.length > 0 ? filtered : list;
+  }, [teamRoster, userProfile]);
 
   // Form states
   const [activityId, setActivityId] = useState('');

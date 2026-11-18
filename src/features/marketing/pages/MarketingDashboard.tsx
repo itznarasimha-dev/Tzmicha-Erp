@@ -54,6 +54,7 @@ import {
   useChartAnimation,
 } from '../components/charts/ChartKit'
 import { useDemoData } from '../context/DemoDataContext'
+import { useMarketingDashboard } from '../useMarketingData'
 import { aiRecommendations, priorities } from '../data/marketing/dashboard'
 import { DEMO_WORKFLOW, type WorkflowStage } from '../data/marketing/workflow'
 import { demoEmployee } from '../data/marketing/plans'
@@ -114,9 +115,17 @@ function recentMonths(count: number): MonthBucket[] {
 
 export function MarketingDashboard() {
   const navigate = useNavigate()
-  const { data } = useDemoData()
+  const { data, dataSource, syncStatus, syncError } = useDemoData()
   const chartAnim = useChartAnimation()
   const [completedPriorities, setCompletedPriorities] = useState<Set<string>>(new Set())
+
+  const dashboard = useMarketingDashboard()
+  const apiLoading = dashboard.loading
+  const apiError = dashboard.error
+  const useApi = dataSource === 'api'
+
+  // API-backed summary for KPI cards when in API mode
+  const apiSummary = useApi ? dashboard.data?.summary : null
 
   const months = useMemo(() => recentMonths(6), [])
   const monthlyLeadTarget = demoEmployee.targets.monthlyLeads
@@ -495,12 +504,60 @@ export function MarketingDashboard() {
     })
   }
 
+  // API-mode loading / error guard: never silently fall back to demo data.
+  if (useApi && apiLoading) {
+    return (
+      <div className="stack-24">
+        <PageHeader
+          eyebrow="Marketing workspace · API"
+          title="Marketing dashboard"
+          subtitle="Loading live marketing data from the API…"
+        />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="flex flex-col items-center gap-3 animate-pulse">
+            <div className="w-12 h-12 rounded-full border-4 border-brand-500 border-t-transparent" />
+            <p className="text-sm text-slate-500 dark:text-slate-400">Fetching dashboard metrics…</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (useApi && apiError) {
+    return (
+      <div className="stack-24">
+        <PageHeader
+          eyebrow="Marketing workspace · API"
+          title="Marketing dashboard"
+          subtitle="Unable to load dashboard data."
+        />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="max-w-md rounded-xl border border-rose-200 bg-rose-50 px-6 py-8 dark:border-rose-500/20 dark:bg-rose-500/10 text-center">
+            <div className="w-8 h-8 rounded-full border-4 border-rose-500 border-t-transparent mx-auto mb-3 animate-spin" />
+            <h3 className="text-lg font-semibold text-rose-900 dark:text-rose-300">Dashboard data unavailable</h3>
+            <p className="mt-2 text-sm text-rose-700 dark:text-rose-400">{apiError}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 px-4 py-2 text-sm font-semibold text-rose-600 hover:text-rose-700 dark:text-rose-300"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="stack-24">
       <PageHeader
-        eyebrow="Marketing workspace · Live demo analytics"
+        eyebrow={`Marketing workspace · ${useApi ? 'Live API' : 'Live demo analytics'}`}
         title="Marketing dashboard"
-        subtitle="A consolidated view of campaigns, leads, pipeline, customers, budgets and approvals. Metrics are calculated from the local demo records stored in this browser."
+        subtitle={
+          useApi
+            ? "A consolidated view of campaigns, leads, pipeline, customers, budgets and approvals. Metrics are calculated from live API data."
+            : "A consolidated view of campaigns, leads, pipeline, customers, budgets and approvals. Metrics are calculated from the local demo records stored in this browser."
+        }
         actions={
           <>
             <Button
@@ -528,7 +585,8 @@ export function MarketingDashboard() {
               <Radio size={13} /> {totals.active} live campaigns
             </span>
             <span className="page-meta-item">
-              <Check size={13} /> Local demo data · stored in this browser
+              <Check size={13} />
+              {useApi ? 'Live API data · server-backed' : 'Local demo data · stored in this browser'}
             </span>
           </>
         }
@@ -547,7 +605,7 @@ export function MarketingDashboard() {
         <div className="grid-kpi">
           <KpiCard
             label="Total campaigns"
-            value={totals.total}
+            value={useApi && apiSummary ? apiSummary.activeCampaigns : totals.total}
             icon={<Megaphone size={17} />}
             tone="var(--chart-1)"
             trend={{
@@ -557,28 +615,28 @@ export function MarketingDashboard() {
               ),
               label: 'campaigns started vs previous month',
             }}
-            hint="Across all channels"
+            hint={useApi && apiSummary ? 'Live API data · active campaigns' : 'Across all channels'}
             spark={campaignSpark}
             index={0}
             onClick={() => navigate('/marketing/digital/campaigns')}
           />
           <KpiCard
             label="Active campaigns"
-            value={totals.active}
+            value={useApi && apiSummary ? apiSummary.activeCampaigns : totals.active}
             icon={<Radio size={17} />}
             tone="var(--chart-2)"
-            hint={`${formatPercent((safeDivide(totals.active, totals.total) ?? 0) * 100)} of all campaigns`}
+            hint={useApi && apiSummary ? 'Live API data' : `${formatPercent((safeDivide(totals.active, totals.total) ?? 0) * 100)} of all campaigns`}
             spark={campaignSpark}
             index={1}
             onClick={() => navigate('/marketing/digital/campaigns?status=Active')}
           />
           <KpiCard
             label="Total leads"
-            value={data.leads.length}
+            value={useApi && apiSummary ? apiSummary.totalLeads : data.leads.length}
             icon={<Users size={17} />}
             tone="var(--chart-5)"
             trend={{ value: leadsDelta, label: 'new leads vs previous month' }}
-            hint="Live lead records"
+            hint={useApi && apiSummary ? 'Live API data · total leads' : 'Live lead records'}
             spark={leadSpark}
             format={formatNumber}
             index={2}
@@ -586,11 +644,11 @@ export function MarketingDashboard() {
           />
           <KpiCard
             label="Qualified leads"
-            value={leadStats.qualified}
+            value={useApi && apiSummary ? apiSummary.qualifiedLeads : leadStats.qualified}
             icon={<UserCheck size={17} />}
             tone="var(--chart-7)"
             trend={{ value: qualifiedDelta, label: 'qualified vs previous month' }}
-            hint={`${formatPercent((safeDivide(leadStats.qualified, leadStats.total) ?? 0) * 100, 1)} of lead records`}
+            hint={useApi && apiSummary ? 'Live API data · qualified leads' : `${formatPercent((safeDivide(leadStats.qualified, leadStats.total) ?? 0) * 100, 1)} of lead records`}
             spark={qualifiedSpark}
             format={formatNumber}
             index={3}
@@ -609,11 +667,11 @@ export function MarketingDashboard() {
           />
           <KpiCard
             label="Converted customers"
-            value={data.customers.length}
+            value={useApi && apiSummary ? apiSummary.convertedLeads : data.customers.length}
             icon={<BadgeCheck size={17} />}
             tone="var(--chart-4)"
             trend={{ value: conversionDelta, label: 'converted leads vs previous month' }}
-            hint="Customer records in the workspace"
+            hint={useApi && apiSummary ? 'Live API data · converted leads' : 'Customer records in the workspace'}
             spark={conversionSpark}
             format={formatNumber}
             index={5}
@@ -621,10 +679,10 @@ export function MarketingDashboard() {
           />
           <KpiCard
             label="Marketing budget"
-            value={totals.budget}
+            value={useApi && apiSummary ? apiSummary.totalBudget : totals.budget}
             icon={<CircleDollarSign size={17} />}
             tone="var(--chart-6)"
-            hint="Across all demo campaigns"
+            hint={useApi && apiSummary ? 'Live API data · total budget' : 'Across all demo campaigns'}
             spark={spendSpark}
             format={formatINRCompact}
             index={6}
@@ -632,11 +690,11 @@ export function MarketingDashboard() {
           />
           <KpiCard
             label="Actual marketing spend"
-            value={totals.spend}
+            value={useApi && apiSummary ? apiSummary.totalSpend : totals.spend}
             icon={<Wallet size={17} />}
             tone="var(--chart-5)"
             trend={{ value: spendDelta, label: 'campaign spend vs previous month', positiveIsGood: false }}
-            hint={`${formatPercent((safeDivide(totals.spend, totals.budget) ?? 0) * 100)} of budget utilised`}
+            hint={useApi && apiSummary ? 'Live API data · total spend' : `${formatPercent((safeDivide(totals.spend, totals.budget) ?? 0) * 100)} of budget utilised`}
             spark={spendSpark}
             format={formatINRCompact}
             index={7}

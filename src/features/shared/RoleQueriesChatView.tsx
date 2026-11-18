@@ -350,6 +350,8 @@ export const RoleQueriesChatView: React.FC<RoleQueriesChatViewProps> = ({ roleCo
         return <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-sky-600 text-white">Service Desk</span>;
       case 'finance':
         return <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-600 text-white">Finance Desk</span>;
+      case 'hr':
+        return <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-600 text-white">HR Workspace</span>;
       default:
         return <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-500 text-white">{role}</span>;
     }
