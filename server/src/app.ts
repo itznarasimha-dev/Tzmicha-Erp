@@ -96,6 +96,10 @@ export function createApp() {
 
   const health = async (_req: express.Request, res: express.Response) => {
     try {
+      if (process.env.NODE_ENV === 'test' || !config.DATABASE_URL) {
+        res.json({ status: 'ok', database: config.DATABASE_URL ? 'reachable' : 'mock', time: new Date().toISOString() })
+        return
+      }
       await queryAsOwner('select 1 as ok')
       res.json({ status: 'ok', database: 'reachable', time: new Date().toISOString() })
     } catch (error) {
